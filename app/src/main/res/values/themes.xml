@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.Dialer" parent="android:Theme.Material.NoActionBar" />
+</resources>
