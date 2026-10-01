@@ -1,0 +1,6 @@
+# Every Android permission the installed app may request, one per line.
+# The build fails if the APK asks for anything not listed here, so a new
+# permission (for example internet access) can never sneak in unnoticed.
+#
+# Added automatically by AndroidX so the app's own broadcast receivers stay private:
+io.github.secnewt.dialer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
