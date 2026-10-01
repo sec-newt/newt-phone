@@ -17,9 +17,16 @@ adb emu gsm cancel 5550197731
 sleep 2
 
 adb logcat -d -s SpamScreening:I | tee screening.log
-if grep -q "Incoming call" screening.log; then
-  echo "Emulator call test passed: the incoming call was screened."
-else
+if ! grep -q "Incoming call" screening.log; then
   echo "::error::The app did not screen the incoming call."
+  exit 1
+fi
+
+# The call must also be saved to the app's recent calls list.
+adb shell run-as "$pkg" cat files/screening-log.json | tee recent-calls.json
+if grep -q "5550197731" recent-calls.json; then
+  echo "Emulator call test passed: the call was screened and saved to recent calls."
+else
+  echo "::error::The call was screened but is missing from the recent calls list."
   exit 1
 fi
