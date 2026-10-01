@@ -1,7 +1,9 @@
 name: Build APK
 
 on:
+  # Pushes to main build the APK; other branches are checked through their pull request.
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
