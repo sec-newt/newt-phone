@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun SpamProtectionScreen(roleHeld: Boolean, onEnable: () -> Unit) {
+internal fun SpamProtectionScreen(roleHeld: Boolean, onEnable: () -> Unit) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier

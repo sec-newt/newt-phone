@@ -36,9 +36,12 @@ private val LightColors = lightColorScheme(
 )
 
 @Composable
-fun DialerTheme(content: @Composable () -> Unit) {
+fun DialerTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit,
+) {
     MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors,
+        colorScheme = if (darkTheme) DarkColors else LightColors,
         content = content,
     )
 }
