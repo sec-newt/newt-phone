@@ -30,12 +30,29 @@ Android emulator, made the call screening app, and receives a fake call.
 Dependabot opens pull requests for dependency updates and security fixes; they
 go through the same checks.
 
-## Getting the APK
+## Installing
 
-Every push builds a debug APK on GitHub Actions, but only if all checks pass. Open the **Actions** tab, pick
-the latest **Build APK** run, and download `dialer-debug-apk` from the
-**Artifacts** section. Unzip it and install the `.apk` on the phone.
+Every change merged into `main` that passes all checks is published as a
+signed release. Open the repo's **Releases** page (on a phone: the **Code**
+tab, then scroll to **Releases**), tap the newest one, and tap the
+`dialer-0.1.N.apk` file to install it. Each release installs over the
+previous one, and the app's data is kept.
 
-Until a permanent signing key is set up, each build may be signed with a
-different debug key, so you may need to uninstall the old version before
-installing a new one.
+Test builds from pull requests are named **Dialer (test)** and install
+alongside the real app. They're under the **Actions** tab, in the run's
+**Artifacts** section, as a zip containing the APK.
+
+## Release signing
+
+Releases are signed with a private key that lives only in two GitHub
+secrets (**Settings → Secrets and variables → Actions**):
+
+| Secret | Contents |
+| --- | --- |
+| `SIGNING_KEYSTORE_BASE64` | The keystore file (`release.p12`), base64-encoded |
+| `SIGNING_PASSWORD` | Its password (the key alias is `dialer`) |
+
+Keep an offline backup of the keystore and password. Android only installs
+an update when it's signed with the same key, so if the key is lost, the
+app has to be uninstalled and reinstalled once with a new one. Without
+these secrets, the build still runs and skips publishing a release.

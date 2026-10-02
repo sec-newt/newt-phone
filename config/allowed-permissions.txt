@@ -4,3 +4,4 @@
 #
 # Added automatically by AndroidX so the app's own broadcast receivers stay private:
 io.github.secnewt.dialer.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+io.github.secnewt.dialer.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
