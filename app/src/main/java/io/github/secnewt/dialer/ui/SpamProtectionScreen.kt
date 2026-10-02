@@ -1,0 +1,178 @@
+package io.github.secnewt.dialer.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import io.github.secnewt.dialer.screening.ScreenedCall
+import io.github.secnewt.dialer.screening.Verification
+import java.time.ZonedDateTime
+
+@Composable
+fun SpamProtectionScreen(
+    roleHeld: Boolean,
+    recentCalls: List<ScreenedCall>,
+    onEnable: () -> Unit,
+    now: ZonedDateTime = ZonedDateTime.now(),
+) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        LazyColumn(
+            modifier = Modifier.safeDrawingPadding(),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            item {
+                Text(
+                    text = "Spam protection",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
+            item { StatusCard(roleHeld) }
+            if (!roleHeld) {
+                item {
+                    Button(
+                        onClick = onEnable,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp),
+                    ) {
+                        Text("Turn on spam protection", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+            item {
+                Text(
+                    text = "Recent calls",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .semantics { heading() },
+                )
+            }
+            if (recentCalls.isEmpty()) {
+                item {
+                    Text(
+                        text = if (roleHeld) {
+                            "No calls yet. Calls you receive will show up here."
+                        } else {
+                            "Calls will show up here once spam protection is on."
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                items(recentCalls) { call ->
+                    CallRow(call, now)
+                    HorizontalDivider(modifier = Modifier.padding(top = 16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusCard(roleHeld: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = if (roleHeld) "On" else "Off",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = if (roleHeld) {
+                    "This app checks incoming calls before they ring. " +
+                        "For now every call is allowed while the rules are built."
+                } else {
+                    "Set this app as your Caller ID & spam app so it can check calls before they ring."
+                },
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun CallRow(call: ScreenedCall, now: ZonedDateTime) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = formatCaller(call.number),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = formatCallTime(call.timeMillis, now),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        VerificationLabel(call.verification)
+    }
+}
+
+@Composable
+private fun VerificationLabel(verification: Verification) {
+    val (icon: ImageVector, tint: Color, label: String) = when (verification) {
+        Verification.PASSED -> Triple(
+            Icons.Filled.CheckCircle, MaterialTheme.colorScheme.primary, "Verified by carrier",
+        )
+        Verification.FAILED -> Triple(
+            Icons.Filled.Warning, MaterialTheme.colorScheme.error, "Failed carrier verification",
+        )
+        Verification.NONE -> Triple(
+            Icons.Filled.Info, MaterialTheme.colorScheme.onSurfaceVariant, "Not verified by carrier",
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // The word carries the meaning; the icon and color only reinforce it.
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}

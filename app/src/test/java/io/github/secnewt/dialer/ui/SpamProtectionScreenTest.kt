@@ -12,13 +12,17 @@ import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityChecker
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.checkRoboAccessibility
-import io.github.secnewt.dialer.SpamProtectionScreen
+import io.github.secnewt.dialer.screening.Decision
+import io.github.secnewt.dialer.screening.ScreenedCall
+import io.github.secnewt.dialer.screening.Verification
 import io.github.secnewt.dialer.ui.theme.DialerTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /**
  * Draws each screen in light and dark themes and at the largest font size,
@@ -34,12 +38,34 @@ class SpamProtectionScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun render(name: String, roleHeld: Boolean, dark: Boolean, fontScale: Float = 1f) {
+    private val now = ZonedDateTime.of(2026, 10, 1, 18, 0, 0, 0, ZoneId.of("America/Chicago"))
+
+    private fun at(hoursAgo: Long) = now.minusHours(hoursAgo).toInstant().toEpochMilli()
+
+    private val sampleCalls = listOf(
+        ScreenedCall(at(1), "5550197731", Verification.FAILED, Decision.ALLOWED),
+        ScreenedCall(at(3), "+15550142290", Verification.PASSED, Decision.ALLOWED),
+        ScreenedCall(at(20), null, Verification.NONE, Decision.ALLOWED),
+        ScreenedCall(at(30), "8005550000", Verification.NONE, Decision.ALLOWED),
+    )
+
+    private fun render(
+        name: String,
+        roleHeld: Boolean,
+        calls: List<ScreenedCall>,
+        dark: Boolean,
+        fontScale: Float = 1f,
+    ) {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 DialerTheme(darkTheme = dark) {
-                    SpamProtectionScreen(roleHeld = roleHeld, onEnable = {})
+                    SpamProtectionScreen(
+                        roleHeld = roleHeld,
+                        recentCalls = calls,
+                        onEnable = {},
+                        now = now,
+                    )
                 }
             }
         }
@@ -52,19 +78,30 @@ class SpamProtectionScreenTest {
     }
 
     @Test
-    fun offLight() = render("spam-protection_off_light", roleHeld = false, dark = false)
+    fun offLight() = render("spam-protection_off_light", roleHeld = false, calls = emptyList(), dark = false)
 
     @Test
-    fun offDark() = render("spam-protection_off_dark", roleHeld = false, dark = true)
+    fun offDark() = render("spam-protection_off_dark", roleHeld = false, calls = emptyList(), dark = true)
 
     @Test
-    fun onLight() = render("spam-protection_on_light", roleHeld = true, dark = false)
+    fun onNoCallsLight() =
+        render("spam-protection_on_no-calls_light", roleHeld = true, calls = emptyList(), dark = false)
 
     @Test
-    fun offLargestFont() =
-        render("spam-protection_off_light_font200", roleHeld = false, dark = false, fontScale = 2f)
+    fun onWithCallsLight() =
+        render("spam-protection_on_calls_light", roleHeld = true, calls = sampleCalls, dark = false)
 
     @Test
-    fun onDarkLargestFont() =
-        render("spam-protection_on_dark_font200", roleHeld = true, dark = true, fontScale = 2f)
+    fun onWithCallsDark() =
+        render("spam-protection_on_calls_dark", roleHeld = true, calls = sampleCalls, dark = true)
+
+    @Test
+    fun offLargestFont() = render(
+        "spam-protection_off_light_font200", roleHeld = false, calls = emptyList(), dark = false, fontScale = 2f,
+    )
+
+    @Test
+    fun onWithCallsDarkLargestFont() = render(
+        "spam-protection_on_calls_dark_font200", roleHeld = true, calls = sampleCalls, dark = true, fontScale = 2f,
+    )
 }
