@@ -3,7 +3,7 @@
 # places a fake incoming call, and checks the app screened it.
 set -euo pipefail
 
-pkg="io.github.secnewt.dialer"
+pkg="io.github.secnewt.dialer.debug"
 adb install -r app-debug.apk
 
 adb shell cmd role add-role-holder android.app.role.CALL_SCREENING "$pkg"

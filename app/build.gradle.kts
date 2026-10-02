@@ -5,6 +5,12 @@ plugins {
     alias(libs.plugins.roborazzi)
 }
 
+// Each CI build gets a higher version number, so a new APK installs over the old one.
+val buildNumber = System.getenv("VERSION_CODE")?.toInt() ?: 1
+
+// The release signing key only exists on GitHub (as a secret) and is never committed.
+val releaseKeystore = System.getenv("SIGNING_KEYSTORE_PATH")
+
 android {
     namespace = "io.github.secnewt.dialer"
     compileSdk = 35
@@ -14,13 +20,29 @@ android {
         // Android 11: needed for caller ID verification status (STIR/SHAKEN).
         minSdk = 30
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = buildNumber
+        versionName = "0.1.$buildNumber"
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("SIGNING_PASSWORD")
+                keyAlias = "dialer"
+                keyPassword = System.getenv("SIGNING_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+        }
+        debug {
+            // Test builds install alongside the real app instead of clashing with it.
+            applicationIdSuffix = ".debug"
         }
     }
 
