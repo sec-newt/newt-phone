@@ -89,8 +89,9 @@ jobs:
 
   release:
     name: Publish signed release
-    # Only changes merged into main become releases, and only after every check passed.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Only main becomes a release, and only after every check passed. It can also be
+    # started by hand from the Actions tab ("Run workflow") to re-publish main.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: [checks, secrets-scan, apk]
     runs-on: ubuntu-latest
     permissions:
@@ -107,7 +108,18 @@ jobs:
         id: key
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+          # Only checked to explain a missing key; a keystore must never be a plain variable.
+          KEYSTORE_IN_VARIABLES: ${{ vars.SIGNING_KEYSTORE_BASE64 != '' }}
+          PASSWORD_IN_VARIABLES: ${{ vars.SIGNING_PASSWORD != '' }}
         run: |
+          # Report what reached this job without printing any secret value.
+          present() { [ -n "$1" ] && echo "found (${#1} characters)" || echo "MISSING"; }
+          echo "Repository secret SIGNING_KEYSTORE_BASE64: $(present "$SIGNING_KEYSTORE_BASE64")"
+          echo "Repository secret SIGNING_PASSWORD: $(present "$SIGNING_PASSWORD")"
+          if [ "$KEYSTORE_IN_VARIABLES" = "true" ] || [ "$PASSWORD_IN_VARIABLES" = "true" ]; then
+            echo "::warning::A signing value was saved as a Variable instead of a Secret. Delete it from the Variables tab and add it as a Repository secret."
+          fi
           if [ -z "$SIGNING_KEYSTORE_BASE64" ]; then
             echo "::warning::No signing key is set up yet, so no release was published. See README.md."
             echo "ready=false" >> "$GITHUB_OUTPUT"
