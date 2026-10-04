@@ -8,15 +8,16 @@ import java.io.File
 /** Whether the carrier vouched for the caller ID (STIR/SHAKEN). */
 enum class Verification { PASSED, FAILED, NONE }
 
-/** What the app did with the call. Only ALLOWED for now; blocking comes later. */
-enum class Decision { ALLOWED }
-
 data class ScreenedCall(
     val timeMillis: Long,
     /** The caller's number, or null when it was hidden. */
     val number: String?,
     val verification: Verification,
-    val decision: Decision,
+    /** What the rules decided for this call. */
+    val action: CallAction = CallAction.RING,
+    val reason: Reason = Reason.NONE,
+    /** False in observe-only mode: the call rang, and [action] is what would have happened. */
+    val enforced: Boolean = false,
 )
 
 /**
@@ -57,14 +58,19 @@ class ScreeningLog(private val file: File, private val maxEntries: Int = MAX_ENT
         put("time", timeMillis)
         put("number", number ?: JSONObject.NULL)
         put("verification", verification.name)
-        put("decision", decision.name)
+        put("action", action.name)
+        put("reason", reason.name)
+        put("enforced", enforced)
     }
 
     private fun JSONObject.toCall() = ScreenedCall(
         timeMillis = getLong("time"),
         number = if (isNull("number")) null else getString("number"),
         verification = Verification.valueOf(getString("verification")),
-        decision = Decision.valueOf(getString("decision")),
+        // Entries saved before the rules existed have none of these fields: they simply rang.
+        action = CallAction.valueOf(optString("action", CallAction.RING.name)),
+        reason = Reason.valueOf(optString("reason", Reason.NONE.name)),
+        enforced = optBoolean("enforced", false),
     )
 
     companion object {

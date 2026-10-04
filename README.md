@@ -8,8 +8,20 @@ See [PLAN.md](PLAN.md) for the full plan and roadmap.
 
 ## Status
 
-Phase 1 skeleton. The app can take the "Caller ID & spam app" role and logs
-whether the carrier verified each incoming call. It does not block anything yet.
+Phase 1. The app takes the "Caller ID & spam app" role and checks calls from
+unknown numbers before they ring:
+
+- **Spam settings:** a protection level (Off, Balanced, Strict) and three plain
+  choices (Ring, Silence or Block) for likely spam, hidden numbers and copycat
+  numbers.
+- **Block list:** exact numbers or "numbers starting with", added from the
+  settings or straight from Recent calls.
+- **Observe only (on by default):** every call rings, and Recent calls show
+  what would have been silenced or blocked, and why. Turn it off in the
+  settings once the labels look right.
+- **Recent calls:** time, number, carrier verification and the outcome.
+
+Calls from contacts are never sent to the app, so they always ring.
 
 ## Automatic checks
 
