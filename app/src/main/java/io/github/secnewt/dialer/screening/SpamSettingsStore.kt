@@ -2,6 +2,8 @@ package io.github.secnewt.dialer.screening
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.secnewt.dialer.announce.AnnounceMode
+import io.github.secnewt.dialer.announce.AnnounceSettings
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -63,6 +65,21 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
         prefs.edit().putString(KEY_BLOCK_RULES, array.toString()).apply()
     }
 
+    fun announceSettings(): AnnounceSettings {
+        val defaults = AnnounceSettings()
+        return AnnounceSettings(
+            mode = enumOr(prefs.getString(KEY_ANNOUNCE_MODE, null), defaults.mode),
+            quietDuringDnd = prefs.getBoolean(KEY_QUIET_DURING_DND, defaults.quietDuringDnd),
+        )
+    }
+
+    fun saveAnnounceSettings(settings: AnnounceSettings) {
+        prefs.edit()
+            .putString(KEY_ANNOUNCE_MODE, settings.mode.name)
+            .putBoolean(KEY_QUIET_DURING_DND, settings.quietDuringDnd)
+            .apply()
+    }
+
     private inline fun <reified T : Enum<T>> enumOr(name: String?, default: T): T =
         name?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default
 
@@ -75,6 +92,8 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
         const val KEY_OBSERVE_ONLY = "observe_only"
         const val KEY_MY_NUMBER = "my_number"
         const val KEY_BLOCK_RULES = "block_rules"
+        const val KEY_ANNOUNCE_MODE = "announce_mode"
+        const val KEY_QUIET_DURING_DND = "quiet_during_dnd"
         const val TYPE_NUMBER = "number"
         const val TYPE_STARTS_WITH = "starts_with"
     }

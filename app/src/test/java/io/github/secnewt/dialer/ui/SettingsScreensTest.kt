@@ -13,6 +13,8 @@ import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityChecker
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.checkRoboAccessibility
+import io.github.secnewt.dialer.announce.AnnounceMode
+import io.github.secnewt.dialer.announce.AnnounceSettings
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
@@ -56,8 +58,15 @@ class SettingsScreensTest {
     private val rules = listOf(BlockRule.Number("5550197731"), BlockRule.StartsWith("800555"))
 
     @Composable
-    private fun Settings(settings: SpamSettings) =
-        SpamSettingsScreen(settings, blockListSize = 2, onSettingsChange = {}, onOpenBlockList = {}, onBack = {})
+    private fun Settings(settings: SpamSettings, announce: AnnounceSettings = AnnounceSettings()) =
+        SpamSettingsScreen(
+            settings,
+            blockListSize = 2,
+            onSettingsChange = {},
+            onOpenBlockList = {},
+            onBack = {},
+            announce = announce,
+        )
 
     @Test
     fun settingsDefaultLight() = render("settings_default_light", dark = false) { Settings(SpamSettings()) }
@@ -68,6 +77,16 @@ class SettingsScreensTest {
     @Test
     fun settingsLargestFont() = render("settings_default_light_font200", dark = false, fontScale = 2f) {
         Settings(SpamSettings())
+    }
+
+    @Test
+    fun settingsAnnounceOnLight() = render("settings_announce-on_light", dark = false) {
+        Settings(SpamSettings(), AnnounceSettings(mode = AnnounceMode.ALWAYS))
+    }
+
+    @Test
+    fun settingsAnnounceOnDarkLargestFont() = render("settings_announce-on_dark_font200", dark = true, fontScale = 2f) {
+        Settings(SpamSettings(), AnnounceSettings(mode = AnnounceMode.HEADPHONES_ONLY))
     }
 
     @Test

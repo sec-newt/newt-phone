@@ -3,6 +3,8 @@ package io.github.secnewt.dialer.screening
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.secnewt.dialer.announce.AnnounceMode
+import io.github.secnewt.dialer.announce.AnnounceSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,6 +30,14 @@ class SpamSettingsStoreTest {
             .withHiddenNumbers(CallAction.RING)
         store.saveSettings(settings)
         assertEquals(settings, store.settings())
+    }
+
+    @Test
+    fun `announcement is off by default and survives a save and load`() {
+        assertEquals(AnnounceSettings(), store.announceSettings())
+        val settings = AnnounceSettings(mode = AnnounceMode.HEADPHONES_ONLY, quietDuringDnd = false)
+        store.saveAnnounceSettings(settings)
+        assertEquals(settings, store.announceSettings())
     }
 
     @Test

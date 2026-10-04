@@ -20,6 +20,12 @@ unknown numbers before they ring:
   what would have been silenced or blocked, and why. Turn it off in the
   settings once the labels look right.
 - **Recent calls:** time, number, carrier verification and the outcome.
+- **Caller announcement (off by default):** the phone says "Call from Mom",
+  "Call from 5 5 5, 0 1 9…" or "Likely spam, from …" while it rings. Choose
+  Always or With headphones; it stays quiet on a silenced phone and, by
+  default, during Do Not Disturb. Turning it on asks for Phone, Call log and
+  Contacts access, used only on the phone. Needs a text-to-speech voice
+  (for example RHVoice or eSpeak NG from F-Droid).
 
 Calls from contacts are never sent to the app, so they always ring.
 

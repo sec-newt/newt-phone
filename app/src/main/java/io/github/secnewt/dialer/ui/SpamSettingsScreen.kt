@@ -21,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
@@ -41,6 +42,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import io.github.secnewt.dialer.announce.AnnounceMode
+import io.github.secnewt.dialer.announce.AnnounceSettings
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
 import io.github.secnewt.dialer.screening.SpamSettings
@@ -60,8 +63,14 @@ fun SpamSettingsScreen(
     onSettingsChange: (SpamSettings) -> Unit,
     onOpenBlockList: () -> Unit,
     onBack: () -> Unit,
+    announce: AnnounceSettings = AnnounceSettings(),
+    announceMessage: String? = null,
+    onAnnounceModeChange: (AnnounceMode) -> Unit = {},
+    onQuietDuringDndChange: (Boolean) -> Unit = {},
+    onTestAnnouncement: () -> Unit = {},
 ) {
     var choosing by remember { mutableStateOf<CallerType?>(null) }
+    var choosingAnnounce by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
@@ -133,7 +142,30 @@ fun SpamSettingsScreen(
                     onClick = onOpenBlockList,
                 )
             }
+
+            item {
+                AnnounceSection(
+                    announce = announce,
+                    message = announceMessage,
+                    onChooseMode = { choosingAnnounce = true },
+                    onQuietDuringDndChange = onQuietDuringDndChange,
+                    onTest = onTestAnnouncement,
+                )
+            }
         }
+    }
+
+    if (choosingAnnounce) {
+        ChoiceDialog(
+            title = "Announce callers",
+            options = AnnounceMode.entries.map { it to (announceModeName(it) to announceModeExplanation(it)) },
+            current = announce.mode,
+            onChoose = {
+                onAnnounceModeChange(it)
+                choosingAnnounce = false
+            },
+            onDismiss = { choosingAnnounce = false },
+        )
     }
 
     choosing?.let { type ->
@@ -142,8 +174,9 @@ fun SpamSettingsScreen(
             CallerType.HIDDEN -> settings.hiddenNumbers
             CallerType.COPYCAT -> settings.copycatNumbers
         }
-        ActionChoiceDialog(
+        ChoiceDialog(
             title = type.title,
+            options = CallAction.entries.map { it to (actionLabel(it) to actionExplanation(it)) },
             current = current,
             onChoose = { action ->
                 onSettingsChange(
@@ -216,10 +249,11 @@ fun NavigationRow(title: String, value: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ActionChoiceDialog(
+private fun <T> ChoiceDialog(
     title: String,
-    current: CallAction,
-    onChoose: (CallAction) -> Unit,
+    options: List<Pair<T, Pair<String, String>>>,
+    current: T,
+    onChoose: (T) -> Unit,
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
@@ -228,23 +262,24 @@ private fun ActionChoiceDialog(
         text = {
             Column(Modifier.selectableGroup()) {
                 Text("What should happen?", style = MaterialTheme.typography.bodyLarge)
-                CallAction.entries.forEach { action ->
+                options.forEach { (option, words) ->
+                    val (label, explanation) = words
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 64.dp)
                             .selectable(
-                                selected = action == current,
+                                selected = option == current,
                                 role = Role.RadioButton,
-                                onClick = { onChoose(action) },
+                                onClick = { onChoose(option) },
                             ),
                     ) {
-                        RadioButton(selected = action == current, onClick = null)
+                        RadioButton(selected = option == current, onClick = null)
                         Column(modifier = Modifier.padding(start = 16.dp)) {
-                            Text(actionLabel(action), style = MaterialTheme.typography.titleMedium)
+                            Text(label, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                text = actionExplanation(action),
+                                text = explanation,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -255,6 +290,74 @@ private fun ActionChoiceDialog(
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
     )
+}
+
+@Composable
+private fun AnnounceSection(
+    announce: AnnounceSettings,
+    message: String?,
+    onChooseMode: () -> Unit,
+    onQuietDuringDndChange: (Boolean) -> Unit,
+    onTest: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionLabel("Announce callers")
+        Text(
+            text = "Your phone says who is calling, like \"Call from Mom\" or \"Likely spam\".",
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        NavigationRow(title = "Announce", value = announceModeName(announce.mode), onClick = onChooseMode)
+        if (announce.mode != AnnounceMode.OFF) {
+            HorizontalDivider()
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .toggleable(
+                        value = announce.quietDuringDnd,
+                        role = Role.Switch,
+                        onValueChange = onQuietDuringDndChange,
+                    ),
+            ) {
+                Text(
+                    text = "Stay quiet during Do Not Disturb",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(checked = announce.quietDuringDnd, onCheckedChange = null)
+            }
+            OutlinedButton(
+                onClick = onTest,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp),
+            ) {
+                Text("Play a test announcement", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+        message?.let {
+            Text(text = it, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        }
+        Text(
+            text = "Turning this on asks for Phone, Call log and Contacts access, " +
+                "used only on this phone to read the caller's name. The app has no internet access.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+private fun announceModeName(mode: AnnounceMode) = when (mode) {
+    AnnounceMode.OFF -> "Off"
+    AnnounceMode.ALWAYS -> "Always"
+    AnnounceMode.HEADPHONES_ONLY -> "With headphones"
+}
+
+private fun announceModeExplanation(mode: AnnounceMode) = when (mode) {
+    AnnounceMode.OFF -> "Calls ring as usual"
+    AnnounceMode.ALWAYS -> "Out loud when the ringer is on, and in headphones"
+    AnnounceMode.HEADPHONES_ONLY -> "Only in wired or Bluetooth headphones"
 }
 
 private fun levelName(level: ProtectionLevel) = when (level) {
