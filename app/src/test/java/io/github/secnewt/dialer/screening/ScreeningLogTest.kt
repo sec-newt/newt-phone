@@ -18,7 +18,7 @@ class ScreeningLogTest {
     val folder = TemporaryFolder()
 
     private fun call(time: Long, number: String? = "5550197731") =
-        ScreenedCall(time, number, Verification.NONE, Decision.ALLOWED)
+        ScreenedCall(time, number, Verification.NONE)
 
     @Test
     fun `starts empty`() {
@@ -36,8 +36,8 @@ class ScreeningLogTest {
     @Test
     fun `keeps every field, including hidden numbers`() {
         val log = ScreeningLog(File(folder.root, "log.json"))
-        val verified = ScreenedCall(5, "+15550142290", Verification.PASSED, Decision.ALLOWED)
-        val hidden = ScreenedCall(6, null, Verification.FAILED, Decision.ALLOWED)
+        val verified = ScreenedCall(5, "+15550142290", Verification.PASSED)
+        val hidden = ScreenedCall(6, null, Verification.FAILED, CallAction.BLOCK, Reason.HIDDEN_NUMBER, enforced = true)
         log.add(verified)
         log.add(hidden)
         assertEquals(listOf(hidden, verified), log.read())
@@ -55,6 +55,14 @@ class ScreeningLogTest {
         val log = ScreeningLog(File(folder.root, "log.json"), maxEntries = 3)
         (1L..5L).forEach { log.add(call(it)) }
         assertEquals(listOf(5L, 4L, 3L), log.read().map { it.timeMillis })
+    }
+
+    @Test
+    fun `calls saved before the rules existed still load, as calls that rang`() {
+        val file = File(folder.root, "log.json").apply {
+            writeText("""[{"time":9,"number":"5550197731","verification":"NONE","decision":"ALLOWED"}]""")
+        }
+        assertEquals(listOf(ScreenedCall(9, "5550197731", Verification.NONE)), ScreeningLog(file).read())
     }
 
     @Test

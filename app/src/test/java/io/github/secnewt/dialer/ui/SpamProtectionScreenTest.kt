@@ -12,7 +12,9 @@ import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityChecker
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.checkRoboAccessibility
-import io.github.secnewt.dialer.screening.Decision
+import io.github.secnewt.dialer.screening.BlockRule
+import io.github.secnewt.dialer.screening.CallAction
+import io.github.secnewt.dialer.screening.Reason
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.Verification
 import io.github.secnewt.dialer.ui.theme.DialerTheme
@@ -43,10 +45,10 @@ class SpamProtectionScreenTest {
     private fun at(hoursAgo: Long) = now.minusHours(hoursAgo).toInstant().toEpochMilli()
 
     private val sampleCalls = listOf(
-        ScreenedCall(at(1), "5550197731", Verification.FAILED, Decision.ALLOWED),
-        ScreenedCall(at(3), "+15550142290", Verification.PASSED, Decision.ALLOWED),
-        ScreenedCall(at(20), null, Verification.NONE, Decision.ALLOWED),
-        ScreenedCall(at(30), "8005550000", Verification.NONE, Decision.ALLOWED),
+        ScreenedCall(at(1), "5550197731", Verification.FAILED, CallAction.SILENCE, Reason.FAILED_VERIFICATION),
+        ScreenedCall(at(3), "+15550142290", Verification.PASSED),
+        ScreenedCall(at(20), null, Verification.NONE, CallAction.SILENCE, Reason.HIDDEN_NUMBER),
+        ScreenedCall(at(30), "8005550000", Verification.NONE, CallAction.BLOCK, Reason.BLOCK_LIST, enforced = true),
     )
 
     private fun render(
@@ -65,6 +67,7 @@ class SpamProtectionScreenTest {
                         recentCalls = calls,
                         onEnable = {},
                         now = now,
+                        blockRules = listOf(BlockRule.Number("8005550000")),
                     )
                 }
             }
