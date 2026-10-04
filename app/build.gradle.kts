@@ -12,7 +12,7 @@ val releaseKeystore = System.getenv("SIGNING_KEYSTORE_PATH")
 
 android {
     namespace = "io.github.secnewt.dialer"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.secnewt.dialer"
