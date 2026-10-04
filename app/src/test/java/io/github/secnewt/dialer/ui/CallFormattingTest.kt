@@ -1,6 +1,11 @@
 package io.github.secnewt.dialer.ui
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.secnewt.dialer.screening.BlockRule
+import io.github.secnewt.dialer.screening.CallAction
+import io.github.secnewt.dialer.screening.Reason
+import io.github.secnewt.dialer.screening.ScreenedCall
+import io.github.secnewt.dialer.screening.Verification
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,6 +49,29 @@ class CallFormattingTest {
     fun `hidden numbers say so`() {
         assertEquals("Hidden number", formatCaller(null))
         assertEquals("Hidden number", formatCaller(""))
+    }
+
+    @Test
+    fun `calls that rang get no outcome label`() {
+        assertEquals(null, outcomeLabel(ScreenedCall(1, "5550197731", Verification.NONE)))
+    }
+
+    @Test
+    fun `observe-only calls say what would have happened`() {
+        val call = ScreenedCall(1, null, Verification.NONE, CallAction.SILENCE, Reason.HIDDEN_NUMBER, enforced = false)
+        assertEquals("Would silence: hidden number", outcomeLabel(call))
+    }
+
+    @Test
+    fun `enforced calls say what happened`() {
+        val call = ScreenedCall(1, "5550197731", Verification.NONE, CallAction.BLOCK, Reason.BLOCK_LIST, enforced = true)
+        assertEquals("Blocked: on your block list", outcomeLabel(call))
+    }
+
+    @Test
+    fun `block rules read plainly`() {
+        assertEquals("(555) 019-7731", ruleLabel(BlockRule.Number("5550197731")))
+        assertEquals("Numbers starting with 800555", ruleLabel(BlockRule.StartsWith("800555")))
     }
 
     // Newer Java versions put a narrow no-break space before AM/PM.

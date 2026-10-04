@@ -1,6 +1,10 @@
 package io.github.secnewt.dialer.ui
 
 import android.telephony.PhoneNumberUtils
+import io.github.secnewt.dialer.screening.BlockRule
+import io.github.secnewt.dialer.screening.CallAction
+import io.github.secnewt.dialer.screening.Reason
+import io.github.secnewt.dialer.screening.ScreenedCall
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -24,4 +28,38 @@ fun formatCallTime(timeMillis: Long, now: ZonedDateTime): String {
         else -> time.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
     }
     return "$day, $clock"
+}
+
+/** "Ring", "Silence" or "Block". */
+fun actionLabel(action: CallAction): String = when (action) {
+    CallAction.RING -> "Ring"
+    CallAction.SILENCE -> "Silence"
+    CallAction.BLOCK -> "Block"
+}
+
+/**
+ * What happened to a screened call, e.g. "Blocked: on your block list" or, in
+ * observe-only mode, "Would silence: hidden number". Null when it simply rang.
+ */
+fun outcomeLabel(call: ScreenedCall): String? {
+    if (call.action == CallAction.RING) return null
+    val verb = when (call.action) {
+        CallAction.SILENCE -> if (call.enforced) "Silenced" else "Would silence"
+        CallAction.BLOCK -> if (call.enforced) "Blocked" else "Would block"
+        CallAction.RING -> return null
+    }
+    val why = when (call.reason) {
+        Reason.BLOCK_LIST -> "on your block list"
+        Reason.HIDDEN_NUMBER -> "hidden number"
+        Reason.COPYCAT -> "copies your number"
+        Reason.FAILED_VERIFICATION -> "failed carrier verification"
+        Reason.NONE -> return verb
+    }
+    return "$verb: $why"
+}
+
+/** "(555) 019-7731" or "Numbers starting with 800 555". */
+fun ruleLabel(rule: BlockRule): String = when (rule) {
+    is BlockRule.Number -> formatCaller(rule.number)
+    is BlockRule.StartsWith -> "Numbers starting with ${rule.digits}"
 }
