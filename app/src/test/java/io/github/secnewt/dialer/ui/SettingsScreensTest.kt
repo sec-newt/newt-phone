@@ -3,7 +3,9 @@ package io.github.secnewt.dialer.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -26,7 +28,7 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Screenshots and accessibility checks for the spam settings and block list screens. */
+/** Screenshots and accessibility checks for the settings and block list screens. */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = RobolectricDeviceQualifiers.Pixel7)
@@ -102,5 +104,12 @@ class SettingsScreensTest {
     @Test
     fun blockListLargestFont() = render("block-list_light_font200", dark = false, fontScale = 2f) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {})
+    }
+
+    @Test
+    fun announcementIsTheFirstSection() {
+        composeRule.setContent { DialerTheme(darkTheme = false) { Settings(SpamSettings()) } }
+        composeRule.onNodeWithText("Caller announcement").assertIsDisplayed()
+        composeRule.onNodeWithText("Announce").assertIsDisplayed()
     }
 }

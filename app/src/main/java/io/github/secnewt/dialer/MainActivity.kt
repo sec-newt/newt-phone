@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
                         recentCalls = recentCalls,
                         observeOnly = settings.observeOnly,
                         blockRules = blockRules,
+                        announceMode = announce.mode,
                         onEnable = {
                             requestRole.launch(
                                 roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)

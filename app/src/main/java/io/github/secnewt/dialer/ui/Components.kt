@@ -45,3 +45,15 @@ fun SectionLabel(text: String, modifier: Modifier = Modifier) {
         modifier = modifier.semantics { heading() },
     )
 }
+
+/** Large heading that starts a group of settings. */
+@Composable
+fun SectionHeading(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier.semantics { heading() },
+    )
+}

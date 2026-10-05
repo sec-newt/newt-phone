@@ -78,7 +78,20 @@ fun SpamSettingsScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            item { ScreenHeader("Spam protection", onBack) }
+            item { ScreenHeader("Settings", onBack) }
+
+            item { SectionHeading("Caller announcement") }
+            item {
+                AnnounceSection(
+                    announce = announce,
+                    message = announceMessage,
+                    onChooseMode = { choosingAnnounce = true },
+                    onQuietDuringDndChange = onQuietDuringDndChange,
+                    onTest = onTestAnnouncement,
+                )
+            }
+
+            item { SectionHeading("Spam protection", modifier = Modifier.padding(top = 16.dp)) }
 
             item { ObserveOnlyCard(settings.observeOnly) { onSettingsChange(settings.copy(observeOnly = it)) } }
 
@@ -135,6 +148,8 @@ fun SpamSettingsScreen(
                 }
             }
 
+            item { SectionHeading("Block list", modifier = Modifier.padding(top = 16.dp)) }
+
             item {
                 NavigationRow(
                     title = "My block list",
@@ -143,15 +158,6 @@ fun SpamSettingsScreen(
                 )
             }
 
-            item {
-                AnnounceSection(
-                    announce = announce,
-                    message = announceMessage,
-                    onChooseMode = { choosingAnnounce = true },
-                    onQuietDuringDndChange = onQuietDuringDndChange,
-                    onTest = onTestAnnouncement,
-                )
-            }
         }
     }
 
@@ -301,7 +307,6 @@ private fun AnnounceSection(
     onTest: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionLabel("Announce callers")
         Text(
             text = "Your phone says who is calling, like \"Call from Mom\" or \"Likely spam\".",
             style = MaterialTheme.typography.bodyLarge,
@@ -348,7 +353,7 @@ private fun AnnounceSection(
     }
 }
 
-private fun announceModeName(mode: AnnounceMode) = when (mode) {
+internal fun announceModeName(mode: AnnounceMode) = when (mode) {
     AnnounceMode.OFF -> "Off"
     AnnounceMode.ALWAYS -> "Always"
     AnnounceMode.HEADPHONES_ONLY -> "With headphones"
