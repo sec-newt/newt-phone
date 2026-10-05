@@ -122,7 +122,7 @@ fun SpamProtectionScreen(
                         .fillMaxWidth()
                         .heightIn(min = 56.dp),
                 ) {
-                    Text("Settings", style = MaterialTheme.typography.titleMedium)
+                    Text("Settings and block list", style = MaterialTheme.typography.titleMedium)
                 }
             }
             item {
