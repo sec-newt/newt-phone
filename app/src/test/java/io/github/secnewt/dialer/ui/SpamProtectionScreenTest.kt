@@ -2,7 +2,12 @@ package io.github.secnewt.dialer.ui
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -12,12 +17,14 @@ import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityChecker
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.checkRoboAccessibility
+import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.Reason
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.Verification
 import io.github.secnewt.dialer.ui.theme.DialerTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -57,6 +64,7 @@ class SpamProtectionScreenTest {
         calls: List<ScreenedCall>,
         dark: Boolean,
         fontScale: Float = 1f,
+        announceMode: AnnounceMode = AnnounceMode.OFF,
     ) {
         composeRule.setContent {
             val density = LocalDensity.current
@@ -68,6 +76,7 @@ class SpamProtectionScreenTest {
                         onEnable = {},
                         now = now,
                         blockRules = listOf(BlockRule.Number("8005550000")),
+                        announceMode = announceMode,
                     )
                 }
             }
@@ -107,4 +116,31 @@ class SpamProtectionScreenTest {
     fun onWithCallsDarkLargestFont() = render(
         "spam-protection_on_calls_dark_font200", roleHeld = true, calls = sampleCalls, dark = true, fontScale = 2f,
     )
+
+    @Test
+    fun onAnnouncingDark() = render(
+        "spam-protection_on_announcing_dark", roleHeld = true, calls = sampleCalls, dark = true,
+        announceMode = AnnounceMode.ALWAYS,
+    )
+
+    @Test
+    fun settingsAndAnnouncingAreVisibleWithoutScrolling() {
+        var opened = 0
+        composeRule.setContent {
+            DialerTheme(darkTheme = false) {
+                SpamProtectionScreen(
+                    roleHeld = true,
+                    recentCalls = sampleCalls,
+                    onEnable = {},
+                    now = now,
+                    onOpenSettings = { opened++ },
+                )
+            }
+        }
+        composeRule.onNodeWithContentDescription("Settings").assertIsDisplayed().assertHasClickAction()
+        composeRule.onNodeWithText("Announcing callers").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Settings").performClick()
+        composeRule.onNodeWithText("Announcing callers").performClick()
+        assertEquals(2, opened)
+    }
 }

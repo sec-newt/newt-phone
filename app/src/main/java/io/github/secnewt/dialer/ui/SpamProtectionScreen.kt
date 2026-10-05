@@ -19,12 +19,14 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
@@ -40,6 +42,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.screening.BlockList
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.CallAction
@@ -58,6 +61,7 @@ fun SpamProtectionScreen(
     onOpenSettings: () -> Unit = {},
     onBlock: (String) -> Unit = {},
     onUnblock: (String) -> Unit = {},
+    announceMode: AnnounceMode = AnnounceMode.OFF,
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
@@ -66,14 +70,39 @@ fun SpamProtectionScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             item {
-                Text(
-                    text = "Spam protection",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.semantics { heading() },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Calls",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .weight(1f)
+                            .semantics { heading() },
+                    )
+                    IconButton(onClick = onOpenSettings, modifier = Modifier.size(56.dp)) {
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = "Settings",
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                }
             }
             item { StatusCard(roleHeld, observeOnly) }
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                        NavigationRow(
+                            title = "Announcing callers",
+                            value = announceModeName(announceMode),
+                            onClick = onOpenSettings,
+                        )
+                    }
+                }
+            }
             if (!roleHeld) {
                 item {
                     Button(
@@ -93,7 +122,7 @@ fun SpamProtectionScreen(
                         .fillMaxWidth()
                         .heightIn(min = 56.dp),
                 ) {
-                    Text("Spam settings and block list", style = MaterialTheme.typography.titleMedium)
+                    Text("Settings", style = MaterialTheme.typography.titleMedium)
                 }
             }
             item {
@@ -146,7 +175,7 @@ private fun StatusCard(roleHeld: Boolean, observeOnly: Boolean) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = if (roleHeld) "On" else "Off",
+                text = if (roleHeld) "Spam protection is on" else "Spam protection is off",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
