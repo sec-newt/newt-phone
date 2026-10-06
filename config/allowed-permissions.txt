@@ -11,3 +11,7 @@ io.github.secnewt.dialer.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
 android.permission.READ_PHONE_STATE
 android.permission.READ_CALL_LOG
 android.permission.READ_CONTACTS
+#
+# Favorites (asked for only when Favorites or Contacts is opened):
+# star and unstar contacts in the phone's own contacts, which Do Not Disturb uses.
+android.permission.WRITE_CONTACTS

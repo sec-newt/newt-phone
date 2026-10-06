@@ -19,14 +19,12 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
@@ -69,25 +67,7 @@ fun SpamProtectionScreen(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Calls",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .weight(1f)
-                            .semantics { heading() },
-                    )
-                    IconButton(onClick = onOpenSettings, modifier = Modifier.size(56.dp)) {
-                        Icon(
-                            Icons.Filled.Settings,
-                            contentDescription = "Settings",
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-                }
-            }
+            item { TabHeader("Calls", onOpenSettings) }
             item { StatusCard(roleHeld, observeOnly) }
             item {
                 Card(

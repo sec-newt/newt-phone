@@ -8,6 +8,19 @@ See [PLAN.md](PLAN.md) for the full plan and roadmap.
 
 ## Status
 
+Phase 2. Three tabs at the bottom: Calls, Favorites and Contacts.
+
+- **Favorites:** starred contacts with a big Call button, and a card that
+  says what Do Not Disturb lets ring (with a shortcut to its settings if it
+  isn't set to "Starred contacts").
+- **Contacts:** search by name or number, and tap the star to add or remove a
+  favorite. Stars are saved in the phone's own contacts, so Do Not Disturb's
+  "Starred contacts" exception and other apps see them. Needs Contacts access
+  (read and change), asked for only when you allow it on these tabs. On
+  GrapheneOS, give full access rather than Contact Scopes.
+- **Calling:** Call opens the phone app with the number filled in. Placing the
+  call directly comes with the full dialer in Phase 3.
+
 Phase 1. The app takes the "Caller ID & spam app" role and checks calls from
 unknown numbers before they ring:
 
