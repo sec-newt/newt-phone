@@ -21,6 +21,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.secnewt.dialer.ui.theme.DialerFonts
 
 /** Screen title with a large back button. */
 @Composable
@@ -41,6 +43,20 @@ fun ScreenHeader(title: String, onBack: () -> Unit) {
     }
 }
 
+/** Title inside a card: the squared-off display face in the cyan accent. */
+@Composable
+fun CardTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleLarge,
+        fontFamily = DialerFonts.Display,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.5.sp,
+        color = MaterialTheme.colorScheme.tertiary,
+        modifier = Modifier.semantics { heading() },
+    )
+}
+
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
@@ -58,6 +74,7 @@ fun SectionHeading(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleLarge,
+        fontFamily = DialerFonts.Display,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier.semantics { heading() },

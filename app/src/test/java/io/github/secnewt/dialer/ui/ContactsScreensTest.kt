@@ -1,6 +1,8 @@
 package io.github.secnewt.dialer.ui
 
+import android.graphics.Bitmap
 import androidx.compose.material3.Scaffold
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -43,19 +45,37 @@ class ContactsScreensTest {
     val composeRule = createComposeRule()
 
     private val contacts = listOf(
-        Contact(1, "Mom", starred = true, phones = listOf(PhoneEntry("5550197731", "Mobile"))),
+        Contact(
+            1, "Mom", starred = true, phones = listOf(PhoneEntry("5550197731", "Mobile")),
+            photoUri = "test://mom", thumbnailUri = "test://mom",
+        ),
         Contact(
             2, "Alex Rivera", starred = true,
             phones = listOf(PhoneEntry("5550142290", "Mobile"), PhoneEntry("5550148800", "Work")),
         ),
-        Contact(3, "Dr. Patel's office", starred = false, phones = listOf(PhoneEntry("5550161234", "Work"))),
+        Contact(
+            3, "Dr. Patel's office", starred = true, phones = listOf(PhoneEntry("5550161234", "Work")),
+            photoUri = "test://patel", thumbnailUri = "test://patel",
+        ),
+        Contact(5, "Jordan", starred = true, phones = listOf(PhoneEntry("5550170000", "Mobile"))),
+        Contact(6, "DART Paratransit reservations", starred = true, phones = listOf(PhoneEntry("2145550100", "Work"))),
         Contact(4, "Pharmacy", starred = false, phones = listOf(PhoneEntry("8005550000", "Main"))),
     )
+
+    /** Stands in for real photos: a flat color per contact, so screenshots show photo tiles. */
+    private val fakePhotos = PhotoLoader { uri, size ->
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(if (uri.endsWith("mom")) 0xFF8A6A55.toInt() else 0xFF4A5A7A.toInt())
+        bitmap.asImageBitmap()
+    }
 
     private fun render(name: String, dark: Boolean, fontScale: Float = 1f, content: @Composable () -> Unit) {
         composeRule.setContent {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, fontScale),
+                LocalPhotoLoader provides fakePhotos,
+            ) {
                 DialerTheme(darkTheme = dark) { content() }
             }
         }
@@ -144,16 +164,43 @@ class ContactsScreensTest {
     }
 
     @Test
+    fun contactWithPhotoDark() = render("contact_photo_dark", dark = true) {
+        ContactDetailScreen(contacts[0], DndCalls.STARRED, onBack = {}, onToggleStar = {}, onCall = {})
+    }
+
+    @Test
     fun contactNotStarredLargestFont() = render("contact_not-starred_light_font200", dark = false, fontScale = 2f) {
-        ContactDetailScreen(contacts[2], DndCalls.STARRED, onBack = {}, onToggleStar = {}, onCall = {})
+        ContactDetailScreen(contacts[5], DndCalls.STARRED, onBack = {}, onToggleStar = {}, onCall = {})
     }
 
     @Test
     fun favoritesShowOnlyStarredContacts() {
         composeRule.setContent { DialerTheme(darkTheme = false) { Favorites(DndCalls.STARRED) } }
-        composeRule.onNodeWithText("Mom").assertIsDisplayed()
+        // Alphabetical, so the first tiles are on screen without scrolling.
         composeRule.onNodeWithText("Alex Rivera").assertIsDisplayed()
+        composeRule.onNodeWithText("DART Paratransit reservations").assertIsDisplayed()
         composeRule.onNodeWithText("Pharmacy").assertDoesNotExist()
+    }
+
+    @Test
+    fun theCornerButtonOpensTheContactInsteadOfCalling() {
+        val opened = mutableListOf<Long>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                FavoritesScreen(
+                    contacts = contacts,
+                    hasAccess = true,
+                    dnd = DndCalls.STARRED,
+                    onOpenSettings = {},
+                    onAllowAccess = {},
+                    onOpenContact = { opened += it.id },
+                    onCall = { error("should not call") },
+                    onOpenDndSettings = {},
+                )
+            }
+        }
+        composeRule.onNodeWithContentDescription("Open Alex Rivera's contact").performClick()
+        assertEquals(listOf(2L), opened)
     }
 
     @Test
@@ -182,7 +229,7 @@ class ContactsScreensTest {
                 )
             }
         }
-        composeRule.onNodeWithContentDescription("Call Mom").performClick()
-        assertEquals(listOf("5550197731"), called)
+        composeRule.onNodeWithText("Alex Rivera").performClick()
+        assertEquals(listOf("5550142290"), called)
     }
 }

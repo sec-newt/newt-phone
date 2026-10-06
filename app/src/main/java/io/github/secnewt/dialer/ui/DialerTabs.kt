@@ -8,6 +8,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -22,7 +23,7 @@ enum class Tab(val label: String, val icon: ImageVector) {
 /** Bottom navigation, always showing both the icon and the word. */
 @Composable
 fun DialerTabBar(selected: Tab, onSelect: (Tab) -> Unit) {
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
+    NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         Tab.entries.forEach { tab ->
             NavigationBarItem(
                 selected = tab == selected,
@@ -36,6 +37,13 @@ fun DialerTabBar(selected: Tab, onSelect: (Tab) -> Unit) {
                     )
                 },
                 alwaysShowLabel = true,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    indicatorColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
             )
         }
     }

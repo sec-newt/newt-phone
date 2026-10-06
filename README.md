@@ -6,11 +6,21 @@ easy-to-read interface.
 
 See [PLAN.md](PLAN.md) for the full plan and roadmap.
 
+## Look
+
+Tokyo Night colors on a true black background (Tokyo Night Day in light
+mode), with every text color at 7:1 contrast or better. Contacts show their
+photo, or their initial on a color of their own. Fonts are bundled, nothing
+is downloaded: Chakra Petch for screen titles, Atkinson Hyperlegible
+(designed for low vision) for names and text, and JetBrains Mono for phone
+numbers. Font licenses (SIL OFL) are in `app/src/main/assets/licenses`.
+
 ## Status
 
 Phase 2. Three tabs at the bottom: Calls, Favorites and Contacts.
 
-- **Favorites:** starred contacts with a big Call button, and a card that
+- **Favorites:** a grid of photo tiles. Tap a tile to call, or the corner
+  button to open the contact. A card above it
   says what Do Not Disturb lets ring (with a shortcut to its settings if it
   isn't set to "Starred contacts").
 - **Contacts:** search by name or number, and tap the star to add or remove a

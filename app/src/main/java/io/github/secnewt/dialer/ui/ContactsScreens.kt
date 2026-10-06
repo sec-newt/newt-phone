@@ -1,12 +1,15 @@
 package io.github.secnewt.dialer.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,17 +17,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridItemSpanScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,20 +46,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.contacts.Contact
 import io.github.secnewt.dialer.contacts.ContactList
 import io.github.secnewt.dialer.contacts.Dnd
 import io.github.secnewt.dialer.contacts.DndCalls
 import io.github.secnewt.dialer.contacts.PhoneEntry
+import io.github.secnewt.dialer.ui.theme.DialerFonts
 
-/** Starred contacts, with one-tap calling and whether they can ring during Do Not Disturb. */
+/** Starred contacts as a grid of photo tiles: tap a tile to call, or the corner button for details. */
 @Composable
 fun FavoritesScreen(
     contacts: List<Contact>,
@@ -64,21 +76,24 @@ fun FavoritesScreen(
     message: String? = null,
 ) {
     val favorites = ContactList.favorites(contacts)
+    val fullWidth: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it.maxLineSpan) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier.safeDrawingPadding(),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item { TabHeader("Favorites", onOpenSettings) }
-            message?.let { item { MessageText(it) } }
+            item(span = fullWidth) { TabHeader("Favorites", onOpenSettings) }
+            message?.let { item(span = fullWidth) { MessageText(it) } }
             if (!hasAccess) {
-                item { ContactsAccessCard(onAllowAccess) }
-                return@LazyColumn
+                item(span = fullWidth) { ContactsAccessCard(onAllowAccess) }
+                return@LazyVerticalGrid
             }
-            item { DndCard(dnd, onOpenDndSettings) }
+            item(span = fullWidth) { DndCard(dnd, onOpenDndSettings) }
             if (favorites.isEmpty()) {
-                item {
+                item(span = fullWidth) {
                     Text(
                         text = "No favorites yet. In Contacts, tap the star next to a name to add it here.",
                         style = MaterialTheme.typography.bodyLarge,
@@ -86,36 +101,75 @@ fun FavoritesScreen(
                     )
                 }
             } else {
-                items(favorites, key = { it.id }) { contact ->
-                    FavoriteRow(contact, onOpen = { onOpenContact(contact) }, onCall = onCall)
-                    HorizontalDivider(modifier = Modifier.padding(top = 12.dp))
+                gridItems(favorites, key = { it.id }) { contact ->
+                    FavoriteTile(contact, onOpen = { onOpenContact(contact) }, onCall = onCall)
                 }
             }
         }
     }
 }
 
+/** Readable over any photo: white text on a nearly opaque dark band. */
+private val TileScrim = Color(0xE6050608)
+private val TileText = Color(0xFFF2F4FF)
+
 @Composable
-private fun FavoriteRow(contact: Contact, onOpen: () -> Unit, onCall: (String) -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+private fun FavoriteTile(contact: Contact, onOpen: () -> Unit, onCall: (String) -> Unit) {
+    val number = contact.phones.firstOrNull()?.number
+    val shape = RoundedCornerShape(16.dp)
+    val density = LocalDensity.current
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .clickable(role = Role.Button, onClickLabel = "Open", onClick = onOpen),
+            .aspectRatio(1f)
+            .clip(shape)
+            .border(2.dp, contactColor(contact.name), shape)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = if (number != null) "Call" else "Open",
+                onClick = { if (number != null) onCall(number) else onOpen() },
+            ),
     ) {
-        Initial(contact.name)
+        ContactAvatar(
+            contact = contact,
+            sizePx = with(density) { 200.dp.roundToPx() },
+            initialStyle = MaterialTheme.typography.displayLarge,
+            fullPhoto = true,
+            modifier = Modifier.fillMaxSize(),
+        )
         Text(
             text = contact.name,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = TileText,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 16.dp),
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .background(TileScrim)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
         )
-        contact.phones.firstOrNull()?.let { phone ->
-            FilledTonalIconButton(onClick = { onCall(phone.number) }, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Filled.Call, contentDescription = "Call ${contact.name}", modifier = Modifier.size(28.dp))
+        IconButton(
+            onClick = onOpen,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp)
+                .size(48.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(TileScrim),
+            ) {
+                Icon(
+                    Icons.Filled.MoreVert,
+                    contentDescription = "Open ${contact.name}'s contact",
+                    tint = TileText,
+                    modifier = Modifier.size(24.dp),
+                )
             }
         }
     }
@@ -188,7 +242,13 @@ private fun ContactRow(contact: Contact, onOpen: () -> Unit, onToggleStar: () ->
             .clickable(role = Role.Button, onClickLabel = "Open", onClick = onOpen)
             .padding(vertical = 4.dp),
     ) {
-        Initial(contact.name)
+        ContactAvatar(
+            contact = contact,
+            sizePx = with(LocalDensity.current) { 52.dp.roundToPx() },
+            initialStyle = MaterialTheme.typography.titleLarge,
+            shape = CircleShape,
+            modifier = Modifier.size(52.dp),
+        )
         Text(
             text = contact.name,
             style = MaterialTheme.typography.titleLarge,
@@ -237,9 +297,20 @@ fun ContactDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.padding(horizontal = 8.dp),
                 ) {
+                    ContactAvatar(
+                        contact = contact,
+                        sizePx = with(LocalDensity.current) { 120.dp.roundToPx() },
+                        initialStyle = MaterialTheme.typography.displayMedium,
+                        shape = CircleShape,
+                        fullPhoto = true,
+                        modifier = Modifier
+                            .size(120.dp)
+                            .border(3.dp, contactColor(contact.name), CircleShape),
+                    )
                     Text(
                         text = contact.name,
-                        style = MaterialTheme.typography.headlineLarge,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontFamily = DialerFonts.Body,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.semantics { heading() },
                     )
@@ -302,7 +373,12 @@ private fun PhoneRow(phone: PhoneEntry, onCall: (String) -> Unit) {
             .padding(horizontal = 8.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(formatted, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                formatted,
+                style = MaterialTheme.typography.titleLarge,
+                fontFamily = DialerFonts.Mono,
+                fontWeight = FontWeight.Bold,
+            )
             Text(
                 phone.label,
                 style = MaterialTheme.typography.bodyLarge,
@@ -327,14 +403,10 @@ private fun DndCard(dnd: DndCalls, onOpenDndSettings: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                "Do Not Disturb",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.semantics { heading() },
-            )
+            CardTitle("Do Not Disturb")
             Text(advice.message, style = MaterialTheme.typography.bodyLarge)
             if (advice.suggestSettings) {
                 OutlinedButton(
@@ -355,6 +427,7 @@ private fun ContactsAccessCard(onAllowAccess: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -377,24 +450,4 @@ private fun ContactsAccessCard(onAllowAccess: () -> Unit) {
 @Composable
 private fun MessageText(text: String) {
     Text(text = text, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-}
-
-/** A round badge with the first letter of the name. Decorative: the name is read right after it. */
-@Composable
-private fun Initial(name: String) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .clearAndSetSemantics { },
-    ) {
-        Text(
-            text = name.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "#",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
-        )
-    }
 }

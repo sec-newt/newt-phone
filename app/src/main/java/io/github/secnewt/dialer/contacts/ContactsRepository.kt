@@ -37,7 +37,13 @@ class ContactsRepository(private val context: Context) {
         val contacts = mutableListOf<Contact>()
         resolver.query(
             Contacts.CONTENT_URI,
-            arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.STARRED),
+            arrayOf(
+                Contacts._ID,
+                Contacts.DISPLAY_NAME_PRIMARY,
+                Contacts.STARRED,
+                Contacts.PHOTO_URI,
+                Contacts.PHOTO_THUMBNAIL_URI,
+            ),
             null, null,
             "${Contacts.DISPLAY_NAME_PRIMARY} COLLATE LOCALIZED ASC",
         )?.use { cursor ->
@@ -49,6 +55,8 @@ class ContactsRepository(private val context: Context) {
                     name = name,
                     starred = cursor.getInt(2) == 1,
                     phones = ContactList.distinctPhones(phones[id].orEmpty()),
+                    photoUri = cursor.getString(3),
+                    thumbnailUri = cursor.getString(4),
                 )
             }
         }
