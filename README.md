@@ -17,7 +17,20 @@ numbers. Font licenses (SIL OFL) are in `app/src/main/assets/licenses`.
 
 ## Status
 
-Phase 2. Three tabs at the bottom: Calls, Favorites and Contacts.
+Phase 3a. Three tabs at the bottom: Favorites, Recents and Contacts, plus a
+dialpad button on every tab.
+
+- **Recents:** the phone's call history (asked for when you open it), with
+  missed calls in red, back-to-back calls grouped ("Incoming, 2 calls"),
+  "Likely spam" or "Blocked number" labels from spam screening, and a Call
+  button on every row. A panel at the top shows spam protection and caller
+  announcement, and opens the screened-calls list.
+- **Dialpad:** big keys with letters, hold 0 for +, hold delete to clear,
+  and matching contacts appear after 3 digits.
+- **Calling:** the first call asks to "make and manage phone calls"; after
+  that, Call places the call directly. Without it, Call opens the phone app
+  with the number filled in. Emergency numbers (911) always go through the
+  phone's own dialer, which shows the number so one tap places the call.
 
 - **Favorites:** a grid of photo tiles. Tap a tile to call, or the corner
   button to open the contact. A card above it
@@ -28,8 +41,6 @@ Phase 2. Three tabs at the bottom: Calls, Favorites and Contacts.
   "Starred contacts" exception and other apps see them. Needs Contacts access
   (read and change), asked for only when you allow it on these tabs. On
   GrapheneOS, give full access rather than Contact Scopes.
-- **Calling:** Call opens the phone app with the number filled in. Placing the
-  call directly comes with the full dialer in Phase 3.
 
 Phase 1. The app takes the "Caller ID & spam app" role and checks calls from
 unknown numbers before they ring:

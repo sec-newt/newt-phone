@@ -62,6 +62,8 @@ fun SpamProtectionScreen(
     onBlock: (String) -> Unit = {},
     onUnblock: (String) -> Unit = {},
     announceMode: AnnounceMode = AnnounceMode.OFF,
+    /** Set when opened from Recents: shows a back button instead of the tab title. */
+    onBack: (() -> Unit)? = null,
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
@@ -69,7 +71,9 @@ fun SpamProtectionScreen(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            item { TabHeader("Calls", onOpenSettings) }
+            item {
+                if (onBack != null) ScreenHeader("Spam protection", onBack) else TabHeader("Calls", onOpenSettings)
+            }
             item { StatusCard(roleHeld, observeOnly) }
             item {
                 Card(
@@ -110,7 +114,7 @@ fun SpamProtectionScreen(
             }
             item {
                 Text(
-                    text = "Recent calls",
+                    text = "Screened calls",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier

@@ -11,6 +11,10 @@
     <!-- Favorites: star and unstar contacts. Asked for only when Favorites or Contacts is opened. -->
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
+    <!-- Call straight from the app instead of opening the phone app first. Asked for on the first
+         call; without it, Call opens the phone app with the number filled in. -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+
     <!-- Lets the app find the phone's text-to-speech voice (required since Android 11). -->
     <queries>
         <intent>

@@ -5,7 +5,6 @@ import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -18,6 +17,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFloatingActionButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -26,7 +29,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import io.github.secnewt.dialer.calls.CallGroup
+import io.github.secnewt.dialer.calls.CallHistory
+import io.github.secnewt.dialer.calls.CallLogRepository
+import io.github.secnewt.dialer.calls.CallStart
+import io.github.secnewt.dialer.calls.Caller
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.announce.AnnounceSettings
 import io.github.secnewt.dialer.announce.Announcement
@@ -46,6 +55,9 @@ import io.github.secnewt.dialer.ui.ContactDetailScreen
 import io.github.secnewt.dialer.ui.ContactsPhotoLoader
 import io.github.secnewt.dialer.ui.LocalPhotoLoader
 import io.github.secnewt.dialer.ui.ContactsScreen
+import io.github.secnewt.dialer.ui.DialpadIcon
+import io.github.secnewt.dialer.ui.DialpadScreen
+import io.github.secnewt.dialer.ui.RecentsScreen
 import io.github.secnewt.dialer.ui.DialerTabBar
 import io.github.secnewt.dialer.ui.FavoritesScreen
 import io.github.secnewt.dialer.ui.SpamProtectionScreen
@@ -55,9 +67,10 @@ import io.github.secnewt.dialer.ui.theme.DialerTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.ZoneId
 
 /** TABS shows Calls, Favorites or Contacts with the bottom bar; the others are full pages. */
-private enum class Screen { TABS, SETTINGS, BLOCK_LIST, CONTACT }
+private enum class Screen { TABS, SETTINGS, BLOCK_LIST, CONTACT, SPAM, DIALPAD }
 
 private val ANNOUNCE_PERMISSIONS = arrayOf(
     Manifest.permission.READ_PHONE_STATE,
@@ -70,6 +83,27 @@ class MainActivity : ComponentActivity() {
     private val store by lazy { SpamSettingsStore(this) }
     private val contactsRepo by lazy { ContactsRepository(this) }
     private val photoLoader by lazy { ContactsPhotoLoader(this) }
+    private val callLogRepo by lazy { CallLogRepository(this) }
+    private val caller by lazy { Caller(this) }
+
+    private var callLogAccess by mutableStateOf(false)
+    private var callGroups by mutableStateOf(emptyList<CallGroup>())
+    private var callMessage by mutableStateOf<String?>(null)
+
+    /** The number waiting for the person to answer the "make phone calls" question. */
+    private var pendingCall: String? = null
+
+    private val requestCallPhone = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        // Allowed: calls directly. Not allowed: opens the phone app with the number filled in.
+        pendingCall?.let(::placeCall)
+        pendingCall = null
+    }
+
+    private val requestCallLog = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        callMessage = if (granted) null else "Call history access wasn't allowed. If no question appeared, turn on " +
+            "Call logs in Settings, Apps, ${getString(R.string.app_name)}, Permissions."
+        refreshCallLog()
+    }
 
     private var screeningRoleHeld by mutableStateOf(false)
     private var recentCalls by mutableStateOf(emptyList<ScreenedCall>())
@@ -94,9 +128,10 @@ class MainActivity : ComponentActivity() {
             DialerTheme {
                 CompositionLocalProvider(LocalPhotoLoader provides photoLoader) {
                     var screen by rememberSaveable { mutableStateOf(Screen.TABS) }
-                    var tab by rememberSaveable { mutableStateOf(Tab.CALLS) }
+                    var tab by rememberSaveable { mutableStateOf(Tab.FAVORITES) }
                     var openContactId by rememberSaveable { mutableStateOf<Long?>(null) }
                     var contactQuery by rememberSaveable { mutableStateOf("") }
+                    var dialNumber by rememberSaveable { mutableStateOf("") }
                     val requestRole = rememberLauncherForActivityResult(
                         ActivityResultContracts.StartActivityForResult()
                     ) { refresh() }
@@ -119,15 +154,16 @@ class MainActivity : ComponentActivity() {
                         if (results.values.all { it }) {
                             contactsMessage = null
                             refreshContacts()
+        refreshCallLog()
                         } else {
                             contactsMessage = "Contacts access wasn't allowed. If no question appeared, turn on " +
                                 "Contacts in Settings, Apps, ${getString(R.string.app_name)}, Permissions."
                         }
                     }
 
-                    BackHandler(enabled = screen != Screen.TABS || tab != Tab.CALLS) {
+                    BackHandler(enabled = screen != Screen.TABS || tab != Tab.FAVORITES) {
                         when (screen) {
-                            Screen.TABS -> tab = Tab.CALLS
+                            Screen.TABS -> tab = Tab.FAVORITES
                             Screen.BLOCK_LIST -> screen = Screen.SETTINGS
                             else -> screen = Screen.TABS
                         }
@@ -139,28 +175,39 @@ class MainActivity : ComponentActivity() {
                         screen = Screen.CONTACT
                     }
                     val allowContacts = { requestContactsPermissions.launch(ContactsRepository.PERMISSIONS) }
+                    val enableScreening = {
+                        requestRole.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING))
+                    }
 
                     when (screen) {
                         Screen.TABS -> Scaffold(
                             bottomBar = { DialerTabBar(selected = tab, onSelect = { tab = it }) },
+                            floatingActionButton = {
+                                LargeFloatingActionButton(
+                                    onClick = { screen = Screen.DIALPAD },
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                                ) {
+                                    Icon(DialpadIcon, contentDescription = "Open dialpad", modifier = Modifier.size(36.dp))
+                                }
+                            },
                             contentWindowInsets = WindowInsets(0),
                         ) { padding ->
                             Box(Modifier.padding(padding).consumeWindowInsets(padding)) {
                                 when (tab) {
-                                    Tab.CALLS -> SpamProtectionScreen(
+                                    Tab.RECENTS -> RecentsScreen(
+                                        groups = callGroups,
+                                        hasAccess = callLogAccess,
+                                        screened = recentCalls,
                                         roleHeld = screeningRoleHeld,
-                                        recentCalls = recentCalls,
                                         observeOnly = settings.observeOnly,
-                                        blockRules = blockRules,
                                         announceMode = announce.mode,
-                                        onEnable = {
-                                            requestRole.launch(
-                                                roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING)
-                                            )
-                                        },
                                         onOpenSettings = openSettings,
-                                        onBlock = { addRule(BlockRule.Number(it)) },
-                                        onUnblock = ::removeNumber,
+                                        onOpenSpamProtection = { screen = Screen.SPAM },
+                                        onEnableSpamProtection = enableScreening,
+                                        onAllowAccess = { requestCallLog.launch(Manifest.permission.READ_CALL_LOG) },
+                                        onCall = ::call,
+                                        message = callMessage,
                                     )
                                     Tab.FAVORITES -> FavoritesScreen(
                                         contacts = contacts,
@@ -206,6 +253,25 @@ class MainActivity : ComponentActivity() {
                             },
                             onQuietDuringDndChange = { updateAnnounce(announce.copy(quietDuringDnd = it)) },
                             onTestAnnouncement = ::testAnnouncement,
+                        )
+                        Screen.SPAM -> SpamProtectionScreen(
+                            roleHeld = screeningRoleHeld,
+                            recentCalls = recentCalls,
+                            observeOnly = settings.observeOnly,
+                            blockRules = blockRules,
+                            announceMode = announce.mode,
+                            onEnable = enableScreening,
+                            onOpenSettings = openSettings,
+                            onBlock = { addRule(BlockRule.Number(it)) },
+                            onUnblock = ::removeNumber,
+                            onBack = { screen = Screen.TABS },
+                        )
+                        Screen.DIALPAD -> DialpadScreen(
+                            number = dialNumber,
+                            onNumberChange = { dialNumber = it },
+                            contacts = contacts,
+                            onCall = ::call,
+                            onBack = { screen = Screen.TABS },
                         )
                         Screen.BLOCK_LIST -> BlockListScreen(
                             rules = blockRules,
@@ -285,12 +351,38 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Opens the phone app with the number filled in, so the call is one more tap. */
+    /** Calls right away once allowed; asks for the "make phone calls" permission the first time. */
     private fun call(number: String) {
-        try {
-            startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
-        } catch (e: ActivityNotFoundException) {
-            contactsMessage = "No phone app was found to place the call."
+        if (caller.canCallDirectly()) {
+            placeCall(number)
+        } else {
+            pendingCall = number
+            requestCallPhone.launch(Manifest.permission.CALL_PHONE)
+        }
+    }
+
+    private fun placeCall(number: String) {
+        val result = caller.call(number)
+        val message = if (result == CallStart.FAILED) "No phone app was found to place the call." else null
+        callMessage = message
+        contactsMessage = message
+    }
+
+    private fun refreshCallLog() {
+        callLogAccess = callLogRepo.hasAccess()
+        if (!callLogAccess) {
+            callGroups = emptyList()
+            return
+        }
+        lifecycleScope.launch {
+            val calls = withContext(Dispatchers.IO) {
+                try {
+                    callLogRepo.load()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            }
+            callGroups = CallHistory.group(calls, ZoneId.systemDefault())
         }
     }
 
