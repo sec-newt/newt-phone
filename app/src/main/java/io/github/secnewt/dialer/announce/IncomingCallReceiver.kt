@@ -10,6 +10,7 @@ import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.Uri
 import android.provider.ContactsContract.PhoneLookup
+import android.telecom.TelecomManager
 import android.telephony.TelephonyManager
 import android.util.Log
 import io.github.secnewt.dialer.screening.PhoneNumbers
@@ -40,6 +41,11 @@ class IncomingCallReceiver : BroadcastReceiver() {
         val settings = SpamSettingsStore(context).announceSettings()
         if (settings.mode == AnnounceMode.OFF) return
 
+        if (Announcement.isAppCall(number, phoneCallRinging(context))) {
+            Log.i(TAG, "Not announcing a call from a calling app")
+            return
+        }
+
         val screening = recentScreening(context, number)
         if (!Announcement.shouldSpeak(settings, audioSituation(context), screening)) return
 
@@ -58,6 +64,14 @@ class IncomingCallReceiver : BroadcastReceiver() {
         return ScreeningLog(context).read().firstOrNull {
             it.timeMillis >= cutoff && PhoneNumbers.normalize(it.number) == target
         }
+    }
+
+    /** True when a call from the mobile network (not a calling app) is in progress or ringing. */
+    private fun phoneCallRinging(context: Context): Boolean = try {
+        context.getSystemService(TelecomManager::class.java).isInManagedCall
+    } catch (e: SecurityException) {
+        // Without Phone access we can't tell, so treat it as a phone call like before.
+        true
     }
 
     private fun contactName(context: Context, number: String?): String? {
