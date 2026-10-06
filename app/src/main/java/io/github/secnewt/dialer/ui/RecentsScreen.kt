@@ -36,9 +36,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.announce.AnnounceMode
@@ -267,10 +264,7 @@ private fun kindIcon(kind: CallKind): Pair<ImageVector, Float> = when (kind) {
 
 @Composable
 private fun SpamTag(text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clearAndSetSemantics { contentDescription = text },
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
         Text(
             text,
