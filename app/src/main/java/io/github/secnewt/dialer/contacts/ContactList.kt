@@ -11,6 +11,10 @@ data class Contact(
     val name: String,
     val starred: Boolean,
     val phones: List<PhoneEntry> = emptyList(),
+    /** Full-size photo, for Favorites tiles. */
+    val photoUri: String? = null,
+    /** Small photo, for lists. */
+    val thumbnailUri: String? = null,
 )
 
 /** Sorting, searching and starring rules, kept free of Android so they can be tested. */
@@ -39,6 +43,19 @@ object ContactList {
     /** The same number saved twice ("555-0197" and "+1 555 0197") is shown once. */
     fun distinctPhones(phones: List<PhoneEntry>): List<PhoneEntry> =
         phones.distinctBy { PhoneNumbers.normalize(it.number) ?: it.number }
+
+    /** The letter shown when a contact has no photo. */
+    fun initial(name: String): String = name.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "#"
+
+    /**
+     * Which of [count] colors a contact without a photo gets. Based on the name, so a person
+     * keeps the same color everywhere and every time.
+     */
+    fun colorIndex(name: String, count: Int): Int {
+        var hash = 0
+        for (c in name.lowercase()) hash = hash * 31 + c.code
+        return Math.floorMod(hash, count)
+    }
 
     /** Applies a star change locally, so the screen updates without reloading every contact. */
     fun withStar(contacts: List<Contact>, id: Long, starred: Boolean): List<Contact> =

@@ -70,4 +70,20 @@ class ContactListTest {
         assertEquals("Can ring during Do Not Disturb", Dnd.contactLine(starred = false, DndCalls.CONTACTS))
         assertNull(Dnd.contactLine(starred = true, DndCalls.UNKNOWN))
     }
+
+    @Test
+    fun `the initial is the first letter or digit, uppercased`() {
+        assertEquals("M", ContactList.initial("mom"))
+        assertEquals("D", ContactList.initial("(Dr) Patel"))
+        assertEquals("#", ContactList.initial("☎"))
+    }
+
+    @Test
+    fun `a contact keeps the same color, and names spread across colors`() {
+        assertEquals(ContactList.colorIndex("Mom", 8), ContactList.colorIndex("mom", 8))
+        val names = listOf("Mom", "Alex Rivera", "Pharmacy", "Dr. Patel", "Jordan", "Sam", "Work", "Brian", "Rebecca")
+        val used = names.map { ContactList.colorIndex(it, 8) }.toSet()
+        assertTrue(used.all { it in 0 until 8 })
+        assertTrue("expected at least 4 colors, got $used", used.size >= 4)
+    }
 }

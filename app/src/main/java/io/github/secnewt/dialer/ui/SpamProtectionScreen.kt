@@ -1,5 +1,6 @@
 package io.github.secnewt.dialer.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.screening.BlockList
+import io.github.secnewt.dialer.ui.theme.DialerFonts
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ScreenedCall
@@ -73,6 +75,7 @@ fun SpamProtectionScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                         NavigationRow(
@@ -149,16 +152,13 @@ private fun StatusCard(roleHeld: Boolean, observeOnly: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = if (roleHeld) "Spam protection is on" else "Spam protection is off",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
+            CardTitle(if (roleHeld) "Spam protection is on" else "Spam protection is off")
             Text(
                 text = if (roleHeld && observeOnly) {
                     "Observe only: every call rings, and recent calls show what the rules would have done."
@@ -186,7 +186,8 @@ private fun CallRow(
         Text(
             text = formatCaller(call.number),
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold,
+            fontFamily = if (call.number.isNullOrBlank()) DialerFonts.Body else DialerFonts.Mono,
+            fontWeight = FontWeight.Bold,
         )
         Text(
             text = formatCallTime(call.timeMillis, now),
