@@ -35,6 +35,14 @@ object Announcement {
         return settings.mode == AnnounceMode.ALWAYS && situation.ringerAudible
     }
 
+    /**
+     * Calling apps like Teams also make the phone report "ringing", but never share the
+     * caller's number. Without a real phone call ringing, a missing number means an app call,
+     * not a private number, so it is left to that app to announce.
+     */
+    fun isAppCall(number: String?, phoneCallRinging: Boolean): Boolean =
+        PhoneNumbers.normalize(number) == null && !phoneCallRinging
+
     /** "Call from Mom", "Call from 5 5 5, 0 1 9, 7 7 3 1", "Likely spam, from …". */
     fun text(contactName: String?, number: String?, screening: ScreenedCall?): String {
         if (!contactName.isNullOrBlank()) return "Call from $contactName"

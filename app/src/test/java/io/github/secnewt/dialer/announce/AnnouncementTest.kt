@@ -92,4 +92,22 @@ class AnnouncementTest {
     fun `other number lengths are read in groups of four`() {
         assertEquals("4 4 2 0, 7 1 2 3, 4 5 6 7", Announcement.spellOut("442071234567"))
     }
+
+    @Test
+    fun `a calling app with no number is not a private phone call`() {
+        assertTrue(Announcement.isAppCall(null, phoneCallRinging = false))
+        assertTrue(Announcement.isAppCall("", phoneCallRinging = false))
+    }
+
+    @Test
+    fun `a real phone call with a hidden number is still announced`() {
+        assertFalse(Announcement.isAppCall(null, phoneCallRinging = true))
+        assertFalse(Announcement.isAppCall("", phoneCallRinging = true))
+    }
+
+    @Test
+    fun `a call with a number is never treated as an app call`() {
+        assertFalse(Announcement.isAppCall("5550197731", phoneCallRinging = false))
+        assertFalse(Announcement.isAppCall("5550197731", phoneCallRinging = true))
+    }
 }
