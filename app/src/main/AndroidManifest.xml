@@ -15,6 +15,10 @@
          call; without it, Call opens the phone app with the number filled in. -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
 
+    <!-- Calling needs a phone line, but declaring it optional keeps the app installable on
+         devices without one (they simply can't place calls). -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
     <!-- Lets the app find the phone's text-to-speech voice (required since Android 11). -->
     <queries>
         <intent>
