@@ -209,4 +209,55 @@ class InCallScreensTest {
         composeRule.onNodeWithText("Swap").performClick()
         assertEquals(1, swapped)
     }
+
+    @Test
+    fun mergeJoinsTheHeldCall() {
+        val merged = mutableListOf<String>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                Screen(
+                    unknown.copy(phase = CallPhase.ACTIVE, connectedAtMillis = now, canMerge = true),
+                    other = mom.copy(phase = CallPhase.ON_HOLD),
+                    actions = CallActions(onMerge = { merged += it }),
+                )
+            }
+        }
+        composeRule.onNodeWithText("Merge").performClick()
+        assertEquals(listOf("call-2"), merged)
+    }
+
+    @Test
+    fun noMergeButtonWhenTheNetworkCantMerge() {
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                Screen(
+                    unknown.copy(phase = CallPhase.ACTIVE, connectedAtMillis = now),
+                    other = mom.copy(phase = CallPhase.ON_HOLD),
+                )
+            }
+        }
+        composeRule.onNodeWithText("Merge").assertDoesNotExist()
+    }
+
+    @Test
+    fun conferenceDark() = render("incall_conference_dark", dark = true) {
+        val people = listOf(
+            mom.copy(id = "call-3", parentId = "conf"),
+            unknown.copy(id = "call-4", phase = CallPhase.ACTIVE, parentId = "conf"),
+        )
+        Screen(
+            LiveCall(
+                id = "conf", number = null, name = null, phase = CallPhase.ACTIVE,
+                connectedAtMillis = now - 61_000, canHold = true, isConference = true, participants = people,
+            )
+        )
+    }
+
+    @Test
+    fun mergeAvailableLargestFont() = render("incall_merge_light_font200", dark = false, fontScale = 2f) {
+        Screen(
+            unknown.copy(phase = CallPhase.ACTIVE, connectedAtMillis = now - 5_000, canMerge = true),
+            other = mom.copy(phase = CallPhase.ON_HOLD),
+        )
+    }
 }

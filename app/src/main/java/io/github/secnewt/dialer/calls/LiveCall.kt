@@ -27,6 +27,14 @@ data class LiveCall(
     val canHold: Boolean = false,
     val isEmergency: Boolean = false,
     val isVoicemail: Boolean = false,
+    /** True for a merged call with several people on it. */
+    val isConference: Boolean = false,
+    /** The people on a conference call, when the network lists them. */
+    val participants: List<LiveCall> = emptyList(),
+    /** For someone on a conference call: the conference's id. Shown inside it, not on its own. */
+    val parentId: String? = null,
+    /** This call and the one on hold can be merged into a conference. */
+    val canMerge: Boolean = false,
 )
 
 /** Sound settings for the calls in progress. */
@@ -67,15 +75,28 @@ object LiveCalls {
      * you're talking on, then one being dialed, then one on hold.
      */
     fun primary(calls: List<LiveCall>): LiveCall? {
+        val shown = topLevel(calls)
         val order = listOf(CallPhase.RINGING, CallPhase.ACTIVE, CallPhase.DIALING, CallPhase.ON_HOLD, CallPhase.ENDED)
-        return order.firstNotNullOfOrNull { phase -> calls.firstOrNull { it.phase == phase } }
+        return order.firstNotNullOfOrNull { phase -> shown.firstOrNull { it.phase == phase } }
     }
 
     /** The other call still going (on hold, or the one a ringing call would interrupt). */
     fun secondary(calls: List<LiveCall>): LiveCall? {
         val main = primary(calls) ?: return null
-        return calls.firstOrNull { it.id != main.id && it.phase != CallPhase.ENDED }
+        return topLevel(calls).firstOrNull { it.id != main.id && it.phase != CallPhase.ENDED }
     }
+
+    /** Calls as the screen lists them: people on a conference appear inside it instead. */
+    private fun topLevel(calls: List<LiveCall>): List<LiveCall> = calls.filter { it.parentId == null }
+
+    /** Fills in each conference's participants from the calls that belong to it. */
+    fun withParticipants(calls: List<LiveCall>): List<LiveCall> = calls.map { call ->
+        if (call.isConference) call.copy(participants = calls.filter { it.parentId == call.id }) else call
+    }
+
+    /** Merge shows when you're talking to one person and another is on hold. */
+    fun showMerge(call: LiveCall, other: LiveCall?): Boolean =
+        call.canMerge && call.phase == CallPhase.ACTIVE && other?.phase == CallPhase.ON_HOLD
 
     /** "0:07", "12:34" or "1:02:03". */
     fun elapsed(millis: Long): String {

@@ -56,6 +56,8 @@ import io.github.secnewt.dialer.contacts.ContactList
 import io.github.secnewt.dialer.contacts.ContactsRepository
 import io.github.secnewt.dialer.contacts.DndCalls
 import io.github.secnewt.dialer.screening.BlockRule
+import io.github.secnewt.dialer.screening.BlockSync
+import io.github.secnewt.dialer.screening.SystemBlockList
 import io.github.secnewt.dialer.screening.PhoneNumbers
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.ScreeningLog
@@ -101,6 +103,10 @@ class MainActivity : ComponentActivity() {
     private val photoLoader by lazy { ContactsPhotoLoader(this) }
     private val callLogRepo by lazy { CallLogRepository(this) }
     private val caller by lazy { Caller(this) }
+    private val systemBlockList by lazy { SystemBlockList(this) }
+
+    /** True once exact numbers are known to be on Android's block list as well. */
+    private var systemBlockListSynced by mutableStateOf(false)
 
     private var callLogAccess by mutableStateOf(false)
     private var callGroups by mutableStateOf(emptyList<CallGroup>())
@@ -333,6 +339,7 @@ class MainActivity : ComponentActivity() {
                             onAdd = ::addRule,
                             onRemove = { rule -> saveRules(blockRules - rule) },
                             onBack = { screen = Screen.SETTINGS },
+                            sharedWithAndroid = phoneAppRoleHeld && systemBlockListSynced && !settings.observeOnly,
                         )
                         Screen.CONTACT -> {
                             val contact = contacts.firstOrNull { it.id == openContactId }
@@ -393,6 +400,7 @@ class MainActivity : ComponentActivity() {
         recentCalls = ScreeningLog(this).read()
         settings = store.settings()
         blockRules = store.blockRules()
+        syncWithSystemBlockList()
         announce = store.announceSettings()
         refreshContacts()
         if (announce.mode != AnnounceMode.OFF && !hasAnnouncePermissions()) {
@@ -518,8 +526,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun updateSettings(newSettings: SpamSettings) {
+        val startedBlocking = settings.observeOnly && !newSettings.observeOnly
         settings = newSettings
         store.saveSettings(newSettings)
+        if (startedBlocking) syncWithSystemBlockList()
     }
 
     private fun addRule(rule: BlockRule) {
@@ -533,7 +543,42 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun saveRules(rules: List<BlockRule>) {
+        val change = BlockSync.change(blockRules, rules)
         blockRules = rules
         store.saveBlockRules(rules)
+        // As the phone app, exact numbers also go on Android's own block list (not in observe
+        // only mode, where every call still rings).
+        if (phoneAppRoleHeld && (change.added.isNotEmpty() || change.removed.isNotEmpty())) {
+            val enforce = !settings.observeOnly
+            lifecycleScope.launch(Dispatchers.IO) {
+                if (!systemBlockList.isAvailable()) return@launch
+                if (enforce) change.added.forEach(systemBlockList::add)
+                change.removed.forEach(systemBlockList::remove)
+            }
+        }
+    }
+
+    /**
+     * Makes this app's exact numbers and Android's block list match, both ways, so numbers
+     * blocked before (in the stock phone app) show up here and vice versa. In observe-only
+     * mode nothing is sent to Android, since those calls are meant to keep ringing.
+     */
+    private fun syncWithSystemBlockList() {
+        if (!phoneAppRoleHeld) return
+        val enforce = !settings.observeOnly
+        lifecycleScope.launch {
+            val fromAndroid = withContext(Dispatchers.IO) {
+                if (!systemBlockList.isAvailable()) return@withContext null
+                val plan = BlockSync.plan(blockRules, systemBlockList.numbers())
+                if (enforce) plan.toAndroid.forEach(systemBlockList::add)
+                plan.toApp
+            } ?: return@launch
+            systemBlockListSynced = true
+            if (fromAndroid.isNotEmpty()) {
+                val merged = blockRules + fromAndroid.map { BlockRule.Number(it) }
+                blockRules = merged
+                store.saveBlockRules(merged)
+            }
+        }
     }
 }

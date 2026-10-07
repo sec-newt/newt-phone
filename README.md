@@ -17,7 +17,7 @@ numbers. Font licenses (SIL OFL) are in `app/src/main/assets/licenses`.
 
 ## Status
 
-Phase 3b (first part): the app can be the default phone app. Turn it on in
+Phase 3b: the app can be the default phone app. Turn it on in
 Settings, "Make this my phone app"; the stock phone app stays installed, and
 you can switch back in Android's Settings, Apps, Default apps.
 
@@ -45,6 +45,14 @@ app updated from GitHub releases).
   notification with Answer/Decline or Hang up.
 - **Emergency calls:** once this is the phone app, 911 is placed from here like
   any other call (Android keeps its own emergency fallback if the app fails).
+- **Conference calls:** with one call on hold, Merge joins everyone into one
+  call (when the carrier allows it); the screen lists who's on it.
+- **Android's block list:** as the phone app, exact numbers on your block list
+  are shared with Android's own block list, both ways, so they're turned
+  away before ringing and their texts are blocked too. Numbers you blocked
+  earlier in the stock phone app show up here. "Starting with" rules stay in
+  this app. In observe-only mode nothing is sent to Android, since those calls
+  are meant to keep ringing.
 - **Dial links:** tel: links and "call" buttons in other apps open the dialpad
   with the number filled in.
 

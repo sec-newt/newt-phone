@@ -95,4 +95,29 @@ class LiveCallsTest {
         assertFalse(LiveCalls.wantsProximitySensor(listOf(call("a", CallPhase.RINGING)), AudioState()))
         assertFalse(LiveCalls.wantsProximitySensor(emptyList(), AudioState()))
     }
+
+    @Test
+    fun peopleOnAConferenceShowInsideIt() {
+        val conference = call("conf", CallPhase.ACTIVE).copy(isConference = true, number = null)
+        val calls = LiveCalls.withParticipants(
+            listOf(
+                call("a", CallPhase.ACTIVE).copy(parentId = "conf", name = "Mom"),
+                conference,
+                call("b", CallPhase.ACTIVE).copy(parentId = "conf", name = "Alex"),
+            )
+        )
+        val main = LiveCalls.primary(calls)
+        assertEquals("conf", main?.id)
+        assertEquals(listOf("Mom", "Alex"), main?.participants?.map { it.name })
+        assertNull(LiveCalls.secondary(calls))
+    }
+
+    @Test
+    fun mergeShowsOnlyWithACallOnHold() {
+        val talking = call("a", CallPhase.ACTIVE).copy(canMerge = true)
+        assertTrue(LiveCalls.showMerge(talking, call("b", CallPhase.ON_HOLD)))
+        assertFalse(LiveCalls.showMerge(talking, null))
+        assertFalse(LiveCalls.showMerge(talking, call("b", CallPhase.RINGING)))
+        assertFalse(LiveCalls.showMerge(talking.copy(canMerge = false), call("b", CallPhase.ON_HOLD)))
+    }
 }

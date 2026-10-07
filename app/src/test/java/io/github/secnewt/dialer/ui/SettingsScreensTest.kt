@@ -107,6 +107,11 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun blockListSharedWithAndroidDark() = render("block-list_shared_dark", dark = true) {
+        BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {}, sharedWithAndroid = true)
+    }
+
+    @Test
     fun blockListLargestFont() = render("block-list_light_font200", dark = false, fontScale = 2f) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {})
     }
