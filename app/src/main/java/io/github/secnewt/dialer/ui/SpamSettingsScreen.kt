@@ -1,6 +1,10 @@
 package io.github.secnewt.dialer.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -71,6 +75,8 @@ fun SpamSettingsScreen(
     onTestAnnouncement: () -> Unit = {},
     isPhoneApp: Boolean? = null,
     onMakePhoneApp: () -> Unit = {},
+    phoneAppDenied: Boolean = false,
+    onOpenSystemSetting: (SystemSetting) -> Unit = {},
 ) {
     var choosing by remember { mutableStateOf<CallerType?>(null) }
     var choosingAnnounce by remember { mutableStateOf(false) }
@@ -85,7 +91,14 @@ fun SpamSettingsScreen(
 
             if (isPhoneApp != null) {
                 item { SectionHeading("Phone app") }
-                item { PhoneAppCard(isPhoneApp, onMakePhoneApp) }
+                item {
+                    PhoneAppCard(
+                        isPhoneApp = isPhoneApp,
+                        denied = phoneAppDenied,
+                        onMakePhoneApp = onMakePhoneApp,
+                        onOpenAppInfo = { onOpenSystemSetting(SystemSetting.APP_INFO) },
+                    )
+                }
             }
 
             item {
@@ -101,6 +114,7 @@ fun SpamSettingsScreen(
                     onChooseMode = { choosingAnnounce = true },
                     onQuietDuringDndChange = onQuietDuringDndChange,
                     onTest = onTestAnnouncement,
+                    onOpenVoiceSettings = { onOpenSystemSetting(SystemSetting.TTS) },
                 )
             }
 
@@ -172,6 +186,24 @@ fun SpamSettingsScreen(
                 )
             }
 
+            item { SectionHeading("Phone settings", modifier = Modifier.padding(top = 16.dp)) }
+            item {
+                Column {
+                    Text(
+                        text = "These open Android's own settings.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    )
+                    val links = listOf(
+                        SystemSetting.SOUND, SystemSetting.CALLS, SystemSetting.VOICEMAIL, SystemSetting.ACCESSIBILITY,
+                    )
+                    links.forEachIndexed { index, setting ->
+                        if (index > 0) HorizontalDivider()
+                        SystemSettingRow(setting) { onOpenSystemSetting(setting) }
+                    }
+                }
+            }
+
         }
     }
 
@@ -215,7 +247,12 @@ fun SpamSettingsScreen(
 
 /** Whether this app answers and shows calls, with a button to make it do so. */
 @Composable
-private fun PhoneAppCard(isPhoneApp: Boolean, onMakePhoneApp: () -> Unit) {
+private fun PhoneAppCard(
+    isPhoneApp: Boolean,
+    denied: Boolean,
+    onMakePhoneApp: () -> Unit,
+    onOpenAppInfo: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -241,6 +278,24 @@ private fun PhoneAppCard(isPhoneApp: Boolean, onMakePhoneApp: () -> Unit) {
                         .heightIn(min = 56.dp),
                 ) {
                     Text("Make this my phone app", style = MaterialTheme.typography.titleMedium)
+                }
+                if (denied) {
+                    Text(
+                        text = "If Android said the app was denied access, it's because the app was " +
+                            "installed from a file. Open App info, tap the ⋮ menu in the corner, choose " +
+                            "Allow restricted settings, then come back and try again.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    OutlinedButton(
+                        onClick = onOpenAppInfo,
+                        border = neonOutline(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp),
+                    ) {
+                        Text("Open App info", style = MaterialTheme.typography.titleMedium)
+                    }
                 }
             }
         }
@@ -281,6 +336,44 @@ private fun ObserveOnlyCard(observeOnly: Boolean, onChange: (Boolean) -> Unit) {
 @Composable
 private fun CallerTypeRow(type: CallerType, action: CallAction, onClick: (CallerType) -> Unit) {
     NavigationRow(title = type.title, value = actionLabel(action), onClick = { onClick(type) })
+}
+
+/** Android settings screens the app links to instead of copying them. */
+enum class SystemSetting(val title: String, val detail: String) {
+    SOUND("Ringtone and volume", "Ringtone, ring and call volume, vibration"),
+    CALLS("Calls and SIM", "Call forwarding, call waiting, caller ID, Wi-Fi calling"),
+    VOICEMAIL("Voicemail", "Voicemail number and notifications"),
+    ACCESSIBILITY("Hearing aids and TTY", "Hearing aid mode, TTY and real-time text"),
+    TTS("Voice and speed", "The text-to-speech voice that announces callers"),
+    APP_INFO("App info", "This app's permissions and restricted settings"),
+}
+
+/** A row that opens one of Android's settings screens: title, what's there, and an arrow. */
+@Composable
+private fun SystemSettingRow(setting: SystemSetting, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 10.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(setting.title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                setting.detail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(28.dp),
+        )
+    }
 }
 
 @Composable
@@ -354,6 +447,7 @@ private fun AnnounceSection(
     onChooseMode: () -> Unit,
     onQuietDuringDndChange: (Boolean) -> Unit,
     onTest: () -> Unit,
+    onOpenVoiceSettings: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -390,6 +484,7 @@ private fun AnnounceSection(
             ) {
                 Text("Play a test announcement", style = MaterialTheme.typography.titleMedium)
             }
+            SystemSettingRow(SystemSetting.TTS, onOpenVoiceSettings)
         }
         message?.let {
             Text(text = it, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)

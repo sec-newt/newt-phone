@@ -1,4 +1,4 @@
-# Dialer
+# Newt Phone
 
 A private, Google-free call screener and dialer for GrapheneOS: on-device spam
 detection, a simple block list, caller announcement, and a high-contrast,
@@ -20,6 +20,17 @@ numbers. Font licenses (SIL OFL) are in `app/src/main/assets/licenses`.
 Phase 3b (first part): the app can be the default phone app. Turn it on in
 Settings, "Make this my phone app"; the stock phone app stays installed, and
 you can switch back in Android's Settings, Apps, Default apps.
+
+If Android says the app "was denied access to be default Phone app", that's
+Android's restricted settings for apps installed from a downloaded file: open
+Settings, Apps, Newt Phone, tap the ⋮ menu, choose "Allow restricted
+settings", and try again. Installing with Obtainium avoids it (and keeps the
+app updated from GitHub releases).
+
+- **Phone settings:** shortcuts to Android's own screens for ringtone and
+  volume, calls and SIM (forwarding, call waiting, caller ID, Wi-Fi calling),
+  voicemail, and hearing aids/TTY, plus the text-to-speech voice used for
+  announcements.
 
 - **Incoming calls:** a full screen with the caller's photo, name and number,
   any "Likely spam" warning, and two big buttons: Decline and Answer. It shows
@@ -113,7 +124,7 @@ tab, then scroll to **Releases**), tap the newest one, and tap the
 `dialer-0.1.N.apk` file to install it. Each release installs over the
 previous one, and the app's data is kept.
 
-Test builds from pull requests are named **Dialer (test)** and install
+Test builds from pull requests are named **Newt Phone (test)** and install
 alongside the real app. They're under the **Actions** tab, in the run's
 **Artifacts** section, as a zip containing the APK.
 
