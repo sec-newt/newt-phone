@@ -3,6 +3,10 @@ package io.github.secnewt.dialer.calls
 import io.github.secnewt.dialer.screening.PhoneNumbers
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /** What happened on a call, in the words shown on screen. */
 enum class CallKind(val label: String) {
@@ -58,7 +62,7 @@ object CallHistory {
         Instant.ofEpochMilli(a.timeMillis).atZone(zone).toLocalDate() ==
             Instant.ofEpochMilli(b.timeMillis).atZone(zone).toLocalDate()
 
-    /** "Missed", "Outgoing, 3 calls", "Incoming, 4 minutes". */
+    /** "Missed", "Outgoing · 3 calls", "Incoming · 4 min". Short, so a row fits on one line. */
     fun summary(group: CallGroup): String {
         val parts = mutableListOf(group.latest.kind.label)
         if (group.count > 1) {
@@ -66,22 +70,34 @@ object CallHistory {
         } else if (group.latest.kind in setOf(CallKind.INCOMING, CallKind.OUTGOING)) {
             duration(group.latest.durationSeconds)?.let { parts += it }
         }
-        return parts.joinToString(", ")
+        return parts.joinToString(" · ")
     }
 
-    /** "45 seconds", "1 minute", "12 minutes", "1 hour 5 minutes"; null when the call didn't connect. */
+    /** "45 sec", "1 min", "12 min", "1 hr 5 min"; null when the call didn't connect. */
     fun duration(seconds: Long): String? {
         if (seconds <= 0) return null
-        if (seconds < 60) return "$seconds seconds"
+        if (seconds < 60) return "$seconds sec"
         val minutes = seconds / 60
-        if (minutes < 60) return if (minutes == 1L) "1 minute" else "$minutes minutes"
+        if (minutes < 60) return "$minutes min"
         val hours = minutes / 60
         val rest = minutes % 60
-        val hourText = if (hours == 1L) "1 hour" else "$hours hours"
-        return when (rest) {
-            0L -> hourText
-            1L -> "$hourText 1 minute"
-            else -> "$hourText $rest minutes"
+        return if (rest == 0L) "$hours hr" else "$hours hr $rest min"
+    }
+
+    /** Heading for a day of calls: "Today", "Yesterday", "Thursday", "Thu, Sep 24", "Thu, Sep 24, 2025". */
+    fun dayLabel(timeMillis: Long, now: ZonedDateTime): String {
+        val date = Instant.ofEpochMilli(timeMillis).atZone(now.zone).toLocalDate()
+        val days = now.toLocalDate().toEpochDay() - date.toEpochDay()
+        return when {
+            days == 0L -> "Today"
+            days == 1L -> "Yesterday"
+            days in 2..6 -> date.format(DateTimeFormatter.ofPattern("EEEE", Locale.getDefault()))
+            date.year == now.year -> date.format(DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault()))
+            else -> date.format(DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.getDefault()))
         }
     }
+
+    /** "4:03 PM" in the phone's own time format. */
+    fun clock(timeMillis: Long, zone: ZoneId): String =
+        Instant.ofEpochMilli(timeMillis).atZone(zone).format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 }

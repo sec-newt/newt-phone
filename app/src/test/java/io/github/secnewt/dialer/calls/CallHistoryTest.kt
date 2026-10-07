@@ -47,18 +47,29 @@ class CallHistoryTest {
         val one = CallGroup(listOf(call(1, "1", CallKind.OUTGOING, at(6, 9), seconds = 250)))
         val missed = CallGroup(listOf(call(1, "1", CallKind.MISSED, at(6, 9))))
         val three = CallGroup(List(3) { call(it.toLong(), "1", CallKind.INCOMING, at(6, 9), 30) })
-        assertEquals("Outgoing, 4 minutes", CallHistory.summary(one))
+        assertEquals("Outgoing · 4 min", CallHistory.summary(one))
         assertEquals("Missed", CallHistory.summary(missed))
-        assertEquals("Incoming, 3 calls", CallHistory.summary(three))
+        assertEquals("Incoming · 3 calls", CallHistory.summary(three))
     }
 
     @Test
     fun `durations read naturally`() {
         assertNull(CallHistory.duration(0))
-        assertEquals("45 seconds", CallHistory.duration(45))
-        assertEquals("1 minute", CallHistory.duration(61))
-        assertEquals("1 hour", CallHistory.duration(3600))
-        assertEquals("1 hour 1 minute", CallHistory.duration(3660))
-        assertEquals("2 hours 5 minutes", CallHistory.duration(7500))
+        assertEquals("45 sec", CallHistory.duration(45))
+        assertEquals("1 min", CallHistory.duration(61))
+        assertEquals("1 hr", CallHistory.duration(3600))
+        assertEquals("1 hr 1 min", CallHistory.duration(3660))
+        assertEquals("2 hr 5 min", CallHistory.duration(7500))
+    }
+
+    @Test
+    fun `day headings read like the stock phone app`() {
+        val now = ZonedDateTime.of(2026, 10, 7, 18, 0, 0, 0, zone)
+        fun daysAgo(n: Long) = now.minusDays(n).toInstant().toEpochMilli()
+        assertEquals("Today", CallHistory.dayLabel(daysAgo(0), now))
+        assertEquals("Yesterday", CallHistory.dayLabel(daysAgo(1), now))
+        assertEquals("Saturday", CallHistory.dayLabel(daysAgo(4), now))
+        assertEquals("Thu, Sep 24", CallHistory.dayLabel(daysAgo(13), now))
+        assertEquals("Tue, Oct 7, 2025", CallHistory.dayLabel(daysAgo(365), now))
     }
 }
