@@ -5,9 +5,12 @@ import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.telecom.PhoneAccount
+import android.telecom.TelecomManager
+import android.telephony.TelephonyManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -71,6 +74,7 @@ import io.github.secnewt.dialer.ui.DialerTabBar
 import io.github.secnewt.dialer.ui.FavoritesScreen
 import io.github.secnewt.dialer.ui.SpamProtectionScreen
 import io.github.secnewt.dialer.ui.SpamSettingsScreen
+import io.github.secnewt.dialer.ui.SystemSetting
 import io.github.secnewt.dialer.ui.Tab
 import io.github.secnewt.dialer.ui.theme.DialerTheme
 import kotlinx.coroutines.Dispatchers
@@ -120,6 +124,9 @@ class MainActivity : ComponentActivity() {
     private var screeningRoleHeld by mutableStateOf(false)
     private var phoneAppRoleHeld by mutableStateOf(false)
 
+    /** Asked to become the phone app and didn't (often Android's restricted settings). */
+    private var phoneAppDenied by mutableStateOf(false)
+
     /** A number another app asked to dial (a tel: link), waiting to be shown on the dialpad. */
     private var incomingDial by mutableStateOf<String?>(null)
 
@@ -160,6 +167,7 @@ class MainActivity : ComponentActivity() {
                         ActivityResultContracts.StartActivityForResult()
                     ) {
                         refresh()
+                        phoneAppDenied = !phoneAppRoleHeld
                         if (phoneAppRoleHeld) askForNotifications()
                     }
                     val liveCalls by CallManager.calls.collectAsState()
@@ -297,6 +305,8 @@ class MainActivity : ComponentActivity() {
                             onMakePhoneApp = {
                                 requestPhoneAppRole.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_DIALER))
                             },
+                            phoneAppDenied = phoneAppDenied,
+                            onOpenSystemSetting = ::openSystemSetting,
                         )
                         Screen.SPAM -> SpamProtectionScreen(
                             roleHeld = screeningRoleHeld,
@@ -458,8 +468,24 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openDndSettings() {
-        val intents = listOf(Intent("android.settings.ZEN_MODE_SETTINGS"), Intent(Settings.ACTION_SETTINGS))
+    private fun openDndSettings() = openFirst(Intent("android.settings.ZEN_MODE_SETTINGS"))
+
+    /** Opens one of Android's settings screens; falls back to call settings, then Settings. */
+    private fun openSystemSetting(setting: SystemSetting) {
+        val intent = when (setting) {
+            SystemSetting.SOUND -> Intent(Settings.ACTION_SOUND_SETTINGS)
+            SystemSetting.CALLS -> Intent(TelecomManager.ACTION_SHOW_CALL_SETTINGS)
+            SystemSetting.VOICEMAIL -> Intent(TelephonyManager.ACTION_CONFIGURE_VOICEMAIL)
+            SystemSetting.ACCESSIBILITY -> Intent(TelecomManager.ACTION_SHOW_CALL_ACCESSIBILITY_SETTINGS)
+            SystemSetting.TTS -> Intent("com.android.settings.TTS_SETTINGS")
+            SystemSetting.APP_INFO ->
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+        }
+        openFirst(intent, Intent(TelecomManager.ACTION_SHOW_CALL_SETTINGS))
+    }
+
+    private fun openFirst(vararg preferred: Intent) {
+        val intents = preferred.toList() + Intent(Settings.ACTION_SETTINGS)
         for (intent in intents) {
             try {
                 startActivity(intent)

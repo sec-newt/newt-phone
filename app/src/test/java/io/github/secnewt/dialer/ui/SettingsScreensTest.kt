@@ -8,6 +8,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -137,6 +140,51 @@ class SettingsScreensTest {
         }
         composeRule.onNodeWithText("Make this my phone app").performClick()
         assertEquals(1, asked)
+    }
+
+    @Test
+    fun settingsPhoneAppDeniedLargestFont() = render("settings_phone-app-denied_dark_font200", dark = true, fontScale = 2f) {
+        SpamSettingsScreen(
+            SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+            isPhoneApp = false, phoneAppDenied = true,
+        )
+    }
+
+    @Test
+    fun deniedHelpOpensAppInfo() {
+        val opened = mutableListOf<SystemSetting>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                SpamSettingsScreen(
+                    SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+                    isPhoneApp = false, phoneAppDenied = true, onOpenSystemSetting = { opened += it },
+                )
+            }
+        }
+        composeRule.onNodeWithText("Open App info").performClick()
+        assertEquals(listOf(SystemSetting.APP_INFO), opened)
+    }
+
+    @Test
+    fun phoneSettingsOpenAndroidScreens() {
+        val opened = mutableListOf<SystemSetting>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = false) {
+                SpamSettingsScreen(
+                    SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+                    announce = AnnounceSettings(mode = AnnounceMode.ALWAYS),
+                    onOpenSystemSetting = { opened += it },
+                )
+            }
+        }
+        val list = composeRule.onNode(hasScrollAction())
+        list.performScrollToNode(hasText("Voice and speed"))
+        composeRule.onNodeWithText("Voice and speed").performClick()
+        list.performScrollToNode(hasText("Ringtone and volume"))
+        composeRule.onNodeWithText("Ringtone and volume").performClick()
+        list.performScrollToNode(hasText("Calls and SIM"))
+        composeRule.onNodeWithText("Calls and SIM").performClick()
+        assertEquals(listOf(SystemSetting.TTS, SystemSetting.SOUND, SystemSetting.CALLS), opened)
     }
 
     @Test
