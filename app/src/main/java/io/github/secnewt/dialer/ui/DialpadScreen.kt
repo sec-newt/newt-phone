@@ -222,7 +222,7 @@ private fun Key(key: DialKey, onPress: () -> Unit, onLongPress: () -> Unit, modi
             .heightIn(min = 62.dp)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .border(neonOutline(), shape)
             .combinedClickable(
                 onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)

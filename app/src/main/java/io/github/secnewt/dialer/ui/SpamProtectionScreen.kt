@@ -1,6 +1,5 @@
 package io.github.secnewt.dialer.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -79,7 +78,7 @@ fun SpamProtectionScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    border = neonOutline(),
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                         NavigationRow(
@@ -105,6 +104,7 @@ fun SpamProtectionScreen(
             item {
                 OutlinedButton(
                     onClick = onOpenSettings,
+                    border = neonOutline(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 56.dp),
@@ -156,7 +156,7 @@ private fun StatusCard(roleHeld: Boolean, observeOnly: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = neonOutline(),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
