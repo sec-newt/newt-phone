@@ -31,7 +31,8 @@ class DialpadTest {
     @Test
     fun `keys read clearly to a screen reader`() {
         assertEquals("5, J K L", Dialpad.spokenLabel(DialKey('5', "JKL")))
-        assertEquals("1", Dialpad.spokenLabel(DialKey('1', "")))
+        assertEquals("1, hold for voicemail", Dialpad.spokenLabel(DialKey('1', "")))
+        assertEquals("3, D E F", Dialpad.spokenLabel(DialKey('3', "DEF")))
         assertEquals("Star", Dialpad.spokenLabel(DialKey('*', "")))
         assertEquals("0, hold for plus", Dialpad.spokenLabel(DialKey('0', "+")))
     }
@@ -39,5 +40,12 @@ class DialpadTest {
     @Test
     fun `the pad has twelve keys in phone order`() {
         assertEquals("123456789*0#", Dialpad.keys.map { it.digit }.joinToString(""))
+    }
+
+    @Test
+    fun `holding 1 calls voicemail only when nothing is typed`() {
+        assertEquals(true, Dialpad.holdCallsVoicemail("", '1'))
+        assertEquals(false, Dialpad.holdCallsVoicemail("555", '1'))
+        assertEquals(false, Dialpad.holdCallsVoicemail("", '2'))
     }
 }

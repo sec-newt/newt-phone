@@ -72,6 +72,9 @@ import java.time.ZoneId
 /** TABS shows Calls, Favorites or Contacts with the bottom bar; the others are full pages. */
 private enum class Screen { TABS, SETTINGS, BLOCK_LIST, CONTACT, SPAM, DIALPAD }
 
+/** Stands in for a number when the call is to voicemail. */
+private const val VOICEMAIL = "voicemail"
+
 private val ANNOUNCE_PERMISSIONS = arrayOf(
     Manifest.permission.READ_PHONE_STATE,
     Manifest.permission.READ_CALL_LOG,
@@ -272,6 +275,7 @@ class MainActivity : ComponentActivity() {
                             contacts = contacts,
                             onCall = ::call,
                             onBack = { screen = Screen.TABS },
+                            onVoicemail = { call(VOICEMAIL) },
                         )
                         Screen.BLOCK_LIST -> BlockListScreen(
                             rules = blockRules,
@@ -362,7 +366,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun placeCall(number: String) {
-        val result = caller.call(number)
+        val result = if (number == VOICEMAIL) caller.callVoicemail() else caller.call(number)
         val message = if (result == CallStart.FAILED) "No phone app was found to place the call." else null
         callMessage = message
         contactsMessage = message

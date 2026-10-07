@@ -36,6 +36,25 @@ class Caller(private val context: Context) {
         }
     }
 
+    /** Calls voicemail; the phone knows the number from the SIM, so nothing needs setting up. */
+    fun callVoicemail(): CallStart {
+        val uri = Uri.fromParts("voicemail", "", null)
+        if (canCallDirectly()) {
+            try {
+                context.getSystemService(TelecomManager::class.java).placeCall(uri, null)
+                return CallStart.PLACED
+            } catch (e: SecurityException) {
+                // Fall through to the phone app.
+            }
+        }
+        return try {
+            context.startActivity(Intent(Intent.ACTION_DIAL, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            CallStart.OPENED_PHONE_APP
+        } catch (e: ActivityNotFoundException) {
+            CallStart.FAILED
+        }
+    }
+
     /**
      * 911 and other emergency numbers are handed to the phone's own dialer, which is built and
      * tested for them (location, priority routing). It shows the number; one tap places the call.
