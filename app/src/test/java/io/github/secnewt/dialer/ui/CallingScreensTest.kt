@@ -168,6 +168,26 @@ class CallingScreensTest {
     }
 
     @Test
+    fun dialpadStartsWithFavorites() {
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) { DialpadScreen("", {}, contacts, onCall = {}, onBack = {}) }
+        }
+        composeRule.onNodeWithText("Favorites").assertIsDisplayed()
+        composeRule.onNodeWithText("Mom").assertIsDisplayed()
+        composeRule.onNodeWithText("Mona's bakery").assertDoesNotExist()
+    }
+
+    @Test
+    fun dialpadCallsAMatchDirectly() {
+        val called = mutableListOf<String>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) { DialpadScreen("555012", {}, contacts, onCall = { called += it }, onBack = {}) }
+        }
+        composeRule.onNodeWithContentDescription("Call Mona's bakery, (555) 012-9999").performClick()
+        assertEquals(listOf("5550129999"), called)
+    }
+
+    @Test
     fun dialpadSuggestsMatchingContacts() {
         var number by mutableStateOf("555012")
         composeRule.setContent {
