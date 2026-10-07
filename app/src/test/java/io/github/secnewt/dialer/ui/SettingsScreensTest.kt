@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -22,6 +23,7 @@ import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
 import io.github.secnewt.dialer.screening.SpamSettings
 import io.github.secnewt.dialer.ui.theme.DialerTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -104,6 +106,37 @@ class SettingsScreensTest {
     @Test
     fun blockListLargestFont() = render("block-list_light_font200", dark = false, fontScale = 2f) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {})
+    }
+
+    @Test
+    fun settingsNotPhoneAppYetDark() = render("settings_phone-app-off_dark", dark = true) {
+        SpamSettingsScreen(
+            SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+            isPhoneApp = false,
+        )
+    }
+
+    @Test
+    fun settingsIsPhoneAppLight() = render("settings_phone-app-on_light", dark = false) {
+        SpamSettingsScreen(
+            SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+            isPhoneApp = true,
+        )
+    }
+
+    @Test
+    fun makePhoneAppButtonAsksForTheRole() {
+        var asked = 0
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                SpamSettingsScreen(
+                    SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+                    isPhoneApp = false, onMakePhoneApp = { asked++ },
+                )
+            }
+        }
+        composeRule.onNodeWithText("Make this my phone app").performClick()
+        assertEquals(1, asked)
     }
 
     @Test

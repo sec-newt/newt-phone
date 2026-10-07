@@ -5,7 +5,9 @@ import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.telecom.PhoneAccount
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -24,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,6 +39,11 @@ import io.github.secnewt.dialer.calls.CallHistory
 import io.github.secnewt.dialer.calls.CallLogRepository
 import io.github.secnewt.dialer.calls.CallStart
 import io.github.secnewt.dialer.calls.Caller
+import io.github.secnewt.dialer.calls.CallPhase
+import io.github.secnewt.dialer.calls.Dialpad
+import io.github.secnewt.dialer.calls.LiveCalls
+import io.github.secnewt.dialer.incall.CallManager
+import io.github.secnewt.dialer.incall.InCallActivity
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.announce.AnnounceSettings
 import io.github.secnewt.dialer.announce.Announcement
@@ -58,6 +66,7 @@ import io.github.secnewt.dialer.ui.ContactsScreen
 import io.github.secnewt.dialer.ui.DialpadIcon
 import io.github.secnewt.dialer.ui.DialpadScreen
 import io.github.secnewt.dialer.ui.RecentsScreen
+import io.github.secnewt.dialer.ui.ReturnToCallBar
 import io.github.secnewt.dialer.ui.DialerTabBar
 import io.github.secnewt.dialer.ui.FavoritesScreen
 import io.github.secnewt.dialer.ui.SpamProtectionScreen
@@ -109,6 +118,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private var screeningRoleHeld by mutableStateOf(false)
+    private var phoneAppRoleHeld by mutableStateOf(false)
+
+    /** A number another app asked to dial (a tel: link), waiting to be shown on the dialpad. */
+    private var incomingDial by mutableStateOf<String?>(null)
+
+    private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        // Without it the call screen still opens; only the notification is missing.
+    }
     private var recentCalls by mutableStateOf(emptyList<ScreenedCall>())
     private var settings by mutableStateOf(SpamSettings())
     private var blockRules by mutableStateOf(emptyList<BlockRule>())
@@ -126,6 +143,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        incomingDial = dialRequest(intent)
         val roleManager = getSystemService(RoleManager::class.java)
         setContent {
             DialerTheme {
@@ -138,6 +156,22 @@ class MainActivity : ComponentActivity() {
                     val requestRole = rememberLauncherForActivityResult(
                         ActivityResultContracts.StartActivityForResult()
                     ) { refresh() }
+                    val requestPhoneAppRole = rememberLauncherForActivityResult(
+                        ActivityResultContracts.StartActivityForResult()
+                    ) {
+                        refresh()
+                        if (phoneAppRoleHeld) askForNotifications()
+                    }
+                    val liveCalls by CallManager.calls.collectAsState()
+                    val ongoingCall = LiveCalls.primary(liveCalls)?.takeIf { it.phase != CallPhase.ENDED }
+
+                    LaunchedEffect(incomingDial) {
+                        incomingDial?.let {
+                            dialNumber = it
+                            screen = Screen.DIALPAD
+                            incomingDial = null
+                        }
+                    }
                     val requestAnnouncePermissions = rememberLauncherForActivityResult(
                         ActivityResultContracts.RequestMultiplePermissions()
                     ) { results ->
@@ -184,6 +218,9 @@ class MainActivity : ComponentActivity() {
 
                     when (screen) {
                         Screen.TABS -> Scaffold(
+                            topBar = {
+                                ongoingCall?.let { ReturnToCallBar(it, onClick = ::openCallScreen) }
+                            },
                             bottomBar = { DialerTabBar(selected = tab, onSelect = { tab = it }) },
                             floatingActionButton = {
                                 LargeFloatingActionButton(
@@ -256,6 +293,10 @@ class MainActivity : ComponentActivity() {
                             },
                             onQuietDuringDndChange = { updateAnnounce(announce.copy(quietDuringDnd = it)) },
                             onTestAnnouncement = ::testAnnouncement,
+                            isPhoneApp = phoneAppRoleHeld,
+                            onMakePhoneApp = {
+                                requestPhoneAppRole.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_DIALER))
+                            },
                         )
                         Screen.SPAM -> SpamProtectionScreen(
                             roleHeld = screeningRoleHeld,
@@ -304,14 +345,41 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        dialRequest(intent)?.let { incomingDial = it }
+    }
+
+    /**
+     * The number in a "dial this" request from another app or a tel: link, or "" for an empty
+     * dialpad; null when the app was simply opened.
+     */
+    private fun dialRequest(intent: Intent?): String? {
+        if (intent?.action != Intent.ACTION_DIAL && intent?.action != Intent.ACTION_VIEW) return null
+        val data = intent.data ?: return ""
+        if (data.scheme != PhoneAccount.SCHEME_TEL) return ""
+        return Dialpad.clean(data.schemeSpecificPart.orEmpty())
+    }
+
+    private fun openCallScreen() = startActivity(InCallActivity.intent(this))
+
+    private fun askForNotifications() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         refresh()
     }
 
     private fun refresh() {
-        screeningRoleHeld = getSystemService(RoleManager::class.java)
-            .isRoleHeld(RoleManager.ROLE_CALL_SCREENING)
+        val roles = getSystemService(RoleManager::class.java)
+        screeningRoleHeld = roles.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)
+        phoneAppRoleHeld = roles.isRoleHeld(RoleManager.ROLE_DIALER)
         recentCalls = ScreeningLog(this).read()
         settings = store.settings()
         blockRules = store.blockRules()

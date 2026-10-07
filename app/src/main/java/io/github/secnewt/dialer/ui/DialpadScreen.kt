@@ -227,10 +227,21 @@ private fun Keypad(number: String, onNumberChange: (String) -> Unit, onVoicemail
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun Key(key: DialKey, onPress: () -> Unit, onLongPress: () -> Unit, modifier: Modifier = Modifier) {
+internal fun Key(
+    key: DialKey,
+    onPress: () -> Unit,
+    onLongPress: () -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = Dialpad.spokenLabel(key),
+    longPressLabel: String? = when (key.digit) {
+        '0' -> "Type plus"
+        '1' -> "Call voicemail"
+        else -> null
+    },
+    showVoicemail: Boolean = true,
+) {
     val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(18.dp)
-    val label = Dialpad.spokenLabel(key)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val colors = MaterialTheme.colorScheme
@@ -265,10 +276,7 @@ private fun Key(key: DialKey, onPress: () -> Unit, onLongPress: () -> Unit, modi
                 contentDescription = label
                 role = Role.Button
                 onClick { onPress(); true }
-                when (key.digit) {
-                    '0' -> onLongClick(label = "Type plus") { onLongPress(); true }
-                    '1' -> onLongClick(label = "Call voicemail") { onLongPress(); true }
-                }
+                longPressLabel?.let { onLongClick(label = it) { onLongPress(); true } }
             }
             .padding(vertical = 6.dp),
     ) {
@@ -279,7 +287,7 @@ private fun Key(key: DialKey, onPress: () -> Unit, onLongPress: () -> Unit, modi
             fontWeight = FontWeight.Bold,
             color = digitColor,
         )
-        if (key.digit == '1') {
+        if (key.digit == '1' && showVoicemail) {
             Icon(VoicemailIcon, contentDescription = null, tint = subColor, modifier = Modifier.size(22.dp))
         } else if (key.letters.isNotEmpty()) {
             Text(
