@@ -16,6 +16,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,6 +69,8 @@ fun SpamSettingsScreen(
     onAnnounceModeChange: (AnnounceMode) -> Unit = {},
     onQuietDuringDndChange: (Boolean) -> Unit = {},
     onTestAnnouncement: () -> Unit = {},
+    isPhoneApp: Boolean? = null,
+    onMakePhoneApp: () -> Unit = {},
 ) {
     var choosing by remember { mutableStateOf<CallerType?>(null) }
     var choosingAnnounce by remember { mutableStateOf(false) }
@@ -80,7 +83,17 @@ fun SpamSettingsScreen(
         ) {
             item { ScreenHeader("Settings", onBack) }
 
-            item { SectionHeading("Caller announcement") }
+            if (isPhoneApp != null) {
+                item { SectionHeading("Phone app") }
+                item { PhoneAppCard(isPhoneApp, onMakePhoneApp) }
+            }
+
+            item {
+                SectionHeading(
+                    "Caller announcement",
+                    modifier = if (isPhoneApp != null) Modifier.padding(top = 16.dp) else Modifier,
+                )
+            }
             item {
                 AnnounceSection(
                     announce = announce,
@@ -197,6 +210,40 @@ fun SpamSettingsScreen(
             },
             onDismiss = { choosing = null },
         )
+    }
+}
+
+/** Whether this app answers and shows calls, with a button to make it do so. */
+@Composable
+private fun PhoneAppCard(isPhoneApp: Boolean, onMakePhoneApp: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = neonOutline(),
+    ) {
+        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            CardTitle(if (isPhoneApp) "This is your phone app" else "Not your phone app yet")
+            Text(
+                text = if (isPhoneApp) {
+                    "Incoming calls and calls in progress use this app's screens. To switch back, choose " +
+                        "another phone app in Settings, Apps, Default apps."
+                } else {
+                    "Make this your phone app to answer calls and use the in-call screen here. " +
+                        "The stock phone app stays installed, and you can switch back any time."
+                },
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            if (!isPhoneApp) {
+                Button(
+                    onClick = onMakePhoneApp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp),
+                ) {
+                    Text("Make this my phone app", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
     }
 }
 

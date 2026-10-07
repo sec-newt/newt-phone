@@ -41,4 +41,11 @@ object Dialpad {
         key.letters.isEmpty() -> key.digit.toString()
         else -> "${key.digit}, ${key.letters.toList().joinToString(" ")}"
     }
+
+    /** What a screen reader says for a key while in a call, where keys only send tones. */
+    fun toneLabel(key: DialKey): String = when (key.digit) {
+        '*' -> "Star"
+        '#' -> "Pound"
+        else -> key.digit.toString()
+    }
 }

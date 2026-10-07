@@ -15,6 +15,13 @@
          call; without it, Call opens the phone app with the number filled in. -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
 
+    <!-- Phone app (only once you make this the default phone app):
+         show the call notification, open the call screen over the lock screen,
+         and turn the screen off against your ear during a call. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <!-- Calling needs a phone line, but declaring it optional keeps the app installable on
          devices without one (they simply can't place calls). -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
@@ -35,12 +42,55 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- "Dial this number" from other apps and tel: links. Android requires these
+                 before it lets the app become the default phone app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.DIAL" />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tel" />
+            </intent-filter>
         </activity>
+
+        <!-- The incoming-call and in-call screen. Its own task, so it can come and go
+             without disturbing the rest of the app. -->
+        <activity
+            android:name=".incall.InCallActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="io.github.secnewt.dialer.incall"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
+
+        <!-- Android hands calls to this service once the app is the default phone app. -->
+        <service
+            android:name=".incall.DialerInCallService"
+            android:exported="true"
+            android:permission="android.permission.BIND_INCALL_SERVICE">
+            <meta-data
+                android:name="android.telecom.IN_CALL_SERVICE_UI"
+                android:value="true" />
+            <intent-filter>
+                <action android:name="android.telecom.InCallService" />
+            </intent-filter>
+        </service>
+
+        <!-- Answer, Decline and Hang up from the notification; not reachable by other apps. -->
+        <receiver
+            android:name=".incall.CallActionReceiver"
+            android:exported="false" />
 
         <!-- Lets the app hold the "Caller ID & spam app" role and see calls before they ring. -->
         <service

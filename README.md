@@ -17,6 +17,26 @@ numbers. Font licenses (SIL OFL) are in `app/src/main/assets/licenses`.
 
 ## Status
 
+Phase 3b (first part): the app can be the default phone app. Turn it on in
+Settings, "Make this my phone app"; the stock phone app stays installed, and
+you can switch back in Android's Settings, Apps, Default apps.
+
+- **Incoming calls:** a full screen with the caller's photo, name and number,
+  any "Likely spam" warning, and two big buttons: Decline and Answer. It shows
+  over the lock screen. Android still plays your ringtone.
+- **In a call:** a running timer and big round buttons with words under them:
+  Mute, Speaker (or Sound: Phone, Speaker, Bluetooth when Bluetooth is
+  connected), Keypad (sends tones for "press 1 for…" menus), Hold and Add call,
+  plus a wide End call button. The screen turns off against your ear.
+- **Two calls:** answering a second call puts the first on hold; a card shows
+  the held call with a Swap button.
+- **Getting back:** a green "Return to call" strip on the main screens, and a
+  notification with Answer/Decline or Hang up.
+- **Emergency calls:** once this is the phone app, 911 is placed from here like
+  any other call (Android keeps its own emergency fallback if the app fails).
+- **Dial links:** tel: links and "call" buttons in other apps open the dialpad
+  with the number filled in.
+
 Phase 3a. Three tabs at the bottom: Favorites, Recents and Contacts, plus a
 dialpad button on every tab.
 
@@ -29,8 +49,9 @@ dialpad button on every tab.
   and matching contacts appear after 3 digits.
 - **Calling:** the first call asks to "make and manage phone calls"; after
   that, Call places the call directly. Without it, Call opens the phone app
-  with the number filled in. Emergency numbers (911) always go through the
-  phone's own dialer, which shows the number so one tap places the call.
+  with the number filled in. Until this is the phone app, emergency numbers
+  (911) go through the stock phone app, which shows the number so one tap
+  places the call.
 
 - **Favorites:** a grid of photo tiles. Tap a tile to call, or the corner
   button to open the contact. A card above it
@@ -77,7 +98,9 @@ Every push runs these on GitHub before an APK is published:
 | Secret scan | Passwords or keys accidentally committed, across the whole history |
 
 Pull requests also run an **emulator call test**: the app is installed on an
-Android emulator, made the call screening app, and receives a fake call.
+Android emulator, made the call screening app, and receives a fake call; then
+it is made the default phone app and a second call must open its call screen
+without crashing.
 
 Dependabot opens pull requests for dependency updates and security fixes; they
 go through the same checks.

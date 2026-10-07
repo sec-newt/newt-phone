@@ -95,7 +95,7 @@ Start with a screening app that works alongside the GrapheneOS dialer. It delive
    - Done when: a week of normal use with no wrongly blocked real calls, and spam that previously rang is silenced or labeled.
 2. **Phase 2: Contacts and favorites.** Quick starring, a Favorites tab and a contact view that's friendly to DND exceptions.
    - Done when: starring from the app shows up in the system DND exceptions.
-3. **Phase 3: Full dialer (optional).** Split in two: 3a adds the dialpad, Recents from the call log and direct calling while the stock app still handles live calls; 3b adds the in-call and incoming-call screens, the system block list and the default phone app role. Dialpad, call log, in-call screen, and the system block list. The app becomes the default phone app.
+3. **Phase 3: Full dialer (optional).** Split in two: 3a adds the dialpad, Recents from the call log and direct calling while the stock app still handles live calls; 3b adds the in-call and incoming-call screens, the system block list and the default phone app role (3b part 1, done: the role, call screens, notification and dial links; part 2: the system block list and conference calls). Dialpad, call log, in-call screen, and the system block list. The app becomes the default phone app.
    - Done when: incoming, outgoing and emergency calls are tested, plus Bluetooth/car and a call while another is active. Keep the stock dialer installed as a fallback.
 
 - [x] Create the GitHub repo for the app

@@ -45,14 +45,10 @@ import io.github.secnewt.dialer.calls.CallGroup
 import io.github.secnewt.dialer.calls.CallHistory
 import io.github.secnewt.dialer.calls.CallKind
 import io.github.secnewt.dialer.contacts.Contact
-import io.github.secnewt.dialer.screening.CallAction
-import io.github.secnewt.dialer.screening.PhoneNumbers
-import io.github.secnewt.dialer.screening.Reason
 import io.github.secnewt.dialer.screening.ScreenedCall
-import io.github.secnewt.dialer.screening.Verification
+import io.github.secnewt.dialer.screening.SpamLabel
 import io.github.secnewt.dialer.ui.theme.DialerFonts
 import java.time.ZonedDateTime
-import kotlin.math.abs
 
 /** The phone's call history, with spam labels from the screening log and one-tap call back. */
 @Composable
@@ -146,18 +142,8 @@ private fun DayHeading(day: String) {
 }
 
 /** "Likely spam" or "Blocked number" when the screening log flagged this call. */
-private fun spamLabel(group: CallGroup, screened: List<ScreenedCall>): String? {
-    val call = group.latest
-    val number = PhoneNumbers.normalize(call.number) ?: return null
-    val match = screened.firstOrNull {
-        PhoneNumbers.normalize(it.number) == number && abs(it.timeMillis - call.timeMillis) < 2 * 60_000
-    } ?: return null
-    return when {
-        match.reason == Reason.BLOCK_LIST -> "Blocked number"
-        match.action != CallAction.RING || match.verification == Verification.FAILED -> "Likely spam"
-        else -> null
-    }
-}
+private fun spamLabel(group: CallGroup, screened: List<ScreenedCall>): String? =
+    SpamLabel.forCall(group.latest.number, group.latest.timeMillis, screened)
 
 @Composable
 private fun StatusPanel(

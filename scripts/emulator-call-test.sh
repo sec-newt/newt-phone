@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Installs the app on an emulator, makes it the call screening app, turns on
 # caller announcement, places a fake incoming call, and checks the app
-# screened it, saved it to recent calls, and announced it.
+# screened it, saved it to recent calls, and announced it. Then makes it the
+# default phone app and checks a second call opens the app's own call screen.
 set -euo pipefail
 
 pkg="io.github.secnewt.dialer.debug"
@@ -47,4 +48,31 @@ if ! grep -q "Announcing incoming call" screening.log; then
   echo "::error::Caller announcement is on, but the ringing call was not announced."
   exit 1
 fi
-echo "Emulator call test passed: the call was screened, saved to recent calls and announced."
+echo "Screening test passed: the call was screened, saved to recent calls and announced."
+
+# Make the app the default phone app and check that a ringing call opens its call screen.
+adb shell cmd role add-role-holder android.app.role.DIALER "$pkg"
+adb shell cmd role get-role-holders android.app.role.DIALER | grep -q "$pkg"
+adb shell pm grant "$pkg" android.permission.POST_NOTIFICATIONS
+echo "App is the default phone app."
+
+adb logcat -c
+adb emu gsm call 5550142290
+sleep 8
+adb shell dumpsys activity activities > activities.txt
+if ! grep -q "incall.InCallActivity" activities.txt; then
+  echo "::error::A call rang, but the app's call screen did not open."
+  grep -i "ResumedActivity" activities.txt || true
+  exit 1
+fi
+echo "The incoming-call screen opened."
+
+adb emu gsm cancel 5550142290
+sleep 4
+adb logcat -d > after-call.log
+if grep -q "FATAL EXCEPTION" after-call.log; then
+  echo "::error::The app crashed during the call."
+  grep -A20 "FATAL EXCEPTION" after-call.log
+  exit 1
+fi
+echo "Emulator call test passed: screening, announcement, and the app's own call screen all work."

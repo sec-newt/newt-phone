@@ -19,3 +19,9 @@ android.permission.WRITE_CONTACTS
 # Calling (asked for on the first call): place the call directly.
 # Emergency numbers still go through the phone's own dialer.
 android.permission.CALL_PHONE
+#
+# Phone app (only once it is made the default phone app): the call notification,
+# the call screen over the lock screen, and the screen turning off against your ear.
+android.permission.POST_NOTIFICATIONS
+android.permission.USE_FULL_SCREEN_INTENT
+android.permission.WAKE_LOCK
