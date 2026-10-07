@@ -1,6 +1,5 @@
 package io.github.secnewt.dialer.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -203,6 +202,7 @@ fun ContactsScreen(
             }
             item {
                 OutlinedTextField(
+                    colors = neonFieldColors(),
                     value = query,
                     onValueChange = onQueryChange,
                     label = { Text("Search by name or number") },
@@ -317,6 +317,7 @@ fun ContactDetailScreen(
                     if (contact.starred) {
                         OutlinedButton(
                             onClick = onToggleStar,
+                            border = neonOutline(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(min = 56.dp),
@@ -403,7 +404,7 @@ private fun DndCard(dnd: DndCalls, onOpenDndSettings: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = neonOutline(),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             CardTitle("Do Not Disturb")
@@ -411,6 +412,7 @@ private fun DndCard(dnd: DndCalls, onOpenDndSettings: () -> Unit) {
             if (advice.suggestSettings) {
                 OutlinedButton(
                     onClick = onOpenDndSettings,
+                    border = neonOutline(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 56.dp),
@@ -427,7 +429,7 @@ private fun ContactsAccessCard(onAllowAccess: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = neonOutline(),
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(

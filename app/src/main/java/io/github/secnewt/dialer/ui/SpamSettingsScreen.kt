@@ -1,6 +1,5 @@
 package io.github.secnewt.dialer.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -133,6 +132,7 @@ fun SpamSettingsScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
+                        colors = neonFieldColors(),
                         value = settings.myNumber.orEmpty(),
                         onValueChange = { onSettingsChange(settings.copy(myNumber = it.ifBlank { null })) },
                         label = { Text("My phone number") },
@@ -204,7 +204,7 @@ fun SpamSettingsScreen(
 private fun ObserveOnlyCard(observeOnly: Boolean, onChange: (Boolean) -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = neonOutline(),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -336,6 +336,7 @@ private fun AnnounceSection(
             }
             OutlinedButton(
                 onClick = onTest,
+                border = neonOutline(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 56.dp),

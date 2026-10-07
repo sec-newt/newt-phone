@@ -1,5 +1,10 @@
 package io.github.secnewt.dialer.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -80,6 +85,24 @@ fun SectionHeading(text: String, modifier: Modifier = Modifier) {
         modifier = modifier.semantics { heading() },
     )
 }
+
+/**
+ * The one outline style used everywhere (cards, dialpad keys, outlined buttons): a thin
+ * Tokyo Night blue-to-purple gradient. Colors that mean something (a contact's ring, green
+ * Call, red missed calls) keep their own color instead.
+ */
+@Composable
+fun neonOutline(width: Dp = 1.5.dp): BorderStroke = BorderStroke(
+    width,
+    Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)),
+)
+
+/** Text fields outlined to match: purple at rest, blue while typing. */
+@Composable
+fun neonFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    unfocusedBorderColor = MaterialTheme.colorScheme.secondary,
+    focusedBorderColor = MaterialTheme.colorScheme.primary,
+)
 
 /** Title of a main tab, with the Settings gear in the top-right corner. */
 @Composable

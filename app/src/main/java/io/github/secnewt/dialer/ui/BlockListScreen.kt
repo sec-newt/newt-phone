@@ -133,6 +133,7 @@ private fun AddBlockRuleDialog(onAdd: (BlockRule) -> Unit, onDismiss: () -> Unit
                     ChoiceRow("Numbers starting with…", selected = startsWith) { startsWith = true }
                 }
                 OutlinedTextField(
+                    colors = neonFieldColors(),
                     value = digits,
                     onValueChange = { digits = it },
                     label = { Text(if (startsWith) "First digits" else "Phone number") },

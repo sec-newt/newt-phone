@@ -1,6 +1,5 @@
 package io.github.secnewt.dialer.ui
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -153,7 +152,7 @@ private fun StatusPanel(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = neonOutline(),
     ) {
         Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
             NavigationRow(
