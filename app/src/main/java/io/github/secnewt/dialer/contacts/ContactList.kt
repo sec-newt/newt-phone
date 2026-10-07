@@ -40,6 +40,27 @@ object ContactList {
         }
     }
 
+    /**
+     * Contacts for the dialpad list, favorites first and then alphabetical. With nothing typed it
+     * shows the favorites; with digits typed, every contact with a number containing them, paired
+     * with the number that matched.
+     */
+    fun dialpadMatches(contacts: List<Contact>, typed: String): List<Pair<Contact, PhoneEntry>> {
+        val digits = typed.filter { it.isDigit() }
+        val order = compareBy<Contact>({ !it.starred }, { it.name.lowercase() })
+        if (digits.isEmpty()) {
+            return contacts.filter { it.starred }.sortedWith(order)
+                .mapNotNull { c -> c.phones.firstOrNull()?.let { c to it } }
+        }
+        val wanted = PhoneNumbers.normalize(digits) ?: digits
+        return contacts.sortedWith(order).mapNotNull { contact ->
+            contact.phones.firstOrNull { phone ->
+                val number = phone.number.filter { it.isDigit() }
+                number.contains(digits) || PhoneNumbers.normalize(number)?.contains(wanted) == true
+            }?.let { contact to it }
+        }
+    }
+
     /** The same number saved twice ("555-0197" and "+1 555 0197") is shown once. */
     fun distinctPhones(phones: List<PhoneEntry>): List<PhoneEntry> =
         phones.distinctBy { PhoneNumbers.normalize(it.number) ?: it.number }
