@@ -157,7 +157,7 @@ class CallingScreensTest {
             }
         }
         composeRule.onNodeWithContentDescription("0, hold for plus").performSemanticsAction(SemanticsActions.OnLongClick)
-        composeRule.onNodeWithContentDescription("1").performClick()
+        composeRule.onNodeWithContentDescription("1, hold for voicemail").performClick()
         composeRule.onNodeWithContentDescription("5, J K L").performClick()
         composeRule.onNodeWithContentDescription("5, J K L").performClick()
         assertEquals("+155", number)
@@ -165,6 +165,18 @@ class CallingScreensTest {
         assertEquals("+15", number)
         composeRule.onNodeWithContentDescription("Call").performClick()
         assertEquals(listOf("+15"), called)
+    }
+
+    @Test
+    fun holdingOneCallsVoicemail() {
+        var voicemail = 0
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                DialpadScreen("", {}, contacts, onCall = {}, onBack = {}, onVoicemail = { voicemail++ })
+            }
+        }
+        composeRule.onNodeWithContentDescription("1, hold for voicemail").performSemanticsAction(SemanticsActions.OnLongClick)
+        assertEquals(1, voicemail)
     }
 
     @Test

@@ -23,6 +23,9 @@ object Dialpad {
     fun longPress(current: String, key: Char): String =
         if (key == '0') press(current, '+') else press(current, key)
 
+    /** Holding 1 with nothing typed calls voicemail, like the stock dialer. */
+    fun holdCallsVoicemail(current: String, key: Char): Boolean = key == '1' && current.isEmpty()
+
     fun backspace(current: String): String = current.dropLast(1)
 
     /** Keeps only what can be dialed, for text pasted or shared into the dialpad. */
@@ -34,6 +37,7 @@ object Dialpad {
         key.digit == '*' -> "Star"
         key.digit == '#' -> "Pound"
         key.digit == '0' -> "0, hold for plus"
+        key.digit == '1' -> "1, hold for voicemail"
         key.letters.isEmpty() -> key.digit.toString()
         else -> "${key.digit}, ${key.letters.toList().joinToString(" ")}"
     }

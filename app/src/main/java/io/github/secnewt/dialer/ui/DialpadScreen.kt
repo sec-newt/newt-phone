@@ -27,7 +27,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.heading
 import io.github.secnewt.dialer.contacts.PhoneEntry
 import androidx.compose.material3.Icon
@@ -72,6 +77,7 @@ fun DialpadScreen(
     contacts: List<Contact>,
     onCall: (String) -> Unit,
     onBack: () -> Unit,
+    onVoicemail: () -> Unit = {},
 ) {
     val matches = remember(contacts, number) { ContactList.dialpadMatches(contacts, number) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -114,7 +120,7 @@ fun DialpadScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 NumberRow(number, onNumberChange, onBack)
-                Keypad(number, onNumberChange)
+                Keypad(number, onNumberChange, onVoicemail)
                 CallButton(number, onCall)
             }
         }
@@ -192,7 +198,7 @@ private fun MatchRow(contact: Contact, phone: PhoneEntry, onPick: () -> Unit, on
 }
 
 @Composable
-private fun Keypad(number: String, onNumberChange: (String) -> Unit) {
+private fun Keypad(number: String, onNumberChange: (String) -> Unit, onVoicemail: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Dialpad.keys.chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -200,7 +206,13 @@ private fun Keypad(number: String, onNumberChange: (String) -> Unit) {
                     Key(
                         key = key,
                         onPress = { onNumberChange(Dialpad.press(number, key.digit)) },
-                        onLongPress = { onNumberChange(Dialpad.longPress(number, key.digit)) },
+                        onLongPress = {
+                            if (Dialpad.holdCallsVoicemail(number, key.digit)) {
+                                onVoicemail()
+                            } else {
+                                onNumberChange(Dialpad.longPress(number, key.digit))
+                            }
+                        },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -209,21 +221,37 @@ private fun Keypad(number: String, onNumberChange: (String) -> Unit) {
     }
 }
 
+/**
+ * A dialpad key. While pressed it lights up with the same blue-to-purple gradient as the
+ * outlines, and the digit turns dark so it stays easy to read.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Key(key: DialKey, onPress: () -> Unit, onLongPress: () -> Unit, modifier: Modifier = Modifier) {
     val haptics = LocalHapticFeedback.current
     val shape = RoundedCornerShape(18.dp)
     val label = Dialpad.spokenLabel(key)
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val colors = MaterialTheme.colorScheme
+    val fill: Brush = if (pressed) {
+        Brush.linearGradient(listOf(colors.primary, colors.secondary))
+    } else {
+        SolidColor(colors.surfaceVariant)
+    }
+    val digitColor = if (pressed) colors.onPrimary else colors.onSurface
+    val subColor = if (pressed) colors.onPrimary else colors.onSurfaceVariant
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .heightIn(min = 62.dp)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(fill)
             .border(neonOutline(), shape)
             .combinedClickable(
+                interactionSource = interaction,
+                indication = null,
                 onClick = {
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onPress()
@@ -237,7 +265,10 @@ private fun Key(key: DialKey, onPress: () -> Unit, onLongPress: () -> Unit, modi
                 contentDescription = label
                 role = Role.Button
                 onClick { onPress(); true }
-                if (key.digit == '0') onLongClick(label = "Type plus") { onLongPress(); true }
+                when (key.digit) {
+                    '0' -> onLongClick(label = "Type plus") { onLongPress(); true }
+                    '1' -> onLongClick(label = "Call voicemail") { onLongPress(); true }
+                }
             }
             .padding(vertical = 6.dp),
     ) {
@@ -246,14 +277,16 @@ private fun Key(key: DialKey, onPress: () -> Unit, onLongPress: () -> Unit, modi
             style = MaterialTheme.typography.headlineMedium,
             fontFamily = DialerFonts.Display,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = digitColor,
         )
-        if (key.letters.isNotEmpty()) {
+        if (key.digit == '1') {
+            Icon(VoicemailIcon, contentDescription = null, tint = subColor, modifier = Modifier.size(22.dp))
+        } else if (key.letters.isNotEmpty()) {
             Text(
                 key.letters,
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = subColor,
             )
         }
     }
