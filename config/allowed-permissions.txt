@@ -15,3 +15,7 @@ android.permission.READ_CONTACTS
 # Favorites (asked for only when Favorites or Contacts is opened):
 # star and unstar contacts in the phone's own contacts, which Do Not Disturb uses.
 android.permission.WRITE_CONTACTS
+#
+# Calling (asked for on the first call): place the call directly.
+# Emergency numbers still go through the phone's own dialer.
+android.permission.CALL_PHONE

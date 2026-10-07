@@ -95,7 +95,7 @@ Start with a screening app that works alongside the GrapheneOS dialer. It delive
    - Done when: a week of normal use with no wrongly blocked real calls, and spam that previously rang is silenced or labeled.
 2. **Phase 2: Contacts and favorites.** Quick starring, a Favorites tab and a contact view that's friendly to DND exceptions.
    - Done when: starring from the app shows up in the system DND exceptions.
-3. **Phase 3: Full dialer (optional).** Dialpad, call log, in-call screen, and the system block list. The app becomes the default phone app.
+3. **Phase 3: Full dialer (optional).** Split in two: 3a adds the dialpad, Recents from the call log and direct calling while the stock app still handles live calls; 3b adds the in-call and incoming-call screens, the system block list and the default phone app role. Dialpad, call log, in-call screen, and the system block list. The app becomes the default phone app.
    - Done when: incoming, outgoing and emergency calls are tested, plus Bluetooth/car and a call while another is active. Keep the stock dialer installed as a fallback.
 
 - [x] Create the GitHub repo for the app
@@ -112,6 +112,10 @@ GrapheneOS supports everything this app needs. A few of its privacy features nee
 - **Network permission:** the app doesn't need internet for Phase 1. Leave GrapheneOS's Network permission off unless an optional downloaded spam list is turned on.
 - **Installing:** allow "install unknown apps" for the browser or Obtainium. Updates stay signed with the same key, so they install over the previous build.
 - **Prior art to study:** Fossify Phone (open-source dialer) and Yet Another Call Blocker (open-source, offline spam lists), both on F-Droid.
+
+## Later: editing contacts
+
+Contacts sync to a Radicale server (CardDAV). When contact editing is added, new contacts must be saved to that sync account, not a phone-only one, and a `.vcf` export comes first so nothing can be lost.
 
 ## Open questions
 

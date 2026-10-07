@@ -15,8 +15,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 
 enum class Tab(val label: String, val icon: ImageVector) {
-    CALLS("Calls", Icons.Filled.Phone),
     FAVORITES("Favorites", Icons.Filled.Star),
+    RECENTS("Recents", Icons.Filled.Phone),
     CONTACTS("Contacts", Icons.Filled.Person),
 }
 
