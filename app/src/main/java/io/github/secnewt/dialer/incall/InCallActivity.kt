@@ -60,6 +60,7 @@ class InCallActivity : ComponentActivity() {
             onRoute = CallManager::setRoute,
             onToggleHold = CallManager::toggleHold,
             onSwap = CallManager::swap,
+            onMerge = CallManager::merge,
             onTone = CallManager::playTone,
             onAddCall = ::addCall,
         )

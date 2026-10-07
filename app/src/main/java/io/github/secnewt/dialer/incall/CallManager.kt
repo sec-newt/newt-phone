@@ -46,6 +46,9 @@ object CallManager {
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) = publish()
         override fun onDetailsChanged(call: Call, details: Call.Details) = publish()
+        override fun onParentChanged(call: Call, parent: Call?) = publish()
+        override fun onChildrenChanged(call: Call, children: List<Call>) = publish()
+        override fun onConferenceableCallsChanged(call: Call, conferenceableCalls: List<Call>) = publish()
     }
 
     fun add(call: Call): String {
@@ -112,6 +115,16 @@ object CallManager {
         telecomCalls.values.firstOrNull { phaseOf(it) == CallPhase.ON_HOLD }?.unhold()
     }
 
+    /** Joins this call and the one it can be merged with into a conference. */
+    fun merge(id: String) {
+        val call = telecomCalls[id] ?: return
+        val other = call.conferenceableCalls.firstOrNull()
+        when {
+            other != null -> call.conference(other)
+            call.details.can(Call.Details.CAPABILITY_MERGE_CONFERENCE) -> call.mergeConference()
+        }
+    }
+
     fun playTone(id: String, digit: Char) {
         val call = telecomCalls[id] ?: return
         call.playDtmfTone(digit)
@@ -161,7 +174,7 @@ object CallManager {
     }
 
     private fun publish() {
-        _calls.value = telecomCalls.map { (id, call) -> toLiveCall(id, call) }
+        _calls.value = LiveCalls.withParticipants(telecomCalls.map { (id, call) -> toLiveCall(id, call) })
     }
 
     private fun toLiveCall(id: String, call: Call): LiveCall {
@@ -181,6 +194,10 @@ object CallManager {
             canHold = details.can(Call.Details.CAPABILITY_HOLD),
             isEmergency = info.isEmergency,
             isVoicemail = details.handle?.scheme == PhoneAccount.SCHEME_VOICEMAIL,
+            isConference = details.hasProperty(Call.Details.PROPERTY_CONFERENCE),
+            parentId = call.parent?.let(::idOf),
+            canMerge = call.conferenceableCalls.isNotEmpty() ||
+                details.can(Call.Details.CAPABILITY_MERGE_CONFERENCE),
         )
     }
 }

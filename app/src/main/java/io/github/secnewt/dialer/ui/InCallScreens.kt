@@ -77,12 +77,14 @@ data class CallActions(
     val onRoute: (AudioRoute) -> Unit = {},
     val onToggleHold: (String) -> Unit = {},
     val onSwap: () -> Unit = {},
+    val onMerge: (String) -> Unit = {},
     val onTone: (String, Char) -> Unit = { _, _ -> },
     val onAddCall: () -> Unit = {},
 )
 
 /** The name to show for a call: the contact, the number, "Voicemail" or "Hidden number". */
 fun callTitle(call: LiveCall): String = when {
+    call.isConference -> "Conference call"
     call.isVoicemail -> "Voicemail"
     call.name != null -> call.name
     else -> formatCaller(call.number)
@@ -211,7 +213,13 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
             )
             CallerHeader(call, avatarSize = if (keypadOpen) 72 else 128)
             call.spamLabel?.let { SpamWarning(it) }
-            other?.let { OtherCallCard(it, onSwap = actions.onSwap) }
+            other?.let {
+                OtherCallCard(
+                    call = it,
+                    onSwap = actions.onSwap,
+                    onMerge = if (LiveCalls.showMerge(call, it)) ({ actions.onMerge(call.id) }) else null,
+                )
+            }
             if (keypadOpen) {
                 ToneKeypad(
                     tones = tones,
@@ -268,7 +276,14 @@ private fun CallerHeader(call: LiveCall, avatarSize: Int) {
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onBackground,
     )
-    if (call.name != null && call.number != null) {
+    if (call.isConference && call.participants.isNotEmpty()) {
+        Text(
+            text = call.participants.joinToString(", ") { callTitle(it) },
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else if (call.name != null && call.number != null) {
         Text(
             text = formatCaller(call.number),
             style = MaterialTheme.typography.titleLarge,
@@ -299,33 +314,53 @@ private fun SpamWarning(text: String) {
     }
 }
 
-/** The other call: on hold (with Swap), or still connecting. */
+/** The other call: on hold (with Swap, and Merge when the network allows), or still connecting. */
 @Composable
-private fun OtherCallCard(call: LiveCall, onSwap: () -> Unit) {
+private fun OtherCallCard(call: LiveCall, onSwap: () -> Unit, onMerge: (() -> Unit)?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         border = neonOutline(),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            Icon(PauseIcon, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(28.dp))
-            Text(
-                text = if (call.phase == CallPhase.ON_HOLD) "On hold: ${callTitle(call)}" else callTitle(call),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(PauseIcon, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(28.dp))
+                Text(
+                    text = if (call.phase == CallPhase.ON_HOLD) "On hold: ${callTitle(call)}" else callTitle(call),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
+            }
             if (call.phase == CallPhase.ON_HOLD) {
-                OutlinedButton(onClick = onSwap, border = neonOutline(), modifier = Modifier.heightIn(min = 52.dp)) {
-                    Icon(SwapCallsIcon, contentDescription = null, modifier = Modifier.size(22.dp))
-                    Text("Swap", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = onSwap,
+                        border = neonOutline(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 52.dp),
+                    ) {
+                        Icon(SwapCallsIcon, contentDescription = null, modifier = Modifier.size(22.dp))
+                        Text("Swap", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 6.dp))
+                    }
+                    if (onMerge != null) {
+                        OutlinedButton(
+                            onClick = onMerge,
+                            border = neonOutline(),
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 52.dp),
+                        ) {
+                            Icon(MergeIcon, contentDescription = null, modifier = Modifier.size(22.dp))
+                            Text("Merge", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 6.dp))
+                        }
+                    }
                 }
             }
         }

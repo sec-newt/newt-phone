@@ -44,6 +44,7 @@ fun BlockListScreen(
     onAdd: (BlockRule) -> Unit,
     onRemove: (BlockRule) -> Unit,
     onBack: () -> Unit,
+    sharedWithAndroid: Boolean = false,
 ) {
     var adding by remember { mutableStateOf(false) }
 
@@ -59,6 +60,17 @@ fun BlockListScreen(
                     text = "Calls from these numbers are always blocked, even when protection is Off.",
                     style = MaterialTheme.typography.bodyLarge,
                 )
+            }
+            if (sharedWithAndroid) {
+                item {
+                    Text(
+                        text = "Exact numbers are also on Android's own block list, so they're turned away " +
+                            "before ringing and their texts are blocked too. \"Starting with\" rules stay in " +
+                            "this app.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             item {
                 Button(
