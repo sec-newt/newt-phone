@@ -35,7 +35,7 @@ class SpamSettingsStoreTest {
     @Test
     fun `announcement is off by default and survives a save and load`() {
         assertEquals(AnnounceSettings(), store.announceSettings())
-        val settings = AnnounceSettings(mode = AnnounceMode.HEADPHONES_ONLY, quietDuringDnd = false)
+        val settings = AnnounceSettings(mode = AnnounceMode.HEADPHONES_ONLY, quietDuringDnd = false, repeat = false)
         store.saveAnnounceSettings(settings)
         assertEquals(settings, store.announceSettings())
     }

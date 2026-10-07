@@ -89,6 +89,16 @@ class InCallActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        CallManager.screenShowing.value = true
+    }
+
+    override fun onStop() {
+        CallManager.screenShowing.value = false
+        super.onStop()
+    }
+
     override fun onDestroy() {
         setProximitySensor(false)
         super.onDestroy()

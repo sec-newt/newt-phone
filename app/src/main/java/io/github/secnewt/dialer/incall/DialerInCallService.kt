@@ -3,10 +3,15 @@ package io.github.secnewt.dialer.incall
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.InCallService
+import io.github.secnewt.dialer.calls.CallPhase
+import io.github.secnewt.dialer.calls.LiveCalls
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -24,7 +29,15 @@ class DialerInCallService : InCallService() {
         super.onCreate()
         notifier = CallNotifier(this)
         CallManager.service = this
-        scope.launch { CallManager.calls.collect { notifier.update(it) } }
+        scope.launch {
+            combine(CallManager.calls, CallManager.screenShowing) { calls, showing -> calls to showing }
+                .collectLatest { (calls, showing) ->
+                    // Give the call screen a moment to open, so the banner doesn't pop up over it.
+                    val ringing = LiveCalls.primary(calls)?.phase == CallPhase.RINGING
+                    if (ringing && !showing) delay(BANNER_DELAY_MILLIS)
+                    notifier.update(calls, screenShowing = showing)
+                }
+        }
     }
 
     override fun onCallAdded(call: Call) {
@@ -49,6 +62,10 @@ class DialerInCallService : InCallService() {
         @Suppress("DEPRECATION")
         super.onCallAudioStateChanged(audioState)
         CallManager.updateAudio(audioState)
+    }
+
+    private companion object {
+        const val BANNER_DELAY_MILLIS = 1500L
     }
 
     override fun onDestroy() {
