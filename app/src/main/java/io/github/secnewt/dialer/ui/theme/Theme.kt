@@ -7,6 +7,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
@@ -102,6 +103,12 @@ private val Day = lightColorScheme(
 
 private val Base = Typography()
 
+/** Reading text a touch smaller than Material's defaults, on top of the phone's own font size. */
+private const val TEXT_SCALE = 0.92f
+
+private fun TextStyle.scaled(family: FontFamily) =
+    copy(fontFamily = family, fontSize = fontSize * TEXT_SCALE, lineHeight = lineHeight * TEXT_SCALE)
+
 private val DialerTypography = Typography(
     displayLarge = Base.displayLarge.copy(fontFamily = DialerFonts.Display),
     displayMedium = Base.displayMedium.copy(fontFamily = DialerFonts.Display),
@@ -109,15 +116,15 @@ private val DialerTypography = Typography(
     headlineLarge = Base.headlineLarge.copy(fontFamily = DialerFonts.Display),
     headlineMedium = Base.headlineMedium.copy(fontFamily = DialerFonts.Display),
     headlineSmall = Base.headlineSmall.copy(fontFamily = DialerFonts.Display),
-    titleLarge = Base.titleLarge.copy(fontFamily = DialerFonts.Body),
-    titleMedium = Base.titleMedium.copy(fontFamily = DialerFonts.Body),
-    titleSmall = Base.titleSmall.copy(fontFamily = DialerFonts.Body),
-    bodyLarge = Base.bodyLarge.copy(fontFamily = DialerFonts.Body),
-    bodyMedium = Base.bodyMedium.copy(fontFamily = DialerFonts.Body),
-    bodySmall = Base.bodySmall.copy(fontFamily = DialerFonts.Body),
-    labelLarge = Base.labelLarge.copy(fontFamily = DialerFonts.Body),
-    labelMedium = Base.labelMedium.copy(fontFamily = DialerFonts.Body),
-    labelSmall = Base.labelSmall.copy(fontFamily = DialerFonts.Body),
+    titleLarge = Base.titleLarge.scaled(DialerFonts.Body),
+    titleMedium = Base.titleMedium.scaled(DialerFonts.Body),
+    titleSmall = Base.titleSmall.scaled(DialerFonts.Body),
+    bodyLarge = Base.bodyLarge.scaled(DialerFonts.Body),
+    bodyMedium = Base.bodyMedium.scaled(DialerFonts.Body),
+    bodySmall = Base.bodySmall.scaled(DialerFonts.Body),
+    labelLarge = Base.labelLarge.scaled(DialerFonts.Body),
+    labelMedium = Base.labelMedium.scaled(DialerFonts.Body),
+    labelSmall = Base.labelSmall.scaled(DialerFonts.Body),
 )
 
 @Composable

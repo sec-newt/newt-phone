@@ -3,6 +3,7 @@ package io.github.secnewt.dialer.ui
 import android.telephony.PhoneNumberUtils
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.CallAction
+import io.github.secnewt.dialer.screening.PhoneNumbers
 import io.github.secnewt.dialer.screening.Reason
 import io.github.secnewt.dialer.screening.ScreenedCall
 import java.time.Instant
@@ -11,10 +12,21 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-/** "(555) 019-7731" for US numbers, the raw number otherwise, "Hidden number" when there is none. */
+/**
+ * "(972) 862-8342" for US numbers, including ones saved as "+1 972…", so they fit on one line;
+ * other numbers in their usual format; "Hidden number" when there is none.
+ */
 fun formatCaller(number: String?, countryIso: String = Locale.getDefault().country.ifEmpty { "US" }): String {
     if (number.isNullOrBlank()) return "Hidden number"
-    return PhoneNumberUtils.formatNumber(number, countryIso) ?: number
+    val trimmed = number.trim()
+    val digits = PhoneNumbers.normalize(trimmed)
+    val usNumber = countryIso.equals("US", ignoreCase = true) &&
+        digits?.length == 10 &&
+        (!trimmed.startsWith("+") || trimmed.startsWith("+1"))
+    if (usNumber && digits != null) {
+        return "(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}"
+    }
+    return PhoneNumberUtils.formatNumber(trimmed, countryIso) ?: trimmed
 }
 
 /** "Today, 3:42 PM", "Yesterday, 9:05 AM" or "Mon, Sep 29, 3:42 PM". */

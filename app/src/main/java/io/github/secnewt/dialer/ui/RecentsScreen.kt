@@ -35,7 +35,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.calls.CallGroup
@@ -117,13 +120,29 @@ fun RecentsScreen(
                     )
                 }
             } else {
-                items(groups, key = { it.latest.id }) { group ->
-                    RecentRow(group, spamLabel(group, screened), now, onCall)
-                    HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
+                groups.groupBy { CallHistory.dayLabel(it.latest.timeMillis, now) }.forEach { (day, dayGroups) ->
+                    item(key = "day-$day") { DayHeading(day) }
+                    items(dayGroups, key = { it.latest.id }) { group ->
+                        RecentRow(group, spamLabel(group, screened), now, onCall)
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun DayHeading(day: String) {
+    Text(
+        text = day,
+        style = MaterialTheme.typography.titleSmall,
+        fontFamily = DialerFonts.Display,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.tertiary,
+        modifier = Modifier
+            .padding(top = 12.dp, bottom = 2.dp)
+            .semantics { heading() },
+    )
 }
 
 /** "Likely spam" or "Blocked number" when the screening log flagged this call. */
@@ -192,7 +211,8 @@ private fun RecentRow(group: CallGroup, spam: String?, now: ZonedDateTime, onCal
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp),
+            .heightIn(min = 68.dp)
+            .padding(vertical = 4.dp),
     ) {
         ContactAvatar(
             contact = avatar,
@@ -209,16 +229,17 @@ private fun RecentRow(group: CallGroup, spam: String?, now: ZonedDateTime, onCal
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontFamily = if (call.name == null && number != null) DialerFonts.Mono else DialerFonts.Body,
                 fontWeight = FontWeight.Bold,
                 color = if (missed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            KindLine(call.kind, CallHistory.summary(group), missed)
-            Text(
-                text = formatCallTime(call.timeMillis, now),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            KindLine(
+                call.kind,
+                CallHistory.summary(group) + " · " + CallHistory.clock(call.timeMillis, now.zone),
+                missed,
             )
             spam?.let { SpamTag(it) }
         }
@@ -245,7 +266,7 @@ private fun KindLine(kind: CallKind, summary: String, missed: Boolean) {
         )
         Text(
             text = summary,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (missed) FontWeight.Bold else FontWeight.Normal,
             color = color,
             modifier = Modifier.padding(start = 6.dp),

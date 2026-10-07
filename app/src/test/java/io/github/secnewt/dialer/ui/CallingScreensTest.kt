@@ -142,7 +142,7 @@ class CallingScreensTest {
         val called = mutableListOf<String>()
         composeRule.setContent { DialerTheme(darkTheme = true) { Recents(onCall = { called += it }) } }
         composeRule.onNodeWithText("Likely spam").assertIsDisplayed()
-        composeRule.onNodeWithText("Incoming, 2 calls").assertIsDisplayed()
+        composeRule.onNodeWithText("Incoming · 2 calls", substring = true).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Call Mom").performClick()
         assertEquals(listOf("5550123456"), called)
     }

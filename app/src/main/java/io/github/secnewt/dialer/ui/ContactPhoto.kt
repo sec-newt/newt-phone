@@ -9,6 +9,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -110,6 +113,9 @@ fun ContactAvatar(
         val current = photo
         if (current != null) {
             Image(current, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else if (contact.name.none { it.isLetter() }) {
+            // A caller who isn't a contact: a person, not the "1" from "+1".
+            Icon(Icons.Filled.Person, contentDescription = null, tint = AvatarText, modifier = Modifier.fillMaxSize(0.6f))
         } else {
             Text(
                 text = ContactList.initial(contact.name),
