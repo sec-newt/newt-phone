@@ -2,7 +2,8 @@ package io.github.secnewt.dialer.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -42,6 +44,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,6 +79,7 @@ fun FavoritesScreen(
     onCall: (String) -> Unit,
     onOpenDndSettings: () -> Unit,
     message: String? = null,
+    onContactAction: (NumberAction, Contact, String?) -> Unit = { _, _, _ -> },
 ) {
     val favorites = ContactList.favorites(contacts)
     val fullWidth: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it.maxLineSpan) }
@@ -101,7 +108,12 @@ fun FavoritesScreen(
                 }
             } else {
                 gridItems(favorites, key = { it.id }) { contact ->
-                    FavoriteTile(contact, onOpen = { onOpenContact(contact) }, onCall = onCall)
+                    FavoriteTile(
+                        contact,
+                        onOpen = { onOpenContact(contact) },
+                        onCall = onCall,
+                        onAction = { action, number -> onContactAction(action, contact, number) },
+                    )
                 }
             }
         }
@@ -112,20 +124,31 @@ fun FavoritesScreen(
 private val TileScrim = Color(0xE6050608)
 private val TileText = Color(0xFFF2F4FF)
 
+/** Tap to call; hold for more (edit the contact, copy or text the number). */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun FavoriteTile(contact: Contact, onOpen: () -> Unit, onCall: (String) -> Unit) {
+private fun FavoriteTile(
+    contact: Contact,
+    onOpen: () -> Unit,
+    onCall: (String) -> Unit,
+    onAction: (NumberAction, String?) -> Unit,
+) {
     val number = contact.phones.firstOrNull()?.number
     val shape = RoundedCornerShape(16.dp)
     val density = LocalDensity.current
+    var menuOpen by remember { mutableStateOf(false) }
+    if (menuOpen) ContactMenu(contact, number, onAction) { menuOpen = false }
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .clip(shape)
             .border(2.dp, contactColor(contact.name), shape)
-            .clickable(
+            .combinedClickable(
                 role = Role.Button,
                 onClickLabel = if (number != null) "Call" else "Open",
+                onLongClickLabel = "More options",
+                onLongClick = { menuOpen = true },
                 onClick = { if (number != null) onCall(number) else onOpen() },
             ),
     ) {
@@ -186,6 +209,7 @@ fun ContactsScreen(
     onOpenContact: (Contact) -> Unit,
     onToggleStar: (Contact) -> Unit,
     message: String? = null,
+    onContactAction: (NumberAction, Contact, String?) -> Unit = { _, _, _ -> },
 ) {
     val shown = ContactList.search(contacts, query)
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -224,7 +248,12 @@ fun ContactsScreen(
                 }
             } else {
                 items(shown, key = { it.id }) { contact ->
-                    ContactRow(contact, onOpen = { onOpenContact(contact) }, onToggleStar = { onToggleStar(contact) })
+                    ContactRow(
+                        contact,
+                        onOpen = { onOpenContact(contact) },
+                        onToggleStar = { onToggleStar(contact) },
+                        onAction = { action, number -> onContactAction(action, contact, number) },
+                    )
                     HorizontalDivider()
                 }
             }
@@ -232,14 +261,29 @@ fun ContactsScreen(
     }
 }
 
+/** Tap to open; hold for more (edit the contact, copy or text the number). */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ContactRow(contact: Contact, onOpen: () -> Unit, onToggleStar: () -> Unit) {
+private fun ContactRow(
+    contact: Contact,
+    onOpen: () -> Unit,
+    onToggleStar: () -> Unit,
+    onAction: (NumberAction, String?) -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    if (menuOpen) ContactMenu(contact, contact.phones.firstOrNull()?.number, onAction) { menuOpen = false }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .clickable(role = Role.Button, onClickLabel = "Open", onClick = onOpen)
+            .combinedClickable(
+                role = Role.Button,
+                onClickLabel = "Open",
+                onLongClickLabel = "More options",
+                onLongClick = { menuOpen = true },
+                onClick = onOpen,
+            )
             .padding(vertical = 4.dp),
     ) {
         ContactAvatar(
@@ -258,6 +302,25 @@ private fun ContactRow(contact: Contact, onOpen: () -> Unit, onToggleStar: () ->
         )
         StarButton(contact, onToggleStar)
     }
+}
+
+@Composable
+private fun ContactMenu(
+    contact: Contact,
+    number: String?,
+    onAction: (NumberAction, String?) -> Unit,
+    onClose: () -> Unit,
+) {
+    NumberActionsDialog(
+        title = contact.name,
+        number = number,
+        actions = contactActions(hasNumber = number != null),
+        onAction = { action ->
+            onClose()
+            onAction(action, number)
+        },
+        onDismiss = onClose,
+    )
 }
 
 @Composable
@@ -284,6 +347,8 @@ fun ContactDetailScreen(
     onBack: () -> Unit,
     onToggleStar: () -> Unit,
     onCall: (String) -> Unit,
+    onContactAction: (NumberAction, Contact, String?) -> Unit = { _, _, _ -> },
+    isBlocked: (String) -> Boolean = { false },
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
@@ -344,6 +409,20 @@ fun ContactDetailScreen(
                             )
                         }
                     }
+                    OutlinedButton(
+                        onClick = { onContactAction(NumberAction.EDIT_CONTACT, contact, null) },
+                        border = neonOutline(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp),
+                    ) {
+                        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(24.dp))
+                        Text(
+                            "Edit in Contacts",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(start = 12.dp),
+                        )
+                    }
                     Dnd.contactLine(contact.starred, dnd)?.let {
                         Text(it, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                     }
@@ -359,21 +438,48 @@ fun ContactDetailScreen(
                     )
                 }
             }
-            items(contact.phones) { phone -> PhoneRow(phone, onCall) }
+            items(contact.phones) { phone ->
+                PhoneRow(phone, onCall, isBlocked(phone.number)) { action -> onContactAction(action, contact, phone.number) }
+            }
         }
     }
 }
 
+/** Tap or hold the number to copy, text, edit or block it; the Call button calls. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PhoneRow(phone: PhoneEntry, onCall: (String) -> Unit) {
+private fun PhoneRow(phone: PhoneEntry, onCall: (String) -> Unit, isBlocked: Boolean, onAction: (NumberAction) -> Unit) {
     val formatted = formatCaller(phone.number)
+    var menuOpen by remember { mutableStateOf(false) }
+    if (menuOpen) {
+        NumberActionsDialog(
+            title = formatted,
+            number = null,
+            actions = phoneActions(isBlocked),
+            onAction = { action ->
+                menuOpen = false
+                onAction(action)
+            },
+            onDismiss = { menuOpen = false },
+        )
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 56.dp)
+                .combinedClickable(
+                    onClickLabel = "More options",
+                    onLongClickLabel = "More options",
+                    onLongClick = { menuOpen = true },
+                    onClick = { menuOpen = true },
+                ),
+        ) {
             Text(
                 formatted,
                 style = MaterialTheme.typography.titleLarge,

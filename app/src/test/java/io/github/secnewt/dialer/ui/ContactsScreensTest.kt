@@ -14,7 +14,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -108,7 +110,11 @@ class ContactsScreensTest {
         )
 
     @Composable
-    private fun Contacts(query: String = "", onToggleStar: (Contact) -> Unit = {}) =
+    private fun Contacts(
+        query: String = "",
+        onToggleStar: (Contact) -> Unit = {},
+        onContactAction: (NumberAction, Contact, String?) -> Unit = { _, _, _ -> },
+    ) =
         ContactsScreen(
             contacts = contacts,
             hasAccess = true,
@@ -118,6 +124,7 @@ class ContactsScreensTest {
             onAllowAccess = {},
             onOpenContact = {},
             onToggleStar = onToggleStar,
+            onContactAction = onContactAction,
         )
 
     @Test
@@ -231,5 +238,37 @@ class ContactsScreensTest {
         }
         composeRule.onNodeWithText("Alex Rivera").performClick()
         assertEquals(listOf("5550142290"), called)
+    }
+
+    @Test
+    fun holdingAContactOffersEditCopyAndText() {
+        val actions = mutableListOf<Triple<NumberAction, Long, String?>>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = false) { Contacts(onContactAction = { a, c, n -> actions += Triple(a, c.id, n) }) }
+        }
+        composeRule.onNodeWithText("Pharmacy").performTouchInput { longClick() }
+        composeRule.onNodeWithText("Copy number").assertIsDisplayed()
+        composeRule.onNodeWithText("Send a text").assertIsDisplayed()
+        composeRule.onNodeWithText("Edit contact").performClick()
+        assertEquals(listOf(Triple(NumberAction.EDIT_CONTACT, 4L, "8005550000")), actions)
+    }
+
+    @Test
+    fun aContactsPageEditsInContactsAndHasANumberMenu() {
+        val actions = mutableListOf<Pair<NumberAction, String?>>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                ContactDetailScreen(
+                    contacts[1], DndCalls.STARRED, onBack = {}, onToggleStar = {}, onCall = {},
+                    onContactAction = { a, _, n -> actions += a to n },
+                    isBlocked = { it == "5550148800" },
+                )
+            }
+        }
+        composeRule.onNodeWithText("Edit in Contacts").performClick()
+        composeRule.onNodeWithText(formatCaller("5550148800")).performClick()
+        composeRule.onNodeWithText("Block number").assertDoesNotExist()
+        composeRule.onNodeWithText("Copy number").performClick()
+        assertEquals(listOf(NumberAction.EDIT_CONTACT to null, NumberAction.COPY to "5550148800"), actions)
     }
 }
