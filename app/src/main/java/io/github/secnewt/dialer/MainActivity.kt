@@ -15,6 +15,7 @@ import android.provider.ContactsContract
 import android.widget.Toast
 import android.os.Build
 import android.os.Bundle
+import android.annotation.SuppressLint
 import android.telecom.PhoneAccount
 import android.telecom.TelecomManager
 import android.telephony.TelephonyManager
@@ -52,6 +53,7 @@ import io.github.secnewt.dialer.calls.CallLogRepository
 import io.github.secnewt.dialer.calls.CallStart
 import io.github.secnewt.dialer.calls.Caller
 import io.github.secnewt.dialer.calls.CallPhase
+import io.github.secnewt.dialer.calls.CallHistoryRequest
 import io.github.secnewt.dialer.calls.Dialpad
 import io.github.secnewt.dialer.calls.LiveCalls
 import io.github.secnewt.dialer.calls.RingSettings
@@ -155,6 +157,8 @@ class MainActivity : ComponentActivity() {
 
     /** A number another app asked to dial (a tel: link), waiting to be shown on the dialpad. */
     private var incomingDial by mutableStateOf<String?>(null)
+    private var openRecents by mutableStateOf(false)
+    private var resumed by mutableStateOf(false)
 
     private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         // Without it the call screen still opens; only the notification is missing.
@@ -176,7 +180,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        incomingDial = dialRequest(intent)
+        handleRequest(intent)
         val roleManager = getSystemService(RoleManager::class.java)
         setContent {
             DialerTheme {
@@ -206,6 +210,17 @@ class MainActivity : ComponentActivity() {
                     val liveCalls by CallManager.calls.collectAsState()
                     val ongoingCall = LiveCalls.primary(liveCalls)?.takeIf { it.phase != CallPhase.ENDED }
 
+                    LaunchedEffect(openRecents) {
+                        if (openRecents) {
+                            screen = Screen.TABS
+                            tab = Tab.RECENTS
+                            openRecents = false
+                        }
+                    }
+                    // Looking at Recents clears Android's missed-call notification.
+                    LaunchedEffect(screen == Screen.TABS && tab == Tab.RECENTS && resumed) {
+                        if (screen == Screen.TABS && tab == Tab.RECENTS && resumed) clearMissedCalls()
+                    }
                     LaunchedEffect(incomingDial) {
                         incomingDial?.let {
                             dialNumber = it
@@ -416,7 +431,27 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        dialRequest(intent)?.let { incomingDial = it }
+        handleRequest(intent)
+    }
+
+    /** Tapping the missed-call notification opens Recents; a dial request opens the dialpad. */
+    private fun handleRequest(intent: Intent?) {
+        if (CallHistoryRequest.matches(intent?.action, intent?.type, intent?.dataString)) {
+            openRecents = true
+        } else {
+            dialRequest(intent)?.let { incomingDial = it }
+        }
+    }
+
+    /** Clears Android's missed-call notification and marks those calls as seen. */
+    @SuppressLint("MissingPermission") // Allowed for the default phone app, checked first.
+    private fun clearMissedCalls() {
+        if (!phoneAppRoleHeld) return
+        try {
+            getSystemService(TelecomManager::class.java).cancelMissedCallsNotification()
+        } catch (e: SecurityException) {
+            // No longer the phone app; Android keeps its notification.
+        }
     }
 
     /**
@@ -464,8 +499,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onPause() {
+        resumed = false
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
+        resumed = true
         refresh()
     }
 

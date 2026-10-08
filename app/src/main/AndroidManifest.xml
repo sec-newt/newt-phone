@@ -65,6 +65,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="tel" />
             </intent-filter>
+            <!-- Tapping Android's missed-call notification opens the call history: Recents. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="vnd.android.cursor.dir/calls" />
+            </intent-filter>
         </activity>
 
         <!-- The incoming-call and in-call screen. Its own task, so it can come and go
