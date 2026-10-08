@@ -60,6 +60,7 @@ Android versions should work but aren't tested.
 | Notifications | The incoming-call and in-call notification | When you make it your phone app |
 | Full-screen alerts | Show the incoming-call screen over the lock screen | Granted with the phone app role |
 | Keep awake | Turn the screen off against your ear during a call | No prompt (harmless) |
+| Vibrate | Vibrate for a call while the ringtone takes turns with the announcement | No prompt (harmless) |
 
 Becoming the **default phone app** and the **caller ID & spam app** are roles
 you grant in Android's settings; you can take them back there at any time.
@@ -149,7 +150,10 @@ unknown numbers before they ring:
 - **Caller announcement (off by default):** the phone says "Call from Mom",
   "Call from 5 5 5, 0 1 9…" or "Likely spam, from …" while it rings. Choose
   Always or With headphones, and by default it repeats every few seconds
-  until the call is answered or stops ringing ("Repeat until answered"). It
+  until the call is answered or stops ringing ("Repeat until answered").
+  When Newt Phone is your phone app, the ringtone and the voice take turns:
+  the ring pauses while the caller is announced, so the voice is never
+  drowned out (vibration keeps going if "Vibrate for calls" is on). It
   stays quiet on a silenced phone and, by default, during Do Not Disturb. Turning it on asks for Phone, Call log and
   Contacts access, used only on the phone. Needs a text-to-speech voice
   (for example RHVoice or eSpeak NG from F-Droid).

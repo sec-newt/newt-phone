@@ -25,3 +25,7 @@ android.permission.CALL_PHONE
 android.permission.POST_NOTIFICATIONS
 android.permission.USE_FULL_SCREEN_INTENT
 android.permission.WAKE_LOCK
+#
+# Ringing in turns with the caller announcement: vibrate for the call while
+# Android's own ringtone and vibration are silenced.
+android.permission.VIBRATE

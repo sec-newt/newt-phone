@@ -22,6 +22,10 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Vibrate for an incoming call while the ringtone takes turns with the caller announcement
+         (Android's own ringtone and vibration are silenced then). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Calling needs a phone line, but declaring it optional keeps the app installable on
          devices without one (they simply can't place calls). -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />

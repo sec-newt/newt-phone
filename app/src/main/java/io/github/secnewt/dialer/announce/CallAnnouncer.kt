@@ -22,7 +22,7 @@ object CallAnnouncer {
     private const val TIMEOUT_MS = 9_000L
 
     /** The pause between repeats, so the ringtone is heard in between. */
-    private const val REPEAT_GAP_MS = 2_000L
+    private const val REPEAT_GAP_MS = 3_000L
 
     /** Stop repeating after this many times even if nobody said to (about a minute). */
     private const val MAX_TIMES = 12
@@ -37,8 +37,16 @@ object CallAnnouncer {
      * Speaks [text], repeating it after a short pause when [repeat] is true until [stop] is
      * called. [onDone] is called exactly once: with true after the first time it's spoken, or
      * with false if no voice is installed, it failed, or it was cut off before that.
+     * [onSpeaking] is called with true just before each time it's said and with false after,
+     * so the ringtone can pause for the voice.
      */
-    fun speak(context: Context, text: String, repeat: Boolean = false, onDone: (spoke: Boolean) -> Unit = {}) {
+    fun speak(
+        context: Context,
+        text: String,
+        repeat: Boolean = false,
+        onSpeaking: (Boolean) -> Unit = {},
+        onDone: (spoke: Boolean) -> Unit = {},
+    ) {
         main.post {
             stopNow()
             val id = ++session
@@ -52,6 +60,7 @@ object CallAnnouncer {
             finish = report
             timeout = Runnable {
                 report(false)
+                if (session == id) onSpeaking(false)
                 if (session == id) release()
             }.also { main.postDelayed(it, TIMEOUT_MS) }
 
@@ -61,6 +70,7 @@ object CallAnnouncer {
                 if (status != TextToSpeech.SUCCESS || engine == null) {
                     Log.w(TAG, "No text-to-speech voice is available")
                     report(false)
+                    onSpeaking(false)
                     release()
                     return@TextToSpeech
                 }
@@ -72,16 +82,17 @@ object CallAnnouncer {
                         .build()
                 )
                 var times = 0
-                val say = {
-                    if (session == id && engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID) != TextToSpeech.SUCCESS) {
-                        report(false)
-                        release()
-                    }
-                }
                 val failed = {
                     if (session == id) {
                         report(false)
+                        onSpeaking(false)
                         release()
+                    }
+                }
+                val say = {
+                    if (session == id) {
+                        onSpeaking(true)
+                        if (engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, UTTERANCE_ID) != TextToSpeech.SUCCESS) failed()
                     }
                 }
                 engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -93,6 +104,7 @@ object CallAnnouncer {
                             timeout?.let { main.removeCallbacks(it) }
                             timeout = null
                             report(true)
+                            onSpeaking(false)
                             if (repeat && times < MAX_TIMES) main.postDelayed(say, REPEAT_GAP_MS) else release()
                         }
                     }
