@@ -11,6 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -93,7 +95,12 @@ class CallingScreensTest {
     }
 
     @Composable
-    private fun Recents(hasAccess: Boolean = true, roleHeld: Boolean = true, onCall: (String) -> Unit = {}) =
+    private fun Recents(
+        hasAccess: Boolean = true,
+        roleHeld: Boolean = true,
+        onCall: (String) -> Unit = {},
+        onNumberAction: (NumberAction, String) -> Unit = { _, _ -> },
+    ) =
         Scaffold(bottomBar = { DialerTabBar(selected = Tab.RECENTS, onSelect = {}) }) { padding ->
             Box(Modifier.padding(padding)) {
                 RecentsScreen(
@@ -109,6 +116,8 @@ class CallingScreensTest {
                     onAllowAccess = {},
                     onCall = onCall,
                     now = now,
+                    onNumberAction = onNumberAction,
+                    isBlocked = { it == "8005550000" },
                 )
             }
         }
@@ -145,6 +154,36 @@ class CallingScreensTest {
         composeRule.onNodeWithText("Incoming · 2 calls", substring = true).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Call Mom").performClick()
         assertEquals(listOf("5550123456"), called)
+    }
+
+    @Test
+    fun tappingANumberOffersCopyAddTextEditAndBlock() {
+        val actions = mutableListOf<Pair<NumberAction, String>>()
+        composeRule.setContent { DialerTheme(darkTheme = true) { Recents(onNumberAction = { a, n -> actions += a to n }) } }
+        composeRule.onNodeWithText(formatCaller("5550197731")).performClick()
+        listOf("Copy number", "Add to contacts", "Send a text", "Edit before calling", "Block number").forEach {
+            composeRule.onNodeWithText(it).assertIsDisplayed()
+        }
+        composeRule.onNodeWithText("Copy number").performClick()
+        composeRule.onNodeWithText("Copy number").assertDoesNotExist()
+        assertEquals(listOf(NumberAction.COPY to "5550197731"), actions)
+    }
+
+    @Test
+    fun holdingAContactOffersNoAdd() {
+        composeRule.setContent { DialerTheme(darkTheme = true) { Recents() } }
+        composeRule.onNodeWithText("Mom").performTouchInput { longClick() }
+        composeRule.onNodeWithText("Copy number").assertIsDisplayed()
+        composeRule.onNodeWithText("Add to contacts").assertDoesNotExist()
+    }
+
+    @Test
+    fun aBlockedNumberIsNotOfferedBlockAgain() {
+        assertEquals(
+            listOf(NumberAction.COPY, NumberAction.MESSAGE, NumberAction.EDIT),
+            numberActions(isContact = true, isBlocked = true),
+        )
+        assertEquals(NumberAction.entries.toList(), numberActions(isContact = false, isBlocked = false))
     }
 
     @Test
