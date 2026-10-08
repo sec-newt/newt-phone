@@ -73,8 +73,12 @@ you grant in Android's settings; you can take them back there at any time.
   starred contacts and anyone calling again within 3 minutes ring even on
   silent or vibrate (at alarm volume; never for likely spam), and optional
   quiet hours when everyone else's calls show silently.
-- **Recents menu:** tap or hold a call in Recents to copy the number, add it
-  to contacts, send a text, edit it before calling, or block it.
+- **Tap-and-hold menus:** tap or hold a call in Recents to copy the number,
+  add it to contacts, send a text, edit it before calling, or block it. Tap
+  the number on the dialpad to paste a number in (or copy, save or text it).
+  Hold a contact or a Favorites tile to edit it in your contacts app, or copy
+  or text its number; a contact's page has an "Edit in Contacts" button, and
+  tapping one of its numbers gives the same number menu.
 - **Keypad sounds:** a short tone for each dialpad key (on by default, quiet
   when the phone is on silent or vibrate), in Settings, Phone settings.
 - **Phone settings:** shortcuts to Android's own screens for ringtone and

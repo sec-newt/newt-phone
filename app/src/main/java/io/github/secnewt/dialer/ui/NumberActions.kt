@@ -14,30 +14,55 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.ui.theme.DialerFonts
 
-/** What you can do with a number from Recents, besides calling it. */
+/** What you can do with a number (or the contact it belongs to) from a tap-and-hold menu. */
 enum class NumberAction(val label: String) {
+    PASTE("Paste number"),
     COPY("Copy number"),
     ADD_CONTACT("Add to contacts"),
+    EDIT_CONTACT("Edit contact"),
     MESSAGE("Send a text"),
     EDIT("Edit before calling"),
     BLOCK("Block number"),
 }
 
-/** The actions that make sense for a number: no "Add" for a saved contact, no "Block" twice. */
-fun numberActions(isContact: Boolean, isBlocked: Boolean): List<NumberAction> =
-    NumberAction.entries.filter {
-        when (it) {
-            NumberAction.ADD_CONTACT -> !isContact
-            NumberAction.BLOCK -> !isBlocked
-            else -> true
-        }
+/** Recents: no "Add" for a saved contact, no "Block" twice. */
+fun numberActions(isContact: Boolean, isBlocked: Boolean): List<NumberAction> = listOfNotNull(
+    NumberAction.COPY,
+    NumberAction.ADD_CONTACT.takeUnless { isContact },
+    NumberAction.MESSAGE,
+    NumberAction.EDIT,
+    NumberAction.BLOCK.takeUnless { isBlocked },
+)
+
+/** The number typed on the dialpad: paste one in, or copy, save or text what's there. */
+fun dialpadActions(hasNumber: Boolean): List<NumberAction> =
+    if (hasNumber) {
+        listOf(NumberAction.PASTE, NumberAction.COPY, NumberAction.ADD_CONTACT, NumberAction.MESSAGE)
+    } else {
+        listOf(NumberAction.PASTE)
     }
 
-/** A list of large buttons for one number, opened by tapping or holding a Recents row. */
+/** A contact in Contacts or Favorites: edit it in the contacts app, or use its first number. */
+fun contactActions(hasNumber: Boolean): List<NumberAction> =
+    if (hasNumber) {
+        listOf(NumberAction.EDIT_CONTACT, NumberAction.COPY, NumberAction.MESSAGE)
+    } else {
+        listOf(NumberAction.EDIT_CONTACT)
+    }
+
+/** One of a contact's numbers, on the contact's page. */
+fun phoneActions(isBlocked: Boolean): List<NumberAction> = listOfNotNull(
+    NumberAction.COPY,
+    NumberAction.MESSAGE,
+    NumberAction.EDIT,
+    NumberAction.BLOCK.takeUnless { isBlocked },
+)
+
+/** A list of large buttons, opened by tapping or holding a number or contact. */
 @Composable
 fun NumberActionsDialog(
     title: String,
-    number: String,
+    number: String?,
     actions: List<NumberAction>,
     onAction: (NumberAction) -> Unit,
     onDismiss: () -> Unit,
@@ -47,9 +72,10 @@ fun NumberActionsDialog(
         title = {
             Column {
                 Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                if (title != formatCaller(number)) {
+                val formatted = number?.let { formatCaller(it) }
+                if (formatted != null && formatted != title) {
                     Text(
-                        formatCaller(number),
+                        formatted,
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = DialerFonts.Mono,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

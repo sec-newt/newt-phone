@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.content.ClipData
+import android.content.ContentUris
 import android.content.ClipboardManager
 import android.net.Uri
 import android.provider.ContactsContract
@@ -292,6 +293,7 @@ class MainActivity : ComponentActivity() {
                                         onCall = ::call,
                                         onOpenDndSettings = ::openDndSettings,
                                         message = contactsMessage,
+                                        onContactAction = ::onContactAction,
                                     )
                                     Tab.CONTACTS -> ContactsScreen(
                                         contacts = contacts,
@@ -303,6 +305,7 @@ class MainActivity : ComponentActivity() {
                                         onOpenContact = openContact,
                                         onToggleStar = ::toggleStar,
                                         message = contactsMessage,
+                                        onContactAction = ::onContactAction,
                                     )
                                 }
                             }
@@ -364,6 +367,7 @@ class MainActivity : ComponentActivity() {
                             onBack = { screen = Screen.TABS },
                             onVoicemail = { call(VOICEMAIL) },
                             onKeyTone = ::playKeyTone,
+                            onNumberAction = ::onNumberAction,
                         )
                         Screen.BLOCK_LIST -> BlockListScreen(
                             rules = blockRules,
@@ -384,6 +388,8 @@ class MainActivity : ComponentActivity() {
                                     onBack = { screen = Screen.TABS },
                                     onToggleStar = { toggleStar(contact) },
                                     onCall = ::call,
+                                    onContactAction = ::onContactAction,
+                                    isBlocked = { BlockList.match(blockRules, it) != null },
                                 )
                             }
                         }
@@ -508,9 +514,28 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** The Recents menu: copy, add to contacts, text, edit before calling, or block a number. */
+    /** The menus for a contact: edit it in the contacts app, or act on one of its numbers. */
+    private fun onContactAction(action: NumberAction, contact: Contact, number: String?) {
+        when {
+            action == NumberAction.EDIT_CONTACT -> openOrSay(
+                Intent(Intent.ACTION_EDIT, ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, contact.id))
+                    // Come straight back here after saving.
+                    .putExtra("finishActivityOnSaveCompleted", true),
+                "No contacts app was found.",
+            )
+            number != null -> onNumberAction(action, number)
+        }
+    }
+
+    /** The tap-and-hold menus: paste, copy, add to contacts, text, edit before calling, or block. */
     private fun onNumberAction(action: NumberAction, number: String) {
         when (action) {
+            NumberAction.PASTE -> {
+                val clip = getSystemService(ClipboardManager::class.java).primaryClip
+                val text = clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()
+                val pasted = Dialpad.clean(text.orEmpty())
+                if (pasted.isEmpty()) say("There's no number to paste.") else incomingDial = pasted
+            }
             NumberAction.COPY -> {
                 getSystemService(ClipboardManager::class.java)
                     .setPrimaryClip(ClipData.newPlainText("Phone number", number))
@@ -532,19 +557,22 @@ class MainActivity : ComponentActivity() {
             NumberAction.EDIT -> incomingDial = number
             NumberAction.BLOCK -> {
                 addRule(BlockRule.Number(number))
-                callMessage = "Blocked. To undo, open Settings, Block list."
+                say("Blocked. To undo, open Settings, Block list.")
             }
+            // Handled by onContactAction, which knows the contact.
+            NumberAction.EDIT_CONTACT -> Unit
         }
     }
 
     private fun openOrSay(intent: Intent, failure: String) {
         try {
             startActivity(intent)
-            callMessage = null
         } catch (e: ActivityNotFoundException) {
-            callMessage = failure
+            say(failure)
         }
     }
+
+    private fun say(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 
     private fun placeCall(number: String) {
         val result = if (number == VOICEMAIL) caller.callVoicemail() else caller.call(number)

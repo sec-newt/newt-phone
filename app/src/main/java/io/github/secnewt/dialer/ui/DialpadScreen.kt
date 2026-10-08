@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -30,6 +31,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
@@ -79,6 +82,7 @@ fun DialpadScreen(
     onBack: () -> Unit,
     onVoicemail: () -> Unit = {},
     onKeyTone: (Char) -> Unit = {},
+    onNumberAction: (NumberAction, String) -> Unit = { _, _ -> },
 ) {
     val matches = remember(contacts, number) { ContactList.dialpadMatches(contacts, number) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -120,7 +124,7 @@ fun DialpadScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                NumberRow(number, onNumberChange, onBack)
+                NumberRow(number, onNumberChange, onBack, onNumberAction)
                 Keypad(number, onNumberChange, onVoicemail, onKeyTone)
                 CallButton(number, onCall)
             }
@@ -128,9 +132,29 @@ fun DialpadScreen(
     }
 }
 
+/** The typed number. Tap or hold it to paste a number in, or to copy, save or text it. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun NumberRow(number: String, onNumberChange: (String) -> Unit, onBack: () -> Unit) {
+private fun NumberRow(
+    number: String,
+    onNumberChange: (String) -> Unit,
+    onBack: () -> Unit,
+    onNumberAction: (NumberAction, String) -> Unit,
+) {
     val shown = if (number.isEmpty()) "" else formatTyped(number)
+    var menuOpen by remember { mutableStateOf(false) }
+    if (menuOpen) {
+        NumberActionsDialog(
+            title = shown.ifEmpty { "Dialpad" },
+            number = null,
+            actions = dialpadActions(hasNumber = number.isNotEmpty()),
+            onAction = { action ->
+                menuOpen = false
+                onNumberAction(action, number)
+            },
+            onDismiss = { menuOpen = false },
+        )
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack, modifier = Modifier.size(56.dp)) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close dialpad")
@@ -145,6 +169,14 @@ private fun NumberRow(number: String, onNumberChange: (String) -> Unit, onBack: 
             maxLines = 1,
             modifier = Modifier
                 .weight(1f)
+                .heightIn(min = 56.dp)
+                .wrapContentHeight()
+                .combinedClickable(
+                    onClickLabel = "Paste or copy",
+                    onLongClickLabel = "Paste or copy",
+                    onLongClick = { menuOpen = true },
+                    onClick = { menuOpen = true },
+                )
                 .semantics { liveRegion = LiveRegionMode.Polite },
         )
         DeleteButton(number, onNumberChange)

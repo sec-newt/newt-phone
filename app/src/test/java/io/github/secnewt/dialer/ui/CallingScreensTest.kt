@@ -183,7 +183,27 @@ class CallingScreensTest {
             listOf(NumberAction.COPY, NumberAction.MESSAGE, NumberAction.EDIT),
             numberActions(isContact = true, isBlocked = true),
         )
-        assertEquals(NumberAction.entries.toList(), numberActions(isContact = false, isBlocked = false))
+        assertEquals(
+            listOf(NumberAction.COPY, NumberAction.ADD_CONTACT, NumberAction.MESSAGE, NumberAction.EDIT, NumberAction.BLOCK),
+            numberActions(isContact = false, isBlocked = false),
+        )
+    }
+
+    @Test
+    fun theDialpadNumberOffersPasteAndMore() {
+        val actions = mutableListOf<Pair<NumberAction, String>>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                DialpadScreen("5550197731", {}, contacts, onCall = {}, onBack = {}, onNumberAction = { a, n -> actions += a to n })
+            }
+        }
+        composeRule.onNodeWithText("7731", substring = true).performTouchInput { longClick() }
+        listOf("Paste number", "Copy number", "Add to contacts", "Send a text").forEach {
+            composeRule.onNodeWithText(it).assertIsDisplayed()
+        }
+        composeRule.onNodeWithText("Add to contacts").performClick()
+        assertEquals(listOf(NumberAction.ADD_CONTACT to "5550197731"), actions)
+        assertEquals(listOf(NumberAction.PASTE), dialpadActions(hasNumber = false))
     }
 
     @Test
