@@ -210,6 +210,22 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun keypadSoundsCanBeTurnedOff() {
+        val changes = mutableListOf<Boolean>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                SpamSettingsScreen(
+                    SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+                    keypadTones = true, onKeypadTonesChange = { changes += it },
+                )
+            }
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Keypad sounds"))
+        composeRule.onNodeWithText("Keypad sounds").performClick()
+        assertEquals(listOf(false), changes)
+    }
+
+    @Test
     fun announcementIsTheFirstSection() {
         composeRule.setContent { DialerTheme(darkTheme = false) { Settings(SpamSettings()) } }
         composeRule.onNodeWithText("Caller announcement").assertIsDisplayed()

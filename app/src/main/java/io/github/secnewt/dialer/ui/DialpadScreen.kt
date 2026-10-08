@@ -78,6 +78,7 @@ fun DialpadScreen(
     onCall: (String) -> Unit,
     onBack: () -> Unit,
     onVoicemail: () -> Unit = {},
+    onKeyTone: (Char) -> Unit = {},
 ) {
     val matches = remember(contacts, number) { ContactList.dialpadMatches(contacts, number) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -120,7 +121,7 @@ fun DialpadScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 NumberRow(number, onNumberChange, onBack)
-                Keypad(number, onNumberChange, onVoicemail)
+                Keypad(number, onNumberChange, onVoicemail, onKeyTone)
                 CallButton(number, onCall)
             }
         }
@@ -198,14 +199,22 @@ private fun MatchRow(contact: Contact, phone: PhoneEntry, onPick: () -> Unit, on
 }
 
 @Composable
-private fun Keypad(number: String, onNumberChange: (String) -> Unit, onVoicemail: () -> Unit) {
+private fun Keypad(
+    number: String,
+    onNumberChange: (String) -> Unit,
+    onVoicemail: () -> Unit,
+    onKeyTone: (Char) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Dialpad.keys.chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { key ->
                     Key(
                         key = key,
-                        onPress = { onNumberChange(Dialpad.press(number, key.digit)) },
+                        onPress = {
+                            onKeyTone(key.digit)
+                            onNumberChange(Dialpad.press(number, key.digit))
+                        },
                         onLongPress = {
                             if (Dialpad.holdCallsVoicemail(number, key.digit)) {
                                 onVoicemail()

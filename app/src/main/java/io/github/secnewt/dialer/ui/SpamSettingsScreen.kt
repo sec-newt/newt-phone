@@ -78,6 +78,8 @@ fun SpamSettingsScreen(
     onMakePhoneApp: () -> Unit = {},
     phoneAppDenied: Boolean = false,
     onOpenSystemSetting: (SystemSetting) -> Unit = {},
+    keypadTones: Boolean = true,
+    onKeypadTonesChange: (Boolean) -> Unit = {},
 ) {
     var choosing by remember { mutableStateOf<CallerType?>(null) }
     var choosingAnnounce by remember { mutableStateOf(false) }
@@ -189,6 +191,25 @@ fun SpamSettingsScreen(
             }
 
             item { SectionHeading("Phone settings", modifier = Modifier.padding(top = 16.dp)) }
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 64.dp)
+                        .toggleable(value = keypadTones, role = Role.Switch, onValueChange = onKeypadTonesChange),
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Keypad sounds", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "A short tone for each dialpad key, unless the phone is on silent.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = keypadTones, onCheckedChange = null)
+                }
+            }
             item {
                 Column {
                     Text(

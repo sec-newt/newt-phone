@@ -8,6 +8,9 @@ See [PLAN.md](PLAN.md) for the full plan and roadmap.
 
 ## Look
 
+The icon is a blue-to-purple newt with a green phone badge; future Newt apps
+share the newt and change the badge.
+
 Tokyo Night colors on a true black background (Tokyo Night Day in light
 mode), with every text color at 7:1 contrast or better. Contacts show their
 photo, or their initial on a color of their own. Fonts are bundled, nothing
@@ -27,6 +30,8 @@ Settings, Apps, Newt Phone, tap the ⋮ menu, choose "Allow restricted
 settings", and try again. Installing with Obtainium avoids it (and keeps the
 app updated from GitHub releases).
 
+- **Keypad sounds:** a short tone for each dialpad key (on by default, quiet
+  when the phone is on silent or vibrate), in Settings, Phone settings.
 - **Phone settings:** shortcuts to Android's own screens for ringtone and
   volume, calls and SIM (forwarding, call waiting, caller ID, Wi-Fi calling),
   voicemail, and hearing aids/TTY, plus the text-to-speech voice used for
