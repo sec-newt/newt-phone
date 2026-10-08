@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.net.Uri
+import android.os.Build
 import android.provider.ContactsContract.PhoneLookup
 import android.telecom.TelecomManager
 import android.telephony.TelephonyManager
@@ -87,7 +88,14 @@ class IncomingCallReceiver : BroadcastReceiver() {
             return false
         }
         return try {
-            context.getSystemService(TelecomManager::class.java).isRinging
+            val telephony = context.getSystemService(TelephonyManager::class.java)
+            val state = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                telephony.callStateForSubscription
+            } else {
+                @Suppress("DEPRECATION")
+                telephony.callState
+            }
+            state == TelephonyManager.CALL_STATE_RINGING
         } catch (e: SecurityException) {
             false
         }
