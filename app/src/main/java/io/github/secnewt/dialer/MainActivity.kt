@@ -25,11 +25,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -181,6 +183,13 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(LocalPhotoLoader provides photoLoader) {
                     var screen by rememberSaveable { mutableStateOf(Screen.TABS) }
                     var tab by rememberSaveable { mutableStateOf(Tab.FAVORITES) }
+                    // Swipe sideways between the tabs. The tab bar follows where a swipe or tap is
+                    // heading; [tab] changes once the page has settled.
+                    val pager = rememberPagerState(initialPage = tab.ordinal) { Tab.entries.size }
+                    LaunchedEffect(pager.settledPage) { tab = Tab.entries[pager.settledPage] }
+                    LaunchedEffect(tab) {
+                        if (pager.settledPage != tab.ordinal) pager.animateScrollToPage(tab.ordinal)
+                    }
                     var openContactId by rememberSaveable { mutableStateOf<Long?>(null) }
                     var contactQuery by rememberSaveable { mutableStateOf("") }
                     var dialNumber by rememberSaveable { mutableStateOf("") }
@@ -253,7 +262,9 @@ class MainActivity : ComponentActivity() {
                             topBar = {
                                 ongoingCall?.let { ReturnToCallBar(it, onClick = ::openCallScreen) }
                             },
-                            bottomBar = { DialerTabBar(selected = tab, onSelect = { tab = it }) },
+                            bottomBar = {
+                                DialerTabBar(selected = Tab.entries[pager.targetPage], onSelect = { tab = it })
+                            },
                             floatingActionButton = {
                                 LargeFloatingActionButton(
                                     onClick = { screen = Screen.DIALPAD },
@@ -265,8 +276,12 @@ class MainActivity : ComponentActivity() {
                             },
                             contentWindowInsets = WindowInsets(0),
                         ) { padding ->
-                            Box(Modifier.padding(padding).consumeWindowInsets(padding)) {
-                                when (tab) {
+                            HorizontalPager(
+                                state = pager,
+                                key = { Tab.entries[it] },
+                                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
+                            ) { page ->
+                                when (Tab.entries[page]) {
                                     Tab.RECENTS -> RecentsScreen(
                                         groups = callGroups,
                                         hasAccess = callLogAccess,
