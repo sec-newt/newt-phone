@@ -7,6 +7,7 @@ import android.telecom.InCallService
 import android.telecom.PhoneAccount
 import android.telecom.TelecomManager
 import android.telecom.VideoProfile
+import io.github.secnewt.dialer.announce.CallAnnouncer
 import io.github.secnewt.dialer.calls.AudioRoute
 import io.github.secnewt.dialer.calls.AudioState
 import io.github.secnewt.dialer.calls.CallPhase
@@ -39,6 +40,9 @@ object CallManager {
     private val telecomCalls = LinkedHashMap<String, Call>()
     private val callerInfo = HashMap<String, CallerInfo>()
     private var nextId = 0
+
+    /** True while the call screen is on screen, so the notification doesn't pop up over it. */
+    val screenShowing = MutableStateFlow(false)
 
     /** Set while Android has the in-call service bound; it controls mute and the speaker. */
     internal var service: InCallService? = null
@@ -90,10 +94,12 @@ object CallManager {
     }
 
     fun answer(id: String) {
+        CallAnnouncer.stop()
         telecomCalls[id]?.answer(VideoProfile.STATE_AUDIO_ONLY)
     }
 
     fun decline(id: String) {
+        CallAnnouncer.stop()
         telecomCalls[id]?.reject(false, null)
     }
 

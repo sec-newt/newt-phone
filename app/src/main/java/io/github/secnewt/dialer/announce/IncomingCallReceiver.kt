@@ -54,7 +54,9 @@ class IncomingCallReceiver : BroadcastReceiver() {
         Log.i(TAG, "Announcing incoming call (contact: ${contact != null})")
 
         val pending = goAsync()
-        CallAnnouncer.speak(context, Announcement.text(contact, number, screening)) { pending.finish() }
+        CallAnnouncer.speak(context, Announcement.text(contact, number, screening), repeat = settings.repeat) {
+            pending.finish()
+        }
     }
 
     /** The spam decision made for this call a moment ago, if it came from an unknown number. */

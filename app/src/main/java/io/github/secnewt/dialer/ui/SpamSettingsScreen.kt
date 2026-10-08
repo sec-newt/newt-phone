@@ -72,6 +72,7 @@ fun SpamSettingsScreen(
     announceMessage: String? = null,
     onAnnounceModeChange: (AnnounceMode) -> Unit = {},
     onQuietDuringDndChange: (Boolean) -> Unit = {},
+    onRepeatChange: (Boolean) -> Unit = {},
     onTestAnnouncement: () -> Unit = {},
     isPhoneApp: Boolean? = null,
     onMakePhoneApp: () -> Unit = {},
@@ -113,6 +114,7 @@ fun SpamSettingsScreen(
                     message = announceMessage,
                     onChooseMode = { choosingAnnounce = true },
                     onQuietDuringDndChange = onQuietDuringDndChange,
+                    onRepeatChange = onRepeatChange,
                     onTest = onTestAnnouncement,
                     onOpenVoiceSettings = { onOpenSystemSetting(SystemSetting.TTS) },
                 )
@@ -446,6 +448,7 @@ private fun AnnounceSection(
     message: String?,
     onChooseMode: () -> Unit,
     onQuietDuringDndChange: (Boolean) -> Unit,
+    onRepeatChange: (Boolean) -> Unit,
     onTest: () -> Unit,
     onOpenVoiceSettings: () -> Unit,
 ) {
@@ -474,6 +477,25 @@ private fun AnnounceSection(
                     modifier = Modifier.weight(1f),
                 )
                 Switch(checked = announce.quietDuringDnd, onCheckedChange = null)
+            }
+            HorizontalDivider()
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .toggleable(
+                        value = announce.repeat,
+                        role = Role.Switch,
+                        onValueChange = onRepeatChange,
+                    ),
+            ) {
+                Text(
+                    text = "Repeat until answered",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(checked = announce.repeat, onCheckedChange = null)
             }
             OutlinedButton(
                 onClick = onTest,

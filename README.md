@@ -42,7 +42,8 @@ app updated from GitHub releases).
 - **Two calls:** answering a second call puts the first on hold; a card shows
   the held call with a Swap button.
 - **Getting back:** a green "Return to call" strip on the main screens, and a
-  notification with Answer/Decline or Hang up.
+  notification with Answer/Decline or Hang up. While the call screen is open,
+  the notification waits quietly in the shade instead of popping up over it.
 - **Emergency calls:** once this is the phone app, 911 is placed from here like
   any other call (Android keeps its own emergency fallback if the app fails).
 - **Conference calls:** with one call on hold, Merge joins everyone into one
@@ -96,8 +97,9 @@ unknown numbers before they ring:
 - **Recent calls:** time, number, carrier verification and the outcome.
 - **Caller announcement (off by default):** the phone says "Call from Mom",
   "Call from 5 5 5, 0 1 9…" or "Likely spam, from …" while it rings. Choose
-  Always or With headphones; it stays quiet on a silenced phone and, by
-  default, during Do Not Disturb. Turning it on asks for Phone, Call log and
+  Always or With headphones, and by default it repeats every few seconds
+  until the call is answered or stops ringing ("Repeat until answered"). It
+  stays quiet on a silenced phone and, by default, during Do Not Disturb. Turning it on asks for Phone, Call log and
   Contacts access, used only on the phone. Needs a text-to-speech voice
   (for example RHVoice or eSpeak NG from F-Droid).
 

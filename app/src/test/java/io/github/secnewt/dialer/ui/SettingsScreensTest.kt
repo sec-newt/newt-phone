@@ -193,6 +193,23 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun repeatAnnouncementCanBeTurnedOff() {
+        val changes = mutableListOf<Boolean>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                SpamSettingsScreen(
+                    SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+                    announce = AnnounceSettings(mode = AnnounceMode.ALWAYS),
+                    onRepeatChange = { changes += it },
+                )
+            }
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Repeat until answered"))
+        composeRule.onNodeWithText("Repeat until answered").performClick()
+        assertEquals(listOf(false), changes)
+    }
+
+    @Test
     fun announcementIsTheFirstSection() {
         composeRule.setContent { DialerTheme(darkTheme = false) { Settings(SpamSettings()) } }
         composeRule.onNodeWithText("Caller announcement").assertIsDisplayed()

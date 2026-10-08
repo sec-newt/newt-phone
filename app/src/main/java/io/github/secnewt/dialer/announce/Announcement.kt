@@ -12,6 +12,8 @@ data class AnnounceSettings(
     val mode: AnnounceMode = AnnounceMode.OFF,
     /** Stay silent while Do Not Disturb is on. */
     val quietDuringDnd: Boolean = true,
+    /** Keep saying it, with a short pause, until the call is answered or stops ringing. */
+    val repeat: Boolean = true,
 )
 
 /** What the phone is doing right now, gathered just before speaking. */

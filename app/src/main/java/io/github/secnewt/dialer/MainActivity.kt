@@ -306,6 +306,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onQuietDuringDndChange = { updateAnnounce(announce.copy(quietDuringDnd = it)) },
+                            onRepeatChange = { updateAnnounce(announce.copy(repeat = it)) },
                             onTestAnnouncement = ::testAnnouncement,
                             isPhoneApp = phoneAppRoleHeld,
                             onMakePhoneApp = {
