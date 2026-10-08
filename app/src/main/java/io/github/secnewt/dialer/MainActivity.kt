@@ -5,6 +5,8 @@ import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -87,6 +89,9 @@ import java.time.ZoneId
 /** TABS shows Calls, Favorites or Contacts with the bottom bar; the others are full pages. */
 private enum class Screen { TABS, SETTINGS, BLOCK_LIST, CONTACT, SPAM, DIALPAD }
 
+private const val KEY_TONE_VOLUME = 80
+private const val KEY_TONE_MILLIS = 120
+
 /** Stands in for a number when the call is to voicemail. */
 private const val VOICEMAIL = "voicemail"
 
@@ -129,6 +134,10 @@ class MainActivity : ComponentActivity() {
 
     private var screeningRoleHeld by mutableStateOf(false)
     private var phoneAppRoleHeld by mutableStateOf(false)
+    private var keypadTones by mutableStateOf(true)
+
+    /** Made on the first key press and kept, so tones start without delay. */
+    private var toneGenerator: ToneGenerator? = null
 
     /** Asked to become the phone app and didn't (often Android's restricted settings). */
     private var phoneAppDenied by mutableStateOf(false)
@@ -314,6 +323,11 @@ class MainActivity : ComponentActivity() {
                             },
                             phoneAppDenied = phoneAppDenied,
                             onOpenSystemSetting = ::openSystemSetting,
+                            keypadTones = keypadTones,
+                            onKeypadTonesChange = {
+                                keypadTones = it
+                                store.saveKeypadTones(it)
+                            },
                         )
                         Screen.SPAM -> SpamProtectionScreen(
                             roleHeld = screeningRoleHeld,
@@ -334,6 +348,7 @@ class MainActivity : ComponentActivity() {
                             onCall = ::call,
                             onBack = { screen = Screen.TABS },
                             onVoicemail = { call(VOICEMAIL) },
+                            onKeyTone = ::playKeyTone,
                         )
                         Screen.BLOCK_LIST -> BlockListScreen(
                             rules = blockRules,
@@ -379,6 +394,30 @@ class MainActivity : ComponentActivity() {
         return Dialpad.clean(data.schemeSpecificPart.orEmpty())
     }
 
+    /** The dialpad's beep for [key], like the stock dialer. Quiet on silent or vibrate. */
+    private fun playKeyTone(key: Char) {
+        if (!keypadTones) return
+        if (getSystemService(AudioManager::class.java).ringerMode != AudioManager.RINGER_MODE_NORMAL) return
+        val tone = when (key) {
+            in '0'..'9' -> ToneGenerator.TONE_DTMF_0 + (key - '0')
+            '*' -> ToneGenerator.TONE_DTMF_S
+            '#' -> ToneGenerator.TONE_DTMF_P
+            else -> return
+        }
+        try {
+            val generator = toneGenerator ?: ToneGenerator(AudioManager.STREAM_DTMF, KEY_TONE_VOLUME).also { toneGenerator = it }
+            generator.startTone(tone, KEY_TONE_MILLIS)
+        } catch (e: RuntimeException) {
+            // No tone hardware free right now; the key still works.
+        }
+    }
+
+    override fun onDestroy() {
+        toneGenerator?.release()
+        toneGenerator = null
+        super.onDestroy()
+    }
+
     private fun openCallScreen() = startActivity(InCallActivity.intent(this))
 
     private fun askForNotifications() {
@@ -403,6 +442,7 @@ class MainActivity : ComponentActivity() {
         blockRules = store.blockRules()
         syncWithSystemBlockList()
         announce = store.announceSettings()
+        keypadTones = store.keypadTones()
         refreshContacts()
         if (announce.mode != AnnounceMode.OFF && !hasAnnouncePermissions()) {
             announceMessage = "Announcing is on, but Phone, Call log or Contacts access was turned off. " +

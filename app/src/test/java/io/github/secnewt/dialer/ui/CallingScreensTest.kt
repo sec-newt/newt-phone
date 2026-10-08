@@ -180,6 +180,19 @@ class CallingScreensTest {
     }
 
     @Test
+    fun eachKeyPlaysItsTone() {
+        val tones = mutableListOf<Char>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) {
+                DialpadScreen("", {}, contacts, onCall = {}, onBack = {}, onKeyTone = { tones += it })
+            }
+        }
+        composeRule.onNodeWithContentDescription("5, J K L").performClick()
+        composeRule.onNodeWithContentDescription("Pound").performClick()
+        assertEquals(listOf('5', '#'), tones)
+    }
+
+    @Test
     fun dialpadStartsWithFavorites() {
         composeRule.setContent {
             DialerTheme(darkTheme = true) { DialpadScreen("", {}, contacts, onCall = {}, onBack = {}) }

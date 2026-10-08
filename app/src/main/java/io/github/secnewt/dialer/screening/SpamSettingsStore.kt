@@ -65,6 +65,13 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
         prefs.edit().putString(KEY_BLOCK_RULES, array.toString()).apply()
     }
 
+    /** Whether dialpad keys beep, like the stock dialer. On unless turned off. */
+    fun keypadTones(): Boolean = prefs.getBoolean(KEY_KEYPAD_TONES, true)
+
+    fun saveKeypadTones(on: Boolean) {
+        prefs.edit().putBoolean(KEY_KEYPAD_TONES, on).apply()
+    }
+
     fun announceSettings(): AnnounceSettings {
         val defaults = AnnounceSettings()
         return AnnounceSettings(
@@ -97,6 +104,7 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
         const val KEY_ANNOUNCE_MODE = "announce_mode"
         const val KEY_QUIET_DURING_DND = "quiet_during_dnd"
         const val KEY_ANNOUNCE_REPEAT = "announce_repeat"
+        const val KEY_KEYPAD_TONES = "keypad_tones"
         const val TYPE_NUMBER = "number"
         const val TYPE_STARTS_WITH = "starts_with"
     }

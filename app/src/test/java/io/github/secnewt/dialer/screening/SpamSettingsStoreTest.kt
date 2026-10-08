@@ -41,6 +41,13 @@ class SpamSettingsStoreTest {
     }
 
     @Test
+    fun `keypad sounds are on by default and can be turned off`() {
+        assertTrue(store.keypadTones())
+        store.saveKeypadTones(false)
+        assertEquals(false, store.keypadTones())
+    }
+
+    @Test
     fun `block rules survive a save and load`() {
         val rules = listOf(BlockRule.Number("(555) 019-7731"), BlockRule.StartsWith("800555"))
         store.saveBlockRules(rules)

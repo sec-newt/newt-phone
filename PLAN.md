@@ -113,6 +113,11 @@ GrapheneOS supports everything this app needs. A few of its privacy features nee
 - **Installing:** allow "install unknown apps" for the browser or Obtainium. Updates stay signed with the same key, so they install over the previous build.
 - **Prior art to study:** Fossify Phone (open-source dialer) and Yet Another Call Blocker (open-source, offline spam lists), both on F-Droid.
 
+## Later: launch screen
+
+A bigger, glowing version of the newt (the neon outline idea) could be the
+splash shown while the app opens; the small icon stays solid for clarity.
+
 ## Later: editing contacts
 
 Contacts sync to a Radicale server (CardDAV). When contact editing is added, new contacts must be saved to that sync account, not a phone-only one, and a `.vcf` export comes first so nothing can be lost.
