@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.announce.AnnounceSettings
+import io.github.secnewt.dialer.calls.QuietHours
+import io.github.secnewt.dialer.calls.RingSettings
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -65,6 +67,29 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
         prefs.edit().putString(KEY_BLOCK_RULES, array.toString()).apply()
     }
 
+    fun ringSettings(): RingSettings {
+        val defaults = RingSettings()
+        return RingSettings(
+            starredRingThrough = prefs.getBoolean(KEY_STARRED_RING_THROUGH, defaults.starredRingThrough),
+            repeatRingThrough = prefs.getBoolean(KEY_REPEAT_RING_THROUGH, defaults.repeatRingThrough),
+            quietHours = QuietHours(
+                enabled = prefs.getBoolean(KEY_QUIET_HOURS, defaults.quietHours.enabled),
+                startMinutes = prefs.getInt(KEY_QUIET_START, defaults.quietHours.startMinutes),
+                endMinutes = prefs.getInt(KEY_QUIET_END, defaults.quietHours.endMinutes),
+            ),
+        )
+    }
+
+    fun saveRingSettings(settings: RingSettings) {
+        prefs.edit()
+            .putBoolean(KEY_STARRED_RING_THROUGH, settings.starredRingThrough)
+            .putBoolean(KEY_REPEAT_RING_THROUGH, settings.repeatRingThrough)
+            .putBoolean(KEY_QUIET_HOURS, settings.quietHours.enabled)
+            .putInt(KEY_QUIET_START, settings.quietHours.startMinutes)
+            .putInt(KEY_QUIET_END, settings.quietHours.endMinutes)
+            .apply()
+    }
+
     /** Whether dialpad keys beep, like the stock dialer. On unless turned off. */
     fun keypadTones(): Boolean = prefs.getBoolean(KEY_KEYPAD_TONES, true)
 
@@ -105,6 +130,11 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
         const val KEY_QUIET_DURING_DND = "quiet_during_dnd"
         const val KEY_ANNOUNCE_REPEAT = "announce_repeat"
         const val KEY_KEYPAD_TONES = "keypad_tones"
+        const val KEY_STARRED_RING_THROUGH = "starred_ring_through"
+        const val KEY_REPEAT_RING_THROUGH = "repeat_ring_through"
+        const val KEY_QUIET_HOURS = "quiet_hours"
+        const val KEY_QUIET_START = "quiet_hours_start"
+        const val KEY_QUIET_END = "quiet_hours_end"
         const val TYPE_NUMBER = "number"
         const val TYPE_STARTS_WITH = "starts_with"
     }

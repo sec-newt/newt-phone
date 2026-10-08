@@ -16,14 +16,16 @@ class CallerLookup(private val context: Context) {
         if (number == null) return CallerInfo()
         var name: String? = null
         var photo: String? = null
+        var starred = false
         if (context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
             try {
                 val uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
-                val columns = arrayOf(PhoneLookup.DISPLAY_NAME, PhoneLookup.PHOTO_THUMBNAIL_URI)
+                val columns = arrayOf(PhoneLookup.DISPLAY_NAME, PhoneLookup.PHOTO_THUMBNAIL_URI, PhoneLookup.STARRED)
                 context.contentResolver.query(uri, columns, null, null, null)?.use { cursor ->
                     if (cursor.moveToFirst()) {
                         name = cursor.getString(0)
                         photo = cursor.getString(1)
+                        starred = cursor.getInt(2) == 1
                     }
                 }
             } catch (e: Exception) {
@@ -40,6 +42,6 @@ class CallerLookup(private val context: Context) {
         } catch (e: Exception) {
             false
         }
-        return CallerInfo(name = name, photoUri = photo, spamLabel = spam, isEmergency = emergency)
+        return CallerInfo(name = name, photoUri = photo, spamLabel = spam, isEmergency = emergency, starred = starred)
     }
 }

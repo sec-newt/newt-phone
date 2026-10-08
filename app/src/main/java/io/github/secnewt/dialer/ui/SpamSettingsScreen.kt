@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.announce.AnnounceSettings
+import io.github.secnewt.dialer.calls.RingSettings
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
 import io.github.secnewt.dialer.screening.SpamSettings
@@ -80,6 +81,8 @@ fun SpamSettingsScreen(
     onOpenSystemSetting: (SystemSetting) -> Unit = {},
     keypadTones: Boolean = true,
     onKeypadTonesChange: (Boolean) -> Unit = {},
+    ringSettings: RingSettings = RingSettings(),
+    onRingSettingsChange: (RingSettings) -> Unit = {},
 ) {
     var choosing by remember { mutableStateOf<CallerType?>(null) }
     var choosingAnnounce by remember { mutableStateOf(false) }
@@ -121,6 +124,9 @@ fun SpamSettingsScreen(
                     onOpenVoiceSettings = { onOpenSystemSetting(SystemSetting.TTS) },
                 )
             }
+
+            item { SectionHeading("Ringing", modifier = Modifier.padding(top = 16.dp)) }
+            item { RingingSection(ringSettings, isPhoneApp, onRingSettingsChange) }
 
             item { SectionHeading("Spam protection", modifier = Modifier.padding(top = 16.dp)) }
 

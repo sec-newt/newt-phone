@@ -47,6 +47,7 @@ import io.github.secnewt.dialer.calls.Caller
 import io.github.secnewt.dialer.calls.CallPhase
 import io.github.secnewt.dialer.calls.Dialpad
 import io.github.secnewt.dialer.calls.LiveCalls
+import io.github.secnewt.dialer.calls.RingSettings
 import io.github.secnewt.dialer.incall.CallManager
 import io.github.secnewt.dialer.incall.InCallActivity
 import io.github.secnewt.dialer.announce.AnnounceMode
@@ -135,6 +136,7 @@ class MainActivity : ComponentActivity() {
     private var screeningRoleHeld by mutableStateOf(false)
     private var phoneAppRoleHeld by mutableStateOf(false)
     private var keypadTones by mutableStateOf(true)
+    private var ringSettings by mutableStateOf(RingSettings())
 
     /** Made on the first key press and kept, so tones start without delay. */
     private var toneGenerator: ToneGenerator? = null
@@ -323,6 +325,11 @@ class MainActivity : ComponentActivity() {
                             },
                             phoneAppDenied = phoneAppDenied,
                             onOpenSystemSetting = ::openSystemSetting,
+                            ringSettings = ringSettings,
+                            onRingSettingsChange = {
+                                ringSettings = it
+                                store.saveRingSettings(it)
+                            },
                             keypadTones = keypadTones,
                             onKeypadTonesChange = {
                                 keypadTones = it
@@ -443,6 +450,7 @@ class MainActivity : ComponentActivity() {
         syncWithSystemBlockList()
         announce = store.announceSettings()
         keypadTones = store.keypadTones()
+        ringSettings = store.ringSettings()
         refreshContacts()
         if (announce.mode != AnnounceMode.OFF && !hasAnnouncePermissions()) {
             announceMessage = "Announcing is on, but Phone, Call log or Contacts access was turned off. " +
