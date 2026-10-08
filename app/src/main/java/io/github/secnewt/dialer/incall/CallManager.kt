@@ -13,6 +13,7 @@ import io.github.secnewt.dialer.calls.AudioState
 import io.github.secnewt.dialer.calls.CallPhase
 import io.github.secnewt.dialer.calls.LiveCall
 import io.github.secnewt.dialer.calls.LiveCalls
+import io.github.secnewt.dialer.calls.RingRules
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,8 @@ data class CallerInfo(
     val photoUri: String? = null,
     val spamLabel: String? = null,
     val isEmergency: Boolean = false,
+    /** A favorite (starred contact), who may ring through silent mode. */
+    val starred: Boolean = false,
 )
 
 /**
@@ -93,13 +96,30 @@ object CallManager {
         return handle.schemeSpecificPart?.takeIf { it.isNotBlank() }
     }
 
+    /** Recent incoming calls by number, to spot someone calling again within a few minutes. */
+    private val recentIncomingCalls = ArrayDeque<Pair<String?, Long>>()
+
+    fun rememberIncoming(number: String?) {
+        val now = System.currentTimeMillis()
+        recentIncomingCalls.addLast(number to now)
+        while (recentIncomingCalls.isNotEmpty() &&
+            now - recentIncomingCalls.first().second > RingRules.REPEAT_WINDOW_MILLIS
+        ) {
+            recentIncomingCalls.removeFirst()
+        }
+    }
+
+    fun recentIncoming(): List<Pair<String?, Long>> = recentIncomingCalls.toList()
+
     fun answer(id: String) {
         CallAnnouncer.stop()
+        RingThrough.stop()
         telecomCalls[id]?.answer(VideoProfile.STATE_AUDIO_ONLY)
     }
 
     fun decline(id: String) {
         CallAnnouncer.stop()
+        RingThrough.stop()
         telecomCalls[id]?.reject(false, null)
     }
 

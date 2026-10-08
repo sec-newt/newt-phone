@@ -5,6 +5,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.announce.AnnounceSettings
+import io.github.secnewt.dialer.calls.QuietHours
+import io.github.secnewt.dialer.calls.RingSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -45,6 +47,18 @@ class SpamSettingsStoreTest {
         assertTrue(store.keypadTones())
         store.saveKeypadTones(false)
         assertEquals(false, store.keypadTones())
+    }
+
+    @Test
+    fun `ringing settings survive a save and load`() {
+        assertEquals(RingSettings(), store.ringSettings())
+        val settings = RingSettings(
+            starredRingThrough = false,
+            repeatRingThrough = true,
+            quietHours = QuietHours(enabled = true, startMinutes = 21 * 60 + 30, endMinutes = 6 * 60),
+        )
+        store.saveRingSettings(settings)
+        assertEquals(settings, store.ringSettings())
     }
 
     @Test

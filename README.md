@@ -30,6 +30,10 @@ Settings, Apps, Newt Phone, tap the ⋮ menu, choose "Allow restricted
 settings", and try again. Installing with Obtainium avoids it (and keeps the
 app updated from GitHub releases).
 
+- **Ringing rules** (Settings, Ringing; need Newt Phone to be the phone app):
+  starred contacts and anyone calling again within 3 minutes ring even on
+  silent or vibrate (at alarm volume; never for likely spam), and optional
+  quiet hours when everyone else's calls show silently.
 - **Keypad sounds:** a short tone for each dialpad key (on by default, quiet
   when the phone is on silent or vibrate), in Settings, Phone settings.
 - **Phone settings:** shortcuts to Android's own screens for ringtone and

@@ -21,6 +21,14 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.checkRoboAccessibility
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.announce.AnnounceSettings
+import io.github.secnewt.dialer.calls.QuietHours
+import io.github.secnewt.dialer.calls.RingSettings
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
@@ -223,6 +231,38 @@ class SettingsScreensTest {
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Keypad sounds"))
         composeRule.onNodeWithText("Keypad sounds").performClick()
         assertEquals(listOf(false), changes)
+    }
+
+    @Composable
+    private fun RingingOnly(settings: RingSettings, onChange: (RingSettings) -> Unit = {}) {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Column(Modifier.padding(16.dp)) { RingingSection(settings, isPhoneApp = true, onChange = onChange) }
+        }
+    }
+
+    @Test
+    fun ringingQuietHoursDark() = render("settings_ringing_dark", dark = true) {
+        RingingOnly(RingSettings(quietHours = QuietHours(enabled = true)))
+    }
+
+    @Test
+    fun ringingLargestFont() = render("settings_ringing_light_font200", dark = false, fontScale = 2f) {
+        RingingOnly(RingSettings(quietHours = QuietHours(enabled = true)))
+    }
+
+    @Test
+    fun ringingSwitchesAndQuietHoursTimes() {
+        val changes = mutableListOf<RingSettings>()
+        composeRule.setContent {
+            DialerTheme(darkTheme = true) { RingingOnly(RingSettings(quietHours = QuietHours(enabled = true))) { changes += it } }
+        }
+        composeRule.onNodeWithText("Starred contacts ring on silent").performClick()
+        composeRule.onNodeWithText("From 10:00", substring = true).assertExists()
+        composeRule.onNodeWithText("To 7:00", substring = true).performClick()
+        composeRule.onNodeWithText("Quiet hours end").assertExists()
+        composeRule.onNodeWithText("Set").performClick()
+        assertEquals(false, changes[0].starredRingThrough)
+        assertEquals(7 * 60, changes[1].quietHours.endMinutes)
     }
 
     @Test

@@ -13,6 +13,8 @@ import android.provider.ContactsContract.PhoneLookup
 import android.telecom.TelecomManager
 import android.telephony.TelephonyManager
 import android.util.Log
+import java.time.LocalTime
+import io.github.secnewt.dialer.calls.RingRules
 import io.github.secnewt.dialer.screening.PhoneNumbers
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.ScreeningLog
@@ -49,7 +51,11 @@ class IncomingCallReceiver : BroadcastReceiver() {
         val screening = recentScreening(context, number)
         if (!Announcement.shouldSpeak(settings, audioSituation(context), screening)) return
 
-        val contact = contactName(context, number)
+        val (contact, starred) = contactLookup(context, number)
+        // Quiet hours: only callers who still ring (starred contacts) are announced.
+        val now = LocalTime.now()
+        val quietHours = SpamSettingsStore(context).ringSettings().quietHours
+        if (!starred && RingRules.inQuietHours(quietHours, now.hour * 60 + now.minute)) return
         // Never log the number or name.
         Log.i(TAG, "Announcing incoming call (contact: ${contact != null})")
 
@@ -76,18 +82,19 @@ class IncomingCallReceiver : BroadcastReceiver() {
         true
     }
 
-    private fun contactName(context: Context, number: String?): String? {
-        if (number.isNullOrBlank()) return null
+    /** The contact's name and whether they're starred, if the number is saved. */
+    private fun contactLookup(context: Context, number: String?): Pair<String?, Boolean> {
+        if (number.isNullOrBlank()) return null to false
         if (context.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
-            return null
+            return null to false
         }
         val uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
         return try {
-            context.contentResolver.query(uri, arrayOf(PhoneLookup.DISPLAY_NAME), null, null, null)?.use {
-                if (it.moveToFirst()) it.getString(0) else null
-            }
+            context.contentResolver.query(uri, arrayOf(PhoneLookup.DISPLAY_NAME, PhoneLookup.STARRED), null, null, null)
+                ?.use { if (it.moveToFirst()) it.getString(0) to (it.getInt(1) == 1) else null }
+                ?: (null to false)
         } catch (e: Exception) {
-            null
+            null to false
         }
     }
 
