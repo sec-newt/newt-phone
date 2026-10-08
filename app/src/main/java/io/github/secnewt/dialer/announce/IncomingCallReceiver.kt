@@ -43,6 +43,13 @@ class IncomingCallReceiver : BroadcastReceiver() {
         val settings = SpamSettingsStore(context).announceSettings()
         if (settings.mode == AnnounceMode.OFF) return
 
+        // Defense in depth: make sure Android really has a call ringing, so a made-up
+        // "ringing" broadcast from another app can't make the phone speak.
+        if (!androidSaysRinging(context)) {
+            Log.i(TAG, "Ignoring a ringing broadcast with no ringing call")
+            return
+        }
+
         if (Announcement.isAppCall(number, phoneCallRinging(context))) {
             Log.i(TAG, "Not announcing a call from a calling app")
             return
@@ -71,6 +78,18 @@ class IncomingCallReceiver : BroadcastReceiver() {
         val cutoff = System.currentTimeMillis() - 60_000
         return ScreeningLog(context).read().firstOrNull {
             it.timeMillis >= cutoff && PhoneNumbers.normalize(it.number) == target
+        }
+    }
+
+    /** Asks Android directly whether any call is ringing right now. */
+    private fun androidSaysRinging(context: Context): Boolean {
+        if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            return false
+        }
+        return try {
+            context.getSystemService(TelecomManager::class.java).isRinging
+        } catch (e: SecurityException) {
+            false
         }
     }
 
