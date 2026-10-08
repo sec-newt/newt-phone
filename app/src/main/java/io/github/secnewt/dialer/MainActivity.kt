@@ -466,6 +466,9 @@ class MainActivity : ComponentActivity() {
         keypadTones = store.keypadTones()
         ringSettings = store.ringSettings()
         refreshContacts()
+        // Every time the app comes back, so Recents shows new calls and current contact names,
+        // and an access that's already allowed (it survives updates) is never asked for again.
+        refreshCallLog()
         if (announce.mode != AnnounceMode.OFF && !hasAnnouncePermissions()) {
             announceMessage = "Announcing is on, but Phone, Call log or Contacts access was turned off. " +
                 "Choose Announce again to allow it."
