@@ -24,7 +24,7 @@ data class LoggedCall(
     val id: Long,
     /** Null or blank for hidden numbers. */
     val number: String?,
-    /** The contact name at the time of the call, if it was a contact. */
+    /** The contact's current name, if the number is saved (or the name at the time of the call). */
     val name: String?,
     val kind: CallKind,
     val timeMillis: Long,
