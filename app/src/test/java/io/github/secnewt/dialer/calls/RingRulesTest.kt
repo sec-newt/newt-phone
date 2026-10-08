@@ -85,4 +85,25 @@ class RingRulesTest {
         assertFalse(RingRules.isRepeat("5550142290", now, earlier))
         assertFalse(RingRules.isRepeat(null, now, earlier))
     }
+
+    @Test
+    fun ringAndVoiceTakeTurnsWhenThePhoneRingsOutLoud() {
+        assertTrue(RingRules.takeTurns(isPhoneApp = true, callRingingHere = true, ringerAudible = true, ringingThrough = false))
+    }
+
+    @Test
+    fun ringAndVoiceTakeTurnsWhileRingingThroughSilent() {
+        assertTrue(RingRules.takeTurns(isPhoneApp = true, callRingingHere = true, ringerAudible = false, ringingThrough = true))
+    }
+
+    @Test
+    fun noTurnsOnASilentPhone() {
+        assertFalse(RingRules.takeTurns(isPhoneApp = true, callRingingHere = true, ringerAudible = false, ringingThrough = false))
+    }
+
+    @Test
+    fun noTurnsUnlessThisIsThePhoneAppAndKnowsTheCall() {
+        assertFalse(RingRules.takeTurns(isPhoneApp = false, callRingingHere = true, ringerAudible = true, ringingThrough = false))
+        assertFalse(RingRules.takeTurns(isPhoneApp = true, callRingingHere = false, ringerAudible = true, ringingThrough = false))
+    }
 }

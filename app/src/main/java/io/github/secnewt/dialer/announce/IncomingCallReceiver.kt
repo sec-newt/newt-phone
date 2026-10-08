@@ -16,6 +16,7 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import java.time.LocalTime
 import io.github.secnewt.dialer.calls.RingRules
+import io.github.secnewt.dialer.incall.RingThrough
 import io.github.secnewt.dialer.screening.PhoneNumbers
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.ScreeningLog
@@ -31,8 +32,9 @@ class IncomingCallReceiver : BroadcastReceiver() {
         if (intent.action != TelephonyManager.ACTION_PHONE_STATE_CHANGED) return
 
         if (intent.getStringExtra(TelephonyManager.EXTRA_STATE) != TelephonyManager.EXTRA_STATE_RINGING) {
-            // Answered, declined or ended: stop talking right away.
+            // Answered, declined or ended: stop talking and ringing right away.
             CallAnnouncer.stop()
+            RingThrough.stop()
             return
         }
 
@@ -67,8 +69,18 @@ class IncomingCallReceiver : BroadcastReceiver() {
         // Never log the number or name.
         Log.i(TAG, "Announcing incoming call (contact: ${contact != null})")
 
+        // As the phone app, ring in turns with the voice so the ringtone can't drown it out.
+        val turns = RingThrough.takeOver(context)
         val pending = goAsync()
-        CallAnnouncer.speak(context, Announcement.text(contact, number, screening), repeat = settings.repeat) {
+        CallAnnouncer.speak(
+            context,
+            Announcement.text(contact, number, screening),
+            repeat = settings.repeat,
+            onSpeaking = { speaking ->
+                if (turns && speaking) RingThrough.pause()
+                if (turns && !speaking) RingThrough.resume()
+            },
+        ) {
             pending.finish()
         }
     }

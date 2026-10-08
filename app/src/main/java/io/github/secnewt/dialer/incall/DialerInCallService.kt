@@ -30,7 +30,7 @@ import kotlinx.coroutines.withContext
 /**
  * Android hands every phone call to this service once the app is the default phone app.
  * It keeps [CallManager] up to date, opens the call screen and shows the call notification.
- * Android still plays the ringtone itself.
+ * Android plays the ringtone, except when [RingThrough] takes over.
  */
 class DialerInCallService : InCallService() {
 
@@ -83,6 +83,12 @@ class DialerInCallService : InCallService() {
         CallManager.remove(call)
     }
 
+    /** A volume or power button press silences the call, including this app's ringtone and voice. */
+    override fun onSilenceRinger() {
+        super.onSilenceRinger()
+        if (RingThrough.silencedByUser()) CallAnnouncer.stop()
+    }
+
     @Deprecated("Replaced by onCallEndpointChanged on Android 14; still called there.")
     override fun onCallAudioStateChanged(audioState: CallAudioState) {
         @Suppress("DEPRECATION")
@@ -108,6 +114,7 @@ class DialerInCallService : InCallService() {
             RingAction.RING_THROUGH -> RingThrough.start(this)
             RingAction.SILENCE -> {
                 CallAnnouncer.stop()
+                RingThrough.stop()
                 silenceRinger()
                 // The ringtone may not have started yet; make sure once it has.
                 delay(SILENCE_RETRY_MILLIS)

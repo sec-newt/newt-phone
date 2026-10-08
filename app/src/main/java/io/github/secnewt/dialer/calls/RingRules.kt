@@ -58,6 +58,15 @@ object RingRules {
         }
     }
 
+    /**
+     * Whether the ringtone and the caller announcement should take turns: Android's ringtone
+     * is silenced and this app plays it, pausing while the voice speaks so the voice isn't
+     * drowned out. Only the phone app may silence the ringtone, and it must already know the
+     * call is ringing so the ringtone stops when the call does.
+     */
+    fun takeTurns(isPhoneApp: Boolean, callRingingHere: Boolean, ringerAudible: Boolean, ringingThrough: Boolean): Boolean =
+        isPhoneApp && callRingingHere && (ringerAudible || ringingThrough)
+
     fun inQuietHours(hours: QuietHours, minutesAfterMidnight: Int): Boolean {
         if (!hours.enabled || hours.startMinutes == hours.endMinutes) return false
         val now = minutesAfterMidnight
