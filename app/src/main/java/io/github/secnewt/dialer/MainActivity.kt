@@ -7,7 +7,11 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.net.Uri
+import android.provider.ContactsContract
+import android.widget.Toast
 import android.os.Build
 import android.os.Bundle
 import android.telecom.PhoneAccount
@@ -58,6 +62,7 @@ import io.github.secnewt.dialer.contacts.Contact
 import io.github.secnewt.dialer.contacts.ContactList
 import io.github.secnewt.dialer.contacts.ContactsRepository
 import io.github.secnewt.dialer.contacts.DndCalls
+import io.github.secnewt.dialer.screening.BlockList
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.BlockSync
 import io.github.secnewt.dialer.screening.SystemBlockList
@@ -73,6 +78,7 @@ import io.github.secnewt.dialer.ui.LocalPhotoLoader
 import io.github.secnewt.dialer.ui.ContactsScreen
 import io.github.secnewt.dialer.ui.DialpadIcon
 import io.github.secnewt.dialer.ui.DialpadScreen
+import io.github.secnewt.dialer.ui.NumberAction
 import io.github.secnewt.dialer.ui.RecentsScreen
 import io.github.secnewt.dialer.ui.ReturnToCallBar
 import io.github.secnewt.dialer.ui.DialerTabBar
@@ -273,6 +279,8 @@ class MainActivity : ComponentActivity() {
                                         onAllowAccess = { requestCallLog.launch(Manifest.permission.READ_CALL_LOG) },
                                         onCall = ::call,
                                         message = callMessage,
+                                        onNumberAction = ::onNumberAction,
+                                        isBlocked = { BlockList.match(blockRules, it) != null },
                                     )
                                     Tab.FAVORITES -> FavoritesScreen(
                                         contacts = contacts,
@@ -497,6 +505,44 @@ class MainActivity : ComponentActivity() {
         } else {
             pendingCall = number
             requestCallPhone.launch(Manifest.permission.CALL_PHONE)
+        }
+    }
+
+    /** The Recents menu: copy, add to contacts, text, edit before calling, or block a number. */
+    private fun onNumberAction(action: NumberAction, number: String) {
+        when (action) {
+            NumberAction.COPY -> {
+                getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText("Phone number", number))
+                // Android 13 and later show their own "Copied" message.
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(this, "Number copied", Toast.LENGTH_SHORT).show()
+                }
+            }
+            NumberAction.ADD_CONTACT -> openOrSay(
+                Intent(Intent.ACTION_INSERT_OR_EDIT)
+                    .setType(ContactsContract.Contacts.CONTENT_ITEM_TYPE)
+                    .putExtra(ContactsContract.Intents.Insert.PHONE, number),
+                "No contacts app was found.",
+            )
+            NumberAction.MESSAGE -> openOrSay(
+                Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", number, null)),
+                "No messaging app was found.",
+            )
+            NumberAction.EDIT -> incomingDial = number
+            NumberAction.BLOCK -> {
+                addRule(BlockRule.Number(number))
+                callMessage = "Blocked. To undo, open Settings, Block list."
+            }
+        }
+    }
+
+    private fun openOrSay(intent: Intent, failure: String) {
+        try {
+            startActivity(intent)
+            callMessage = null
+        } catch (e: ActivityNotFoundException) {
+            callMessage = failure
         }
     }
 

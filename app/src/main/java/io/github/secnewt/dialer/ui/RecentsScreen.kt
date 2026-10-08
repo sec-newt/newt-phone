@@ -1,5 +1,7 @@
 package io.github.secnewt.dialer.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,6 +31,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -66,6 +72,8 @@ fun RecentsScreen(
     onCall: (String) -> Unit,
     now: ZonedDateTime = ZonedDateTime.now(),
     message: String? = null,
+    onNumberAction: (NumberAction, String) -> Unit = { _, _ -> },
+    isBlocked: (String) -> Boolean = { false },
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
@@ -119,7 +127,7 @@ fun RecentsScreen(
                 groups.groupBy { CallHistory.dayLabel(it.latest.timeMillis, now) }.forEach { (day, dayGroups) ->
                     item(key = "day-$day") { DayHeading(day) }
                     items(dayGroups, key = { it.latest.id }) { group ->
-                        RecentRow(group, spamLabel(group, screened), now, onCall)
+                        RecentRow(group, spamLabel(group, screened), now, onCall, onNumberAction, isBlocked)
                     }
                 }
             }
@@ -186,18 +194,51 @@ private fun StatusPanel(
     }
 }
 
+/** Tap or hold a row for more: copy the number, add it to contacts, text it, edit it, block it. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun RecentRow(group: CallGroup, spam: String?, now: ZonedDateTime, onCall: (String) -> Unit) {
+private fun RecentRow(
+    group: CallGroup,
+    spam: String?,
+    now: ZonedDateTime,
+    onCall: (String) -> Unit,
+    onNumberAction: (NumberAction, String) -> Unit,
+    isBlocked: (String) -> Boolean,
+) {
     val call = group.latest
     val number = call.number?.takeIf { it.isNotBlank() }
     val title = call.name ?: formatCaller(number)
     val missed = call.kind == CallKind.MISSED
     val avatar = Contact(call.id, title, starred = false, photoUri = call.photoUri, thumbnailUri = call.photoUri)
+    var menuOpen by rememberSaveable { mutableStateOf(false) }
+    if (menuOpen && number != null) {
+        NumberActionsDialog(
+            title = title,
+            number = number,
+            actions = numberActions(isContact = call.name != null, isBlocked = isBlocked(number)),
+            onAction = { action ->
+                menuOpen = false
+                onNumberAction(action, number)
+            },
+            onDismiss = { menuOpen = false },
+        )
+    }
+    val openMenu = if (number != null) {
+        Modifier.combinedClickable(
+            onClickLabel = "More options",
+            onLongClickLabel = "More options",
+            onLongClick = { menuOpen = true },
+            onClick = { menuOpen = true },
+        )
+    } else {
+        Modifier
+    }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 68.dp)
+            .then(openMenu)
             .padding(vertical = 4.dp),
     ) {
         ContactAvatar(
