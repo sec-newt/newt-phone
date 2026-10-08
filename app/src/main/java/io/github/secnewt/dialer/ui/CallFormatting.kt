@@ -13,7 +13,7 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
- * "(972) 862-8342" for US numbers, including ones saved as "+1 972…", so they fit on one line;
+ * "(214) 555-0199" for US numbers, including ones saved as "+1 214…", so they fit on one line;
  * other numbers in their usual format; "Hidden number" when there is none.
  */
 fun formatCaller(number: String?, countryIso: String = Locale.getDefault().country.ifEmpty { "US" }): String {

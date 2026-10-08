@@ -43,8 +43,8 @@ class CallFormattingTest {
     @Test
     fun `US numbers are formatted`() {
         assertEquals("(555) 019-7731", formatCaller("5550197731", "US"))
-        assertEquals("(972) 862-8342", formatCaller("+1 972-862-8342", "US"))
-        assertEquals("(972) 862-8342", formatCaller("+19728628342", "US"))
+        assertEquals("(214) 555-0199", formatCaller("+1 214-555-0199", "US"))
+        assertEquals("(214) 555-0199", formatCaller("+12145550199", "US"))
     }
 
     @Test
