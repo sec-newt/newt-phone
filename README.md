@@ -73,6 +73,8 @@ you grant in Android's settings; you can take them back there at any time.
   starred contacts and anyone calling again within 3 minutes ring even on
   silent or vibrate (at alarm volume; never for likely spam), and optional
   quiet hours when everyone else's calls show silently.
+- **Swipe between tabs:** slide left or right to move between Favorites,
+  Recents and Contacts, or tap a tab at the bottom.
 - **Tap-and-hold menus:** tap or hold a call in Recents to copy the number,
   add it to contacts, send a text, edit it before calling, or block it. Tap
   the number on the dialpad to paste a number in (or copy, save or text it).
