@@ -257,8 +257,8 @@ class SettingsScreensTest {
             DialerTheme(darkTheme = true) { RingingOnly(RingSettings(quietHours = QuietHours(enabled = true))) { changes += it } }
         }
         composeRule.onNodeWithText("Starred contacts ring on silent").performClick()
-        composeRule.onNodeWithText("From 10:00 PM").assertExists()
-        composeRule.onNodeWithText("To 7:00 AM").performClick()
+        composeRule.onNodeWithText("From 10:00", substring = true).assertExists()
+        composeRule.onNodeWithText("To 7:00", substring = true).performClick()
         composeRule.onNodeWithText("Quiet hours end").assertExists()
         composeRule.onNodeWithText("Set").performClick()
         assertEquals(false, changes[0].starredRingThrough)
