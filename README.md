@@ -214,7 +214,7 @@ go through the same checks.
 Every change merged into `main` that passes all checks is published as a
 signed release. Open the repo's **Releases** page (on a phone: the **Code**
 tab, then scroll to **Releases**), tap the newest one, and tap the
-`dialer-0.1.N.apk` file to install it. Each release installs over the
+`newt-phone-0.1.N.apk` file to install it. Each release installs over the
 previous one, and the app's data is kept.
 
 Test builds from pull requests are named **Newt Phone (test)** and install
