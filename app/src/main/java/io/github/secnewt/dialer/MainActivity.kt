@@ -54,6 +54,7 @@ import io.github.secnewt.dialer.calls.CallStart
 import io.github.secnewt.dialer.calls.Caller
 import io.github.secnewt.dialer.calls.CallPhase
 import io.github.secnewt.dialer.calls.CallHistoryRequest
+import io.github.secnewt.dialer.calls.ContactSearchRequest
 import io.github.secnewt.dialer.calls.Dialpad
 import io.github.secnewt.dialer.calls.LiveCalls
 import io.github.secnewt.dialer.calls.RingSettings
@@ -158,6 +159,7 @@ class MainActivity : ComponentActivity() {
     /** A number another app asked to dial (a tel: link), waiting to be shown on the dialpad. */
     private var incomingDial by mutableStateOf<String?>(null)
     private var openRecents by mutableStateOf(false)
+    private var incomingSearch by mutableStateOf<String?>(null)
     private var resumed by mutableStateOf(false)
 
     private val requestNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -220,6 +222,15 @@ class MainActivity : ComponentActivity() {
                     // Looking at Recents clears Android's missed-call notification.
                     LaunchedEffect(screen == Screen.TABS && tab == Tab.RECENTS && resumed) {
                         if (screen == Screen.TABS && tab == Tab.RECENTS && resumed) clearMissedCalls()
+                    }
+                    // "call mom" from Newt Home: Contacts, searched for the name. Never calls.
+                    LaunchedEffect(incomingSearch) {
+                        incomingSearch?.let {
+                            contactQuery = it
+                            screen = Screen.TABS
+                            tab = Tab.CONTACTS
+                            incomingSearch = null
+                        }
                     }
                     LaunchedEffect(incomingDial) {
                         incomingDial?.let {
@@ -434,10 +445,20 @@ class MainActivity : ComponentActivity() {
         handleRequest(intent)
     }
 
-    /** Tapping the missed-call notification opens Recents; a dial request opens the dialpad. */
+    /**
+     * Tapping the missed-call notification opens Recents; a dial request opens the dialpad,
+     * or Contacts searched for a name when it carries one instead of a number.
+     */
     private fun handleRequest(intent: Intent?) {
+        val search = ContactSearchRequest.query(
+            intent?.action,
+            hasNumber = intent?.data != null,
+            query = intent?.getStringExtra(ContactSearchRequest.EXTRA_CONTACT_QUERY),
+        )
         if (CallHistoryRequest.matches(intent?.action, intent?.type, intent?.dataString)) {
             openRecents = true
+        } else if (search != null) {
+            incomingSearch = search
         } else {
             dialRequest(intent)?.let { incomingDial = it }
         }

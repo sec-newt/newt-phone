@@ -114,6 +114,9 @@ you grant in Android's settings; you can take them back there at any time.
   are meant to keep ringing.
 - **Dial links:** tel: links and "call" buttons in other apps open the dialpad
   with the number filled in.
+- **Call by name from Newt Home:** typing `call mom` at Newt Home's prompt opens
+  Contacts with "mom" already searched. It only fills in the search; you still
+  tap the contact and the number to call.
 
 ### Main screens
 
