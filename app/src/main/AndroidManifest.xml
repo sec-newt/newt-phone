@@ -37,6 +37,15 @@
         </intent>
     </queries>
 
+    <!-- Lets other apps signed with the Newt key (Newt Home) read how many missed calls you
+         haven't seen: only the number, nothing else. "signature" means Android grants it to
+         no other app, and nobody is ever asked. -->
+    <permission
+        android:name="${applicationId}.permission.MISSED_CALL_COUNT"
+        android:label="@string/missed_count_permission"
+        android:description="@string/missed_count_permission_description"
+        android:protectionLevel="signature" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -121,5 +130,13 @@
                 <action android:name="android.intent.action.PHONE_STATE" />
             </intent-filter>
         </receiver>
+
+        <!-- The missed-call count for other Newt apps (see the permission above). Read-only. -->
+        <provider
+            android:name=".share.MissedCallsProvider"
+            android:authorities="${applicationId}.missedcalls"
+            android:exported="true"
+            android:readPermission="${applicationId}.permission.MISSED_CALL_COUNT"
+            android:writePermission="${applicationId}.permission.MISSED_CALL_COUNT" />
     </application>
 </manifest>

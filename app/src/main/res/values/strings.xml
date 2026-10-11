@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Newt Phone</string>
+    <string name="missed_count_permission">see how many missed calls Newt Phone has</string>
+    <string name="missed_count_permission_description">Only the number of missed calls you haven\'t looked at. Only apps signed with the Newt key can have this.</string>
 </resources>
