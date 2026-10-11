@@ -21,7 +21,12 @@ confirmed problems as soon as I can and credit you if you'd like.
   screening service and the call-notification buttons accept requests only
   from Android itself or from the app. The one screen other apps can open
   (for "dial this number" links) only fills in the dialpad; it never places a
-  call.
+  call. A name sent with it (Newt Home's `call mom`) only fills in the
+  Contacts search.
+- **The missed-call count is shared with Newt apps only.** Newt Home can show
+  "2 missed" under Phone. It reads just that number (no numbers, names or
+  times), through a read-only provider guarded by a signature permission:
+  Android only grants it to apps signed with the same key as Newt Phone.
 - **Ringing announcements are double-checked** with Android, so another app
   can't fake a ringing call to make the phone speak.
 - **Data stays private.** Settings, the block list and the screening log live

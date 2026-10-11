@@ -114,6 +114,8 @@ you grant in Android's settings; you can take them back there at any time.
   are meant to keep ringing.
 - **Dial links:** tel: links and "call" buttons in other apps open the dialpad
   with the number filled in.
+- **Missed calls in Newt Home:** Newt Home shows "2 missed" under Phone. Newt
+  Phone shares only that number, and only with apps signed with the Newt key.
 - **Call by name from Newt Home:** typing `call mom` at Newt Home's prompt opens
   Contacts with "mom" already searched. It only fills in the search; you still
   tap the contact and the number to call.
