@@ -1,5 +1,10 @@
 name: Build APK
 
+# The build itself is shared by every Newt app: see newt-app.yml in
+# https://github.com/sec-newt/newt-android-lib. It runs the tests, screenshots,
+# accessibility checks, lint, secret scan and permission check, builds the test APK,
+# and publishes a signed release from main.
+
 on:
   # Pushes to main build the APK; other branches are checked through their pull request.
   push:
@@ -9,177 +14,40 @@ on:
 
 permissions:
   contents: read
-  # Download the shared Newt library from GitHub Packages.
-  packages: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: Tests, screenshots, accessibility and lint
-    runs-on: ubuntu-latest
-    env:
-      # Lets Gradle download the shared Newt library (read-only).
-      GITHUB_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
-
-      - name: Logic, screenshot and accessibility tests
-        run: ./gradlew --no-daemon recordRoborazziDebug
-
-      - name: Lint (includes Android security checks)
-        run: ./gradlew --no-daemon lintDebug
-
-      - name: Upload screenshots for review
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: screenshots
-          path: app/build/screenshots/
-          if-no-files-found: ignore
-
-      - name: Upload test and lint reports
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: reports
-          path: |
-            app/build/reports/
-            app/build/test-results/
-
-  secrets-scan:
-    name: Secret scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          fetch-depth: 0
-      - name: Scan the full history for leaked keys and passwords
-        run: |
-          # Pinned version, checked against its published checksum before it runs.
-          curl -sSL -o gitleaks.tar.gz \
-            https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz
-          echo "5bc41815076e6ed6ef8fbecc9d9b75bcae31f39029ceb55da08086315316e3ba  gitleaks.tar.gz" | sha256sum -c -
-          tar -xzf gitleaks.tar.gz gitleaks
-          ./gitleaks git --redact --verbose .
-
-  apk:
-    name: Build test APK
-    # The test APK is only built when every check above passed.
-    needs: [checks, secrets-scan]
-    runs-on: ubuntu-latest
-    env:
-      # Lets Gradle download the shared Newt library (read-only).
-      GITHUB_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
-
-      - name: Build debug APK
-        run: ./gradlew --no-daemon assembleDebug
-
-      - name: Permission audit
-        run: scripts/check-permissions.sh app/build/outputs/apk/debug/app-debug.apk
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: newt-phone-test-apk
-          path: app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
-
-  release:
-    name: Publish signed release
-    # Only main becomes a release, and only after every check passed. It can also be
-    # started by hand from the Actions tab ("Run workflow") to re-publish main.
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: [checks, secrets-scan, apk]
-    runs-on: ubuntu-latest
+  newt:
+    name: Newt
+    uses: sec-newt/newt-android-lib/.github/workflows/newt-app.yml@5524a8c4996fe52098362d3c8e71a58bae5c77e1 # v1.1.0
+    # The app's names, used for the test APK and release files.
+    with:
+      app-slug: newt-phone
+      app-name: Newt Phone
+    secrets:
+      SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+    # The most any shared job needs: publishing a release writes, CodeQL reports security
+    # findings. Each job inside newt-app.yml asks only for what it uses.
     permissions:
       contents: write
       packages: read
-    env:
-      # Lets Gradle download the shared Newt library (read-only).
-      GITHUB_TOKEN: ${{ github.token }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6
+      actions: read
+      security-events: write
 
-      - name: Load the signing key
-        id: key
-        env:
-          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-          # Only checked to explain a missing key; a keystore must never be a plain variable.
-          KEYSTORE_IN_VARIABLES: ${{ vars.SIGNING_KEYSTORE_BASE64 != '' }}
-          PASSWORD_IN_VARIABLES: ${{ vars.SIGNING_PASSWORD != '' }}
-        run: |
-          # Report what reached this job without printing any secret value.
-          present() { [ -n "$1" ] && echo "found (${#1} characters)" || echo "MISSING"; }
-          echo "Repository secret SIGNING_KEYSTORE_BASE64: $(present "$SIGNING_KEYSTORE_BASE64")"
-          echo "Repository secret SIGNING_PASSWORD: $(present "$SIGNING_PASSWORD")"
-          if [ "$KEYSTORE_IN_VARIABLES" = "true" ] || [ "$PASSWORD_IN_VARIABLES" = "true" ]; then
-            echo "::warning::A signing value was saved as a Variable instead of a Secret. Delete it from the Variables tab and add it as a Repository secret."
-          fi
-          if [ -z "$SIGNING_KEYSTORE_BASE64" ]; then
-            echo "::warning::No signing key is set up yet, so no release was published. See README.md."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.p12"
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Build signed release APK
-        if: steps.key.outputs.ready == 'true'
-        env:
-          VERSION_CODE: ${{ github.run_number }}
-          SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/release.p12
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease
-
-      - name: Check the signature and permissions
-        if: steps.key.outputs.ready == 'true'
-        run: |
-          apk=app/build/outputs/apk/release/app-release.apk
-          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
-          "$apksigner" verify --print-certs "$apk"
-          scripts/check-permissions.sh "$apk"
-
-      - name: Publish the release
-        if: steps.key.outputs.ready == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: 0.1.${{ github.run_number }}
-        run: |
-          cp app/build/outputs/apk/release/app-release.apk "newt-phone-$VERSION.apk"
-          gh release create "v$VERSION" "newt-phone-$VERSION.apk" \
-            --title "Newt Phone $VERSION" \
-            --notes "Built from ${GITHUB_SHA::7} after all tests and security checks passed. Install the .apk below."
-
-      - name: Remove the signing key from the runner
-        if: always()
-        run: rm -f "$RUNNER_TEMP/release.p12"
-
+  # Newt Phone only: a real incoming call on an emulator.
   emulator:
     name: Emulator call test
     # Slower (about 10-15 minutes), so it runs on pull requests and on demand.
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
-    needs: apk
+    # Uses the test APK the shared build made.
+    needs: newt
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
