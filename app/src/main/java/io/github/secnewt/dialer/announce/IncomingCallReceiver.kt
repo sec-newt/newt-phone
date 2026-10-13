@@ -70,18 +70,25 @@ class IncomingCallReceiver : BroadcastReceiver() {
         Log.i(TAG, "Announcing incoming call (contact: ${contact != null})")
 
         // As the phone app, ring in turns with the voice so the ringtone can't drown it out.
-        val turns = RingThrough.takeOver(context)
+        // The voice waits until that's decided, so it never starts on top of the ringtone.
+        val text = Announcement.text(contact, number, screening)
         val pending = goAsync()
-        CallAnnouncer.speak(
-            context,
-            Announcement.text(contact, number, screening),
-            repeat = settings.repeat,
-            onSpeaking = { speaking ->
-                if (turns && speaking) RingThrough.pause()
-                if (turns && !speaking) RingThrough.resume()
-            },
-        ) {
-            pending.finish()
+        RingThrough.whenCallArrives(context, stillRinging = { androidSaysRinging(context) }) { turns ->
+            if (turns == null) {
+                pending.finish() // Answered or hung up while waiting: nothing to say.
+                return@whenCallArrives
+            }
+            CallAnnouncer.speak(
+                context,
+                text,
+                repeat = settings.repeat,
+                onSpeaking = { speaking ->
+                    if (turns && speaking) RingThrough.pause()
+                    if (turns && !speaking) RingThrough.resume()
+                },
+            ) {
+                pending.finish()
+            }
         }
     }
 
