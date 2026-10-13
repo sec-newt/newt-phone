@@ -65,8 +65,9 @@ import io.github.secnewt.dialer.calls.DialKey
 import io.github.secnewt.dialer.calls.Dialpad
 import io.github.secnewt.dialer.contacts.Contact
 import io.github.secnewt.dialer.contacts.ContactList
-import io.github.secnewt.dialer.ui.theme.DialerFonts
+import io.github.secnewt.ui.NewtFonts
 import java.util.Locale
+import io.github.secnewt.ui.neonOutline
 
 /**
  * Dialpad laid out like the stock one: a scrolling list of contacts on top (favorites first,
@@ -102,7 +103,7 @@ fun DialpadScreen(
                             else -> "Matching contacts"
                         },
                         style = MaterialTheme.typography.titleMedium,
-                        fontFamily = DialerFonts.Display,
+                        fontFamily = NewtFonts.Display,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier
@@ -162,7 +163,7 @@ private fun NumberRow(
         Text(
             text = shown.ifEmpty { "Enter a number" },
             style = if (shown.length > 14) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
-            fontFamily = if (shown.isEmpty()) DialerFonts.Body else DialerFonts.Mono,
+            fontFamily = if (shown.isEmpty()) NewtFonts.Body else NewtFonts.Mono,
             fontWeight = FontWeight.Bold,
             color = if (shown.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
@@ -220,7 +221,7 @@ private fun MatchRow(contact: Contact, phone: PhoneEntry, onPick: () -> Unit, on
             Text(
                 formatted,
                 style = MaterialTheme.typography.bodyLarge,
-                fontFamily = DialerFonts.Mono,
+                fontFamily = NewtFonts.Mono,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -324,7 +325,7 @@ internal fun Key(
         Text(
             key.digit.toString(),
             style = MaterialTheme.typography.headlineMedium,
-            fontFamily = DialerFonts.Display,
+            fontFamily = NewtFonts.Display,
             fontWeight = FontWeight.Bold,
             color = digitColor,
         )

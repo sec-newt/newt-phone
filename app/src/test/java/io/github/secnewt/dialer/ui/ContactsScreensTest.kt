@@ -28,7 +28,7 @@ import com.github.takahirom.roborazzi.checkRoboAccessibility
 import io.github.secnewt.dialer.contacts.Contact
 import io.github.secnewt.dialer.contacts.DndCalls
 import io.github.secnewt.dialer.contacts.PhoneEntry
-import io.github.secnewt.dialer.ui.theme.DialerTheme
+import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -78,7 +78,7 @@ class ContactsScreensTest {
                 LocalDensity provides Density(density.density, fontScale),
                 LocalPhotoLoader provides fakePhotos,
             ) {
-                DialerTheme(darkTheme = dark) { content() }
+                NewtTheme(darkTheme = dark) { content() }
             }
         }
         composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
@@ -182,7 +182,7 @@ class ContactsScreensTest {
 
     @Test
     fun favoritesShowOnlyStarredContacts() {
-        composeRule.setContent { DialerTheme(darkTheme = false) { Favorites(DndCalls.STARRED) } }
+        composeRule.setContent { NewtTheme(darkTheme = false) { Favorites(DndCalls.STARRED) } }
         // Alphabetical, so the first tiles are on screen without scrolling.
         composeRule.onNodeWithText("Alex Rivera").assertIsDisplayed()
         composeRule.onNodeWithText("DART Paratransit reservations").assertIsDisplayed()
@@ -193,7 +193,7 @@ class ContactsScreensTest {
     fun theCornerButtonOpensTheContactInsteadOfCalling() {
         val opened = mutableListOf<Long>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 FavoritesScreen(
                     contacts = contacts,
                     hasAccess = true,
@@ -213,7 +213,7 @@ class ContactsScreensTest {
     @Test
     fun tappingTheStarTogglesThatContact() {
         val toggled = mutableListOf<Long>()
-        composeRule.setContent { DialerTheme(darkTheme = false) { Contacts(onToggleStar = { toggled += it.id }) } }
+        composeRule.setContent { NewtTheme(darkTheme = false) { Contacts(onToggleStar = { toggled += it.id }) } }
         composeRule.onNodeWithContentDescription("Add Pharmacy to favorites").performClick()
         composeRule.onNodeWithContentDescription("Remove Mom from favorites").performClick()
         assertEquals(listOf(4L, 1L), toggled)
@@ -223,7 +223,7 @@ class ContactsScreensTest {
     fun callingFromFavoritesUsesTheirNumber() {
         val called = mutableListOf<String>()
         composeRule.setContent {
-            DialerTheme(darkTheme = false) {
+            NewtTheme(darkTheme = false) {
                 FavoritesScreen(
                     contacts = contacts,
                     hasAccess = true,
@@ -244,7 +244,7 @@ class ContactsScreensTest {
     fun holdingAContactOffersEditCopyAndText() {
         val actions = mutableListOf<Triple<NumberAction, Long, String?>>()
         composeRule.setContent {
-            DialerTheme(darkTheme = false) { Contacts(onContactAction = { a, c, n -> actions += Triple(a, c.id, n) }) }
+            NewtTheme(darkTheme = false) { Contacts(onContactAction = { a, c, n -> actions += Triple(a, c.id, n) }) }
         }
         composeRule.onNodeWithText("Pharmacy").performTouchInput { longClick() }
         composeRule.onNodeWithText("Copy number").assertIsDisplayed()
@@ -257,7 +257,7 @@ class ContactsScreensTest {
     fun aContactsPageEditsInContactsAndHasANumberMenu() {
         val actions = mutableListOf<Pair<NumberAction, String?>>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 ContactDetailScreen(
                     contacts[1], DndCalls.STARRED, onBack = {}, onToggleStar = {}, onCall = {},
                     onContactAction = { a, _, n -> actions += a to n },

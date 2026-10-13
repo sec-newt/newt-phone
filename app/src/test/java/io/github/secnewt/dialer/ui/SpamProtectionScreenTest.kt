@@ -23,7 +23,7 @@ import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.Reason
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.Verification
-import io.github.secnewt.dialer.ui.theme.DialerTheme
+import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -69,7 +69,7 @@ class SpamProtectionScreenTest {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                DialerTheme(darkTheme = dark) {
+                NewtTheme(darkTheme = dark) {
                     SpamProtectionScreen(
                         roleHeld = roleHeld,
                         recentCalls = calls,
@@ -127,7 +127,7 @@ class SpamProtectionScreenTest {
     fun settingsAndAnnouncingAreVisibleWithoutScrolling() {
         var opened = 0
         composeRule.setContent {
-            DialerTheme(darkTheme = false) {
+            NewtTheme(darkTheme = false) {
                 SpamProtectionScreen(
                     roleHeld = true,
                     recentCalls = sampleCalls,

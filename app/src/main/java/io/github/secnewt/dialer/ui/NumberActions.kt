@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.github.secnewt.dialer.ui.theme.DialerFonts
+import io.github.secnewt.ui.NewtFonts
 
 /** What you can do with a number (or the contact it belongs to) from a tap-and-hold menu. */
 enum class NumberAction(val label: String) {
@@ -77,7 +77,7 @@ fun NumberActionsDialog(
                     Text(
                         formatted,
                         style = MaterialTheme.typography.titleMedium,
-                        fontFamily = DialerFonts.Mono,
+                        fontFamily = NewtFonts.Mono,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

@@ -30,6 +30,7 @@ import io.github.secnewt.dialer.calls.RingSettings
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import io.github.secnewt.ui.neonOutline
 
 /** "10:00 PM" for 22 * 60, in the phone's own clock style. */
 fun quietTimeLabel(minutesAfterMidnight: Int): String =

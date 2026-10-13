@@ -53,8 +53,10 @@ import io.github.secnewt.dialer.calls.CallKind
 import io.github.secnewt.dialer.contacts.Contact
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.SpamLabel
-import io.github.secnewt.dialer.ui.theme.DialerFonts
+import io.github.secnewt.ui.NewtFonts
 import java.time.ZonedDateTime
+import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.TabHeader
 
 /** The phone's call history, with spam labels from the screening log and one-tap call back. */
 @Composable
@@ -140,7 +142,7 @@ private fun DayHeading(day: String) {
     Text(
         text = day,
         style = MaterialTheme.typography.titleSmall,
-        fontFamily = DialerFonts.Display,
+        fontFamily = NewtFonts.Display,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier
@@ -257,7 +259,7 @@ private fun RecentRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontFamily = if (call.name == null && number != null) DialerFonts.Mono else DialerFonts.Body,
+                fontFamily = if (call.name == null && number != null) NewtFonts.Mono else NewtFonts.Body,
                 fontWeight = FontWeight.Bold,
                 color = if (missed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
@@ -316,7 +318,7 @@ private fun SpamTag(text: String) {
         Text(
             text,
             style = MaterialTheme.typography.bodyLarge,
-            fontFamily = DialerFonts.Display,
+            fontFamily = NewtFonts.Display,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(start = 6.dp),

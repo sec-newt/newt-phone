@@ -38,7 +38,7 @@ import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.Reason
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.Verification
-import io.github.secnewt.dialer.ui.theme.DialerTheme
+import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -83,7 +83,7 @@ class CallingScreensTest {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                DialerTheme(darkTheme = dark) { content() }
+                NewtTheme(darkTheme = dark) { content() }
             }
         }
         composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
@@ -149,7 +149,7 @@ class CallingScreensTest {
     @Test
     fun recentsFlagSpamAndCallBack() {
         val called = mutableListOf<String>()
-        composeRule.setContent { DialerTheme(darkTheme = true) { Recents(onCall = { called += it }) } }
+        composeRule.setContent { NewtTheme(darkTheme = true) { Recents(onCall = { called += it }) } }
         composeRule.onNodeWithText("Likely spam").assertIsDisplayed()
         composeRule.onNodeWithText("Incoming · 2 calls", substring = true).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Call Mom").performClick()
@@ -159,7 +159,7 @@ class CallingScreensTest {
     @Test
     fun tappingANumberOffersCopyAddTextEditAndBlock() {
         val actions = mutableListOf<Pair<NumberAction, String>>()
-        composeRule.setContent { DialerTheme(darkTheme = true) { Recents(onNumberAction = { a, n -> actions += a to n }) } }
+        composeRule.setContent { NewtTheme(darkTheme = true) { Recents(onNumberAction = { a, n -> actions += a to n }) } }
         composeRule.onNodeWithText(formatCaller("5550197731")).performClick()
         listOf("Copy number", "Add to contacts", "Send a text", "Edit before calling", "Block number").forEach {
             composeRule.onNodeWithText(it).assertIsDisplayed()
@@ -171,7 +171,7 @@ class CallingScreensTest {
 
     @Test
     fun holdingAContactOffersNoAdd() {
-        composeRule.setContent { DialerTheme(darkTheme = true) { Recents() } }
+        composeRule.setContent { NewtTheme(darkTheme = true) { Recents() } }
         composeRule.onNodeWithText("Mom").performTouchInput { longClick() }
         composeRule.onNodeWithText("Copy number").assertIsDisplayed()
         composeRule.onNodeWithText("Add to contacts").assertDoesNotExist()
@@ -193,7 +193,7 @@ class CallingScreensTest {
     fun theDialpadNumberOffersPasteAndMore() {
         val actions = mutableListOf<Pair<NumberAction, String>>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 DialpadScreen("5550197731", {}, contacts, onCall = {}, onBack = {}, onNumberAction = { a, n -> actions += a to n })
             }
         }
@@ -211,7 +211,7 @@ class CallingScreensTest {
         var number by mutableStateOf("")
         val called = mutableListOf<String>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 DialpadScreen(number, { number = it }, contacts, onCall = { called += it }, onBack = {})
             }
         }
@@ -230,7 +230,7 @@ class CallingScreensTest {
     fun holdingOneCallsVoicemail() {
         var voicemail = 0
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 DialpadScreen("", {}, contacts, onCall = {}, onBack = {}, onVoicemail = { voicemail++ })
             }
         }
@@ -242,7 +242,7 @@ class CallingScreensTest {
     fun eachKeyPlaysItsTone() {
         val tones = mutableListOf<Char>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 DialpadScreen("", {}, contacts, onCall = {}, onBack = {}, onKeyTone = { tones += it })
             }
         }
@@ -254,7 +254,7 @@ class CallingScreensTest {
     @Test
     fun dialpadStartsWithFavorites() {
         composeRule.setContent {
-            DialerTheme(darkTheme = true) { DialpadScreen("", {}, contacts, onCall = {}, onBack = {}) }
+            NewtTheme(darkTheme = true) { DialpadScreen("", {}, contacts, onCall = {}, onBack = {}) }
         }
         composeRule.onNodeWithText("Favorites").assertIsDisplayed()
         composeRule.onNodeWithText("Mom").assertIsDisplayed()
@@ -265,7 +265,7 @@ class CallingScreensTest {
     fun dialpadCallsAMatchDirectly() {
         val called = mutableListOf<String>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) { DialpadScreen("555012", {}, contacts, onCall = { called += it }, onBack = {}) }
+            NewtTheme(darkTheme = true) { DialpadScreen("555012", {}, contacts, onCall = { called += it }, onBack = {}) }
         }
         composeRule.onNodeWithContentDescription("Call Mona's bakery, (555) 012-9999").performClick()
         assertEquals(listOf("5550129999"), called)
@@ -275,7 +275,7 @@ class CallingScreensTest {
     fun dialpadSuggestsMatchingContacts() {
         var number by mutableStateOf("555012")
         composeRule.setContent {
-            DialerTheme(darkTheme = true) { DialpadScreen(number, { number = it }, contacts, onCall = {}, onBack = {}) }
+            NewtTheme(darkTheme = true) { DialpadScreen(number, { number = it }, contacts, onCall = {}, onBack = {}) }
         }
         composeRule.onNodeWithText("Mom").assertIsDisplayed()
         composeRule.onNodeWithText("Mona's bakery").performClick()

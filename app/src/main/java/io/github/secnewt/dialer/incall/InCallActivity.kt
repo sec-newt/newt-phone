@@ -26,7 +26,7 @@ import io.github.secnewt.dialer.ui.CallActions
 import io.github.secnewt.dialer.ui.CallScreen
 import io.github.secnewt.dialer.ui.ContactsPhotoLoader
 import io.github.secnewt.dialer.ui.LocalPhotoLoader
-import io.github.secnewt.dialer.ui.theme.DialerTheme
+import io.github.secnewt.ui.NewtTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -66,7 +66,7 @@ class InCallActivity : ComponentActivity() {
         )
         val photoLoader = ContactsPhotoLoader(this)
         setContent {
-            DialerTheme {
+            NewtTheme {
                 CompositionLocalProvider(LocalPhotoLoader provides photoLoader) {
                     val calls by CallManager.calls.collectAsState()
                     val audio by CallManager.audio.collectAsState()

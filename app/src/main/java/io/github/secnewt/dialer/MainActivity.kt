@@ -93,7 +93,7 @@ import io.github.secnewt.dialer.ui.SpamProtectionScreen
 import io.github.secnewt.dialer.ui.SpamSettingsScreen
 import io.github.secnewt.dialer.ui.SystemSetting
 import io.github.secnewt.dialer.ui.Tab
-import io.github.secnewt.dialer.ui.theme.DialerTheme
+import io.github.secnewt.ui.NewtTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -185,7 +185,7 @@ class MainActivity : ComponentActivity() {
         handleRequest(intent)
         val roleManager = getSystemService(RoleManager::class.java)
         setContent {
-            DialerTheme {
+            NewtTheme {
                 CompositionLocalProvider(LocalPhotoLoader provides photoLoader) {
                     var screen by rememberSaveable { mutableStateOf(Screen.TABS) }
                     var tab by rememberSaveable { mutableStateOf(Tab.FAVORITES) }

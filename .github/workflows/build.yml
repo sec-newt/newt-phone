@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: read
+  # Download the shared Newt library from GitHub Packages.
+  packages: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,6 +20,9 @@ jobs:
   checks:
     name: Tests, screenshots, accessibility and lint
     runs-on: ubuntu-latest
+    env:
+      # Lets Gradle download the shared Newt library (read-only).
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
@@ -70,6 +75,9 @@ jobs:
     # The test APK is only built when every check above passed.
     needs: [checks, secrets-scan]
     runs-on: ubuntu-latest
+    env:
+      # Lets Gradle download the shared Newt library (read-only).
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
@@ -99,6 +107,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: read
+    env:
+      # Lets Gradle download the shared Newt library (read-only).
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
