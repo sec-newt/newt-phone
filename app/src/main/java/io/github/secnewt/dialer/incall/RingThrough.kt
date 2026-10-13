@@ -7,6 +7,8 @@ import android.media.AudioManager
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -30,6 +32,12 @@ object RingThrough {
     private const val TAG = "RingThrough"
     private const val VIBRATE_WHEN_RINGING = "vibrate_when_ringing"
     private const val OWN_SILENCE_ECHO_MILLIS = 1500L
+
+    /** How long to wait for Android to hand over the ringing call, and how often to look. */
+    private const val CALL_WAIT_MILLIS = 2000L
+    private const val CALL_CHECK_MILLIS = 100L
+
+    private val main = Handler(Looper.getMainLooper())
 
     private var appContext: Context? = null
     private var usage = AudioAttributes.USAGE_NOTIFICATION_RINGTONE
@@ -60,13 +68,15 @@ object RingThrough {
     fun takeOver(context: Context): Boolean {
         val audio = context.getSystemService(AudioManager::class.java)
         val telecom = context.getSystemService(TelecomManager::class.java)
-        val turns = RingRules.takeTurns(
-            isPhoneApp = telecom.defaultDialerPackage == context.packageName,
-            callRingingHere = CallManager.calls.value.any { it.phase == CallPhase.RINGING },
-            ringerAudible = audio.ringerMode == AudioManager.RINGER_MODE_NORMAL,
-            ringingThrough = active,
-        )
-        if (!turns) return false
+        val isPhoneApp = telecom.defaultDialerPackage == context.packageName
+        val callRingingHere = CallManager.calls.value.any { it.phase == CallPhase.RINGING }
+        val ringerAudible = audio.ringerMode == AudioManager.RINGER_MODE_NORMAL
+        val turns = RingRules.takeTurns(isPhoneApp, callRingingHere, ringerAudible, ringingThrough = active)
+        if (!turns) {
+            // Why the voice and the ringtone will overlap this time (no caller details).
+            Log.i(TAG, "Not taking turns: phoneApp=$isPhoneApp callRingingHere=$callRingingHere ringerAudible=$ringerAudible")
+            return false
+        }
         if (active) return true
         try {
             silencedAt = SystemClock.elapsedRealtime()
@@ -79,6 +89,33 @@ object RingThrough {
         if (vibratesForCalls(context)) vibrate(context)
         Log.i(TAG, "Ringing in turns with the announcement")
         return true
+    }
+
+    /**
+     * Android says "ringing" a moment before it hands the call itself to the phone app, so
+     * deciding right away found no call and the voice played over Android's ringtone. This
+     * waits (up to [CALL_WAIT_MILLIS]) for the call before calling [takeOver], then calls
+     * [then] with the result: true to take turns, false to overlap (not the phone app, or
+     * the call never arrived), or null if the call stopped ringing meanwhile (say nothing).
+     */
+    fun whenCallArrives(context: Context, stillRinging: () -> Boolean, then: (Boolean?) -> Unit) {
+        val telecom = context.getSystemService(TelecomManager::class.java)
+        if (telecom.defaultDialerPackage != context.packageName) {
+            then(false) // Not the phone app: Android rings, and there's nothing to wait for.
+            return
+        }
+        val started = SystemClock.elapsedRealtime()
+        fun check() {
+            val arrived = CallManager.calls.value.any { it.phase == CallPhase.RINGING }
+            val waited = SystemClock.elapsedRealtime() - started
+            when {
+                arrived -> then(takeOver(context))
+                !stillRinging() -> then(null)
+                waited >= CALL_WAIT_MILLIS -> then(takeOver(context)) // logs why it can't
+                else -> main.postDelayed(::check, CALL_CHECK_MILLIS)
+            }
+        }
+        main.post(::check)
     }
 
     /** Quiet while the announcement speaks. */

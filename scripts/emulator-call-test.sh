@@ -50,7 +50,8 @@ if ! grep -q "Announcing incoming call" screening.log; then
 fi
 echo "Screening test passed: the call was screened, saved to recent calls and announced."
 
-# Make the app the default phone app and check that a ringing call opens its call screen.
+# Make the app the default phone app and check that a ringing call opens its call screen
+# and that the ringtone takes turns with the announcement.
 adb shell cmd role add-role-holder android.app.role.DIALER "$pkg"
 adb shell cmd role get-role-holders android.app.role.DIALER | grep -q "$pkg"
 adb shell pm grant "$pkg" android.permission.POST_NOTIFICATIONS
@@ -59,6 +60,14 @@ echo "App is the default phone app."
 adb logcat -c
 adb emu gsm call 5550142290
 sleep 8
+# As the phone app, the ringtone must pause for the announcement, not play over it.
+adb logcat -d -s RingThrough:I CallAnnouncer:I | tee turns.log
+if ! grep -q "Ringing in turns with the announcement" turns.log; then
+  echo "::error::As the phone app, the ringtone and the caller announcement didn't take turns (they overlap)."
+  grep "Not taking turns" turns.log || true
+  exit 1
+fi
+echo "The ringtone and the announcement take turns."
 adb shell dumpsys activity activities > activities.txt
 if ! grep -q "incall.InCallActivity" activities.txt; then
   echo "::error::A call rang, but the app's call screen did not open."
