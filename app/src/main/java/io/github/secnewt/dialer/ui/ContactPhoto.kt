@@ -31,7 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import io.github.secnewt.dialer.contacts.Contact
 import io.github.secnewt.dialer.contacts.ContactList
-import io.github.secnewt.dialer.ui.theme.DialerFonts
+import io.github.secnewt.ui.NewtFonts
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -119,7 +119,7 @@ fun ContactAvatar(
         } else {
             Text(
                 text = ContactList.initial(contact.name),
-                style = initialStyle.copy(fontFamily = DialerFonts.Display, fontWeight = FontWeight.Bold),
+                style = initialStyle.copy(fontFamily = NewtFonts.Display, fontWeight = FontWeight.Bold),
                 color = AvatarText,
             )
         }

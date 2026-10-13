@@ -65,7 +65,13 @@ import io.github.secnewt.dialer.contacts.ContactList
 import io.github.secnewt.dialer.contacts.Dnd
 import io.github.secnewt.dialer.contacts.DndCalls
 import io.github.secnewt.dialer.contacts.PhoneEntry
-import io.github.secnewt.dialer.ui.theme.DialerFonts
+import io.github.secnewt.ui.NewtFonts
+import io.github.secnewt.ui.ScreenHeader
+import io.github.secnewt.ui.CardTitle
+import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.neonFieldColors
+import io.github.secnewt.ui.TabHeader
+import io.github.secnewt.ui.StarOutline
 
 /** Starred contacts as a grid of photo tiles: tap a tile to call, or the corner button for details. */
 @Composable
@@ -375,7 +381,7 @@ fun ContactDetailScreen(
                     Text(
                         text = contact.name,
                         style = MaterialTheme.typography.headlineMedium,
-                        fontFamily = DialerFonts.Body,
+                        fontFamily = NewtFonts.Body,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.semantics { heading() },
                     )
@@ -483,7 +489,7 @@ private fun PhoneRow(phone: PhoneEntry, onCall: (String) -> Unit, isBlocked: Boo
             Text(
                 formatted,
                 style = MaterialTheme.typography.titleLarge,
-                fontFamily = DialerFonts.Mono,
+                fontFamily = NewtFonts.Mono,
                 fontWeight = FontWeight.Bold,
             )
             Text(

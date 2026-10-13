@@ -42,12 +42,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.screening.BlockList
-import io.github.secnewt.dialer.ui.theme.DialerFonts
+import io.github.secnewt.ui.NewtFonts
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.Verification
 import java.time.ZonedDateTime
+import io.github.secnewt.ui.ScreenHeader
+import io.github.secnewt.ui.CardTitle
+import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.TabHeader
 
 @Composable
 fun SpamProtectionScreen(
@@ -190,7 +194,7 @@ private fun CallRow(
         Text(
             text = formatCaller(call.number),
             style = MaterialTheme.typography.titleLarge,
-            fontFamily = if (call.number.isNullOrBlank()) DialerFonts.Body else DialerFonts.Mono,
+            fontFamily = if (call.number.isNullOrBlank()) NewtFonts.Body else NewtFonts.Mono,
             fontWeight = FontWeight.Bold,
         )
         Text(

@@ -33,7 +33,7 @@ import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
 import io.github.secnewt.dialer.screening.SpamSettings
-import io.github.secnewt.dialer.ui.theme.DialerTheme
+import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -55,7 +55,7 @@ class SettingsScreensTest {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                DialerTheme(darkTheme = dark) { content() }
+                NewtTheme(darkTheme = dark) { content() }
             }
         }
         composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
@@ -144,7 +144,7 @@ class SettingsScreensTest {
     fun makePhoneAppButtonAsksForTheRole() {
         var asked = 0
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 SpamSettingsScreen(
                     SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
                     isPhoneApp = false, onMakePhoneApp = { asked++ },
@@ -167,7 +167,7 @@ class SettingsScreensTest {
     fun deniedHelpOpensAppInfo() {
         val opened = mutableListOf<SystemSetting>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 SpamSettingsScreen(
                     SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
                     isPhoneApp = false, phoneAppDenied = true, onOpenSystemSetting = { opened += it },
@@ -182,7 +182,7 @@ class SettingsScreensTest {
     fun phoneSettingsOpenAndroidScreens() {
         val opened = mutableListOf<SystemSetting>()
         composeRule.setContent {
-            DialerTheme(darkTheme = false) {
+            NewtTheme(darkTheme = false) {
                 SpamSettingsScreen(
                     SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
                     announce = AnnounceSettings(mode = AnnounceMode.ALWAYS),
@@ -204,7 +204,7 @@ class SettingsScreensTest {
     fun repeatAnnouncementCanBeTurnedOff() {
         val changes = mutableListOf<Boolean>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 SpamSettingsScreen(
                     SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
                     announce = AnnounceSettings(mode = AnnounceMode.ALWAYS),
@@ -221,7 +221,7 @@ class SettingsScreensTest {
     fun keypadSoundsCanBeTurnedOff() {
         val changes = mutableListOf<Boolean>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 SpamSettingsScreen(
                     SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
                     keypadTones = true, onKeypadTonesChange = { changes += it },
@@ -254,7 +254,7 @@ class SettingsScreensTest {
     fun ringingSwitchesAndQuietHoursTimes() {
         val changes = mutableListOf<RingSettings>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) { RingingOnly(RingSettings(quietHours = QuietHours(enabled = true))) { changes += it } }
+            NewtTheme(darkTheme = true) { RingingOnly(RingSettings(quietHours = QuietHours(enabled = true))) { changes += it } }
         }
         composeRule.onNodeWithText("Starred contacts ring on silent").performClick()
         composeRule.onNodeWithText("From 10:00", substring = true).assertExists()
@@ -267,7 +267,7 @@ class SettingsScreensTest {
 
     @Test
     fun announcementIsTheFirstSection() {
-        composeRule.setContent { DialerTheme(darkTheme = false) { Settings(SpamSettings()) } }
+        composeRule.setContent { NewtTheme(darkTheme = false) { Settings(SpamSettings()) } }
         composeRule.onNodeWithText("Caller announcement").assertIsDisplayed()
         composeRule.onNodeWithText("Announce").assertIsDisplayed()
     }

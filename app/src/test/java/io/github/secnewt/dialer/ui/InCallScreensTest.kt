@@ -22,7 +22,7 @@ import io.github.secnewt.dialer.calls.AudioRoute
 import io.github.secnewt.dialer.calls.AudioState
 import io.github.secnewt.dialer.calls.CallPhase
 import io.github.secnewt.dialer.calls.LiveCall
-import io.github.secnewt.dialer.ui.theme.DialerTheme
+import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -52,7 +52,7 @@ class InCallScreensTest {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                DialerTheme(darkTheme = dark) { content() }
+                NewtTheme(darkTheme = dark) { content() }
             }
         }
         snapshot(name)
@@ -121,7 +121,7 @@ class InCallScreensTest {
 
     @Test
     fun keypadOpenDark() {
-        composeRule.setContent { DialerTheme(darkTheme = true) { Screen(mom) } }
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(mom) } }
         composeRule.onNodeWithText("Keypad").performClick()
         snapshot("incall_keypad_dark")
     }
@@ -131,7 +131,7 @@ class InCallScreensTest {
         val answered = mutableListOf<String>()
         val declined = mutableListOf<String>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 Screen(unknown, actions = CallActions(onAnswer = { answered += it }, onDecline = { declined += it }))
             }
         }
@@ -143,7 +143,7 @@ class InCallScreensTest {
 
     @Test
     fun theTimerShowsHowLongTheCallHasGone() {
-        composeRule.setContent { DialerTheme(darkTheme = true) { Screen(mom) } }
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(mom) } }
         composeRule.onNodeWithText("2:05").assertExists()
         composeRule.onNodeWithText("(555) 019-7731").assertExists()
     }
@@ -153,7 +153,7 @@ class InCallScreensTest {
         val muted = mutableListOf<Boolean>()
         val routes = mutableListOf<AudioRoute>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 Screen(
                     mom,
                     audio = AudioState(route = AudioRoute.SPEAKER),
@@ -171,7 +171,7 @@ class InCallScreensTest {
     fun keypadSendsTonesToTheCall() {
         val tones = mutableListOf<Pair<String, Char>>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 Screen(mom, actions = CallActions(onTone = { id, digit -> tones += id to digit }))
             }
         }
@@ -187,7 +187,7 @@ class InCallScreensTest {
     fun endCallHangsUp() {
         val ended = mutableListOf<String>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) { Screen(mom, actions = CallActions(onHangUp = { ended += it })) }
+            NewtTheme(darkTheme = true) { Screen(mom, actions = CallActions(onHangUp = { ended += it })) }
         }
         composeRule.onNodeWithText("End call").performClick()
         assertEquals(listOf("call-1"), ended)
@@ -197,7 +197,7 @@ class InCallScreensTest {
     fun swapPicksUpTheHeldCall() {
         var swapped = 0
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 Screen(
                     unknown.copy(phase = CallPhase.ACTIVE, connectedAtMillis = now),
                     other = mom.copy(phase = CallPhase.ON_HOLD),
@@ -214,7 +214,7 @@ class InCallScreensTest {
     fun mergeJoinsTheHeldCall() {
         val merged = mutableListOf<String>()
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 Screen(
                     unknown.copy(phase = CallPhase.ACTIVE, connectedAtMillis = now, canMerge = true),
                     other = mom.copy(phase = CallPhase.ON_HOLD),
@@ -229,7 +229,7 @@ class InCallScreensTest {
     @Test
     fun noMergeButtonWhenTheNetworkCantMerge() {
         composeRule.setContent {
-            DialerTheme(darkTheme = true) {
+            NewtTheme(darkTheme = true) {
                 Screen(
                     unknown.copy(phase = CallPhase.ACTIVE, connectedAtMillis = now),
                     other = mom.copy(phase = CallPhase.ON_HOLD),

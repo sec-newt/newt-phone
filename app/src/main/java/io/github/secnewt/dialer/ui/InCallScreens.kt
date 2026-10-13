@@ -65,8 +65,9 @@ import io.github.secnewt.dialer.calls.Dialpad
 import io.github.secnewt.dialer.calls.LiveCall
 import io.github.secnewt.dialer.calls.LiveCalls
 import io.github.secnewt.dialer.contacts.Contact
-import io.github.secnewt.dialer.ui.theme.DialerFonts
+import io.github.secnewt.ui.NewtFonts
 import kotlinx.coroutines.delay
+import io.github.secnewt.ui.neonOutline
 
 /** What the call screen's buttons do. */
 data class CallActions(
@@ -142,7 +143,7 @@ private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallAc
             Text(
                 "Incoming call",
                 style = MaterialTheme.typography.titleLarge,
-                fontFamily = DialerFonts.Display,
+                fontFamily = NewtFonts.Display,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier
@@ -202,7 +203,7 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
             Text(
                 LiveCalls.status(call, now),
                 style = MaterialTheme.typography.headlineSmall,
-                fontFamily = DialerFonts.Display,
+                fontFamily = NewtFonts.Display,
                 fontWeight = FontWeight.Bold,
                 color = if (call.phase == CallPhase.ENDED) {
                     MaterialTheme.colorScheme.error
@@ -271,7 +272,7 @@ private fun CallerHeader(call: LiveCall, avatarSize: Int) {
     Text(
         text = title,
         style = MaterialTheme.typography.headlineLarge,
-        fontFamily = if (call.name == null && call.number != null) DialerFonts.Mono else DialerFonts.Body,
+        fontFamily = if (call.name == null && call.number != null) NewtFonts.Mono else NewtFonts.Body,
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onBackground,
@@ -287,7 +288,7 @@ private fun CallerHeader(call: LiveCall, avatarSize: Int) {
         Text(
             text = formatCaller(call.number),
             style = MaterialTheme.typography.titleLarge,
-            fontFamily = DialerFonts.Mono,
+            fontFamily = NewtFonts.Mono,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
@@ -306,7 +307,7 @@ private fun SpamWarning(text: String) {
         Text(
             text,
             style = MaterialTheme.typography.titleMedium,
-            fontFamily = DialerFonts.Display,
+            fontFamily = NewtFonts.Display,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(start = 8.dp),
@@ -527,7 +528,7 @@ private fun ToneKeypad(tones: String, onTone: (Char) -> Unit, onHide: () -> Unit
             Text(
                 tones,
                 style = MaterialTheme.typography.headlineMedium,
-                fontFamily = DialerFonts.Mono,
+                fontFamily = NewtFonts.Mono,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

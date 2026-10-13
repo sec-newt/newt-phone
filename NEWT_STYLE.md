@@ -1,8 +1,8 @@
 # Newt house style
 
-Shared rules for Newt apps (Newt Phone first; more to come), so they look and
-behave like one family. A new Newt app should follow this file; later it moves
-into a shared Newt library.
+Shared rules for Newt apps, so they look and behave like one family. A new Newt
+app should follow this file. The look itself (theme, fonts, shared headers and
+outlines) lives in the [Newt library](https://github.com/sec-newt/newt-android-lib).
 
 ## Who it's for
 

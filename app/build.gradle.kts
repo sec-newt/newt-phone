@@ -73,6 +73,8 @@ android {
 }
 
 dependencies {
+    // The Newt look: theme, fonts, shared headers and outlines.
+    implementation(libs.newt.ui)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -92,4 +94,6 @@ dependencies {
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.junit.rule)
     testImplementation(libs.roborazzi.accessibility.check)
+    // newtScreenshot(): screenshots in the Newt theme plus accessibility checks.
+    testImplementation(libs.newt.test)
 }
