@@ -60,13 +60,15 @@ object RingThrough {
     fun takeOver(context: Context): Boolean {
         val audio = context.getSystemService(AudioManager::class.java)
         val telecom = context.getSystemService(TelecomManager::class.java)
-        val turns = RingRules.takeTurns(
-            isPhoneApp = telecom.defaultDialerPackage == context.packageName,
-            callRingingHere = CallManager.calls.value.any { it.phase == CallPhase.RINGING },
-            ringerAudible = audio.ringerMode == AudioManager.RINGER_MODE_NORMAL,
-            ringingThrough = active,
-        )
-        if (!turns) return false
+        val isPhoneApp = telecom.defaultDialerPackage == context.packageName
+        val callRingingHere = CallManager.calls.value.any { it.phase == CallPhase.RINGING }
+        val ringerAudible = audio.ringerMode == AudioManager.RINGER_MODE_NORMAL
+        val turns = RingRules.takeTurns(isPhoneApp, callRingingHere, ringerAudible, ringingThrough = active)
+        if (!turns) {
+            // Why the voice and the ringtone will overlap this time (no caller details).
+            Log.i(TAG, "Not taking turns: phoneApp=$isPhoneApp callRingingHere=$callRingingHere ringerAudible=$ringerAudible")
+            return false
+        }
         if (active) return true
         try {
             silencedAt = SystemClock.elapsedRealtime()
