@@ -273,7 +273,7 @@ private fun CallerHeader(call: LiveCall, avatarSize: Int) {
     Text(
         text = title,
         style = MaterialTheme.typography.headlineLarge,
-        fontFamily = if (call.name == null && call.number != null) NewtFonts.Mono else NewtFonts.Body,
+        fontFamily = if (call.name == null && call.number != null) NewtFonts.Mono else bodyFont(),
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onBackground,

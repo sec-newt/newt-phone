@@ -164,7 +164,7 @@ private fun NumberRow(
         Text(
             text = shown.ifEmpty { "Enter a number" },
             style = if (shown.length > 14) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
-            fontFamily = if (shown.isEmpty()) NewtFonts.Body else NewtFonts.Mono,
+            fontFamily = if (shown.isEmpty()) bodyFont() else NewtFonts.Mono,
             fontWeight = FontWeight.Bold,
             color = if (shown.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,

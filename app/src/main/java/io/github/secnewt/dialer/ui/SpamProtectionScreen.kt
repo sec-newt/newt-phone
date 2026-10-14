@@ -195,7 +195,7 @@ private fun CallRow(
         Text(
             text = formatCaller(call.number),
             style = MaterialTheme.typography.titleLarge,
-            fontFamily = if (call.number.isNullOrBlank()) NewtFonts.Body else NewtFonts.Mono,
+            fontFamily = if (call.number.isNullOrBlank()) bodyFont() else NewtFonts.Mono,
             fontWeight = FontWeight.Bold,
         )
         Text(

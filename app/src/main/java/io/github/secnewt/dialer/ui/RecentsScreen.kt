@@ -260,7 +260,7 @@ private fun RecentRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontFamily = if (call.name == null && number != null) NewtFonts.Mono else NewtFonts.Body,
+                fontFamily = if (call.name == null && number != null) NewtFonts.Mono else bodyFont(),
                 fontWeight = FontWeight.Bold,
                 color = if (missed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
