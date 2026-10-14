@@ -104,7 +104,7 @@ fun DialpadScreen(
                             else -> "Matching contacts"
                         },
                         style = MaterialTheme.typography.titleMedium,
-                        fontFamily = NewtFonts.Display,
+                        fontFamily = displayFont(),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier
@@ -326,7 +326,7 @@ internal fun Key(
         Text(
             key.digit.toString(),
             style = MaterialTheme.typography.headlineMedium,
-            fontFamily = NewtFonts.Display,
+            fontFamily = displayFont(),
             fontWeight = FontWeight.Bold,
             color = digitColor,
         )

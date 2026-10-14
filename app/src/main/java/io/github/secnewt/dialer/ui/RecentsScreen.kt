@@ -143,7 +143,7 @@ private fun DayHeading(day: String) {
     Text(
         text = day,
         style = MaterialTheme.typography.titleSmall,
-        fontFamily = NewtFonts.Display,
+        fontFamily = displayFont(),
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier
@@ -319,7 +319,7 @@ private fun SpamTag(text: String) {
         Text(
             text,
             style = MaterialTheme.typography.bodyLarge,
-            fontFamily = NewtFonts.Display,
+            fontFamily = displayFont(),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(start = 6.dp),

@@ -382,7 +382,7 @@ fun ContactDetailScreen(
                     Text(
                         text = contact.name,
                         style = MaterialTheme.typography.headlineMedium,
-                        fontFamily = NewtFonts.Body,
+                        fontFamily = bodyFont(),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.semantics { heading() },
                     )

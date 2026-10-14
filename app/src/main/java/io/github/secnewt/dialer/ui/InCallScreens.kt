@@ -144,7 +144,7 @@ private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallAc
             Text(
                 "Incoming call",
                 style = MaterialTheme.typography.titleLarge,
-                fontFamily = NewtFonts.Display,
+                fontFamily = displayFont(),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier
@@ -204,7 +204,7 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
             Text(
                 LiveCalls.status(call, now),
                 style = MaterialTheme.typography.headlineSmall,
-                fontFamily = NewtFonts.Display,
+                fontFamily = displayFont(),
                 fontWeight = FontWeight.Bold,
                 color = if (call.phase == CallPhase.ENDED) {
                     MaterialTheme.colorScheme.error
@@ -308,7 +308,7 @@ private fun SpamWarning(text: String) {
         Text(
             text,
             style = MaterialTheme.typography.titleMedium,
-            fontFamily = NewtFonts.Display,
+            fontFamily = displayFont(),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(start = 8.dp),

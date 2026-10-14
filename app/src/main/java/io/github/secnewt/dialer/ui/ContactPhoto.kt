@@ -119,7 +119,7 @@ fun ContactAvatar(
         } else {
             Text(
                 text = ContactList.initial(contact.name),
-                style = initialStyle.copy(fontFamily = NewtFonts.Display, fontWeight = FontWeight.Bold),
+                style = initialStyle.copy(fontFamily = displayFont(), fontWeight = FontWeight.Bold),
                 color = AvatarText,
             )
         }
