@@ -40,6 +40,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import io.github.secnewt.ui.NewtLook
+import io.github.secnewt.ui.NewtLookTheme
 
 /** Screenshots and accessibility checks for the settings and block list screens. */
 @RunWith(AndroidJUnit4::class)
@@ -51,11 +53,13 @@ class SettingsScreensTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, content: @Composable () -> Unit) {
+    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                NewtTheme(darkTheme = dark) { content() }
+                NewtTheme(darkTheme = dark) {
+                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") { content() }
+                }
             }
         }
         composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
@@ -82,6 +86,14 @@ class SettingsScreensTest {
             onBack = {},
             announce = announce,
         )
+
+    @Test
+    fun settingsTerminalDark() = render("terminal_settings_dark", dark = true, terminal = true) { Settings(SpamSettings()) }
+
+    @Test
+    fun settingsTerminalLargestFont() = render("terminal_settings_light_font200", dark = false, fontScale = 2f, terminal = true) {
+        Settings(SpamSettings())
+    }
 
     @Test
     fun settingsDefaultLight() = render("settings_default_light", dark = false) { Settings(SpamSettings()) }

@@ -35,6 +35,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import io.github.secnewt.ui.NewtLook
+import io.github.secnewt.ui.NewtLookTheme
 
 /** Screenshots, accessibility checks and taps for Favorites, Contacts and a contact's page. */
 @RunWith(AndroidJUnit4::class)
@@ -71,14 +73,16 @@ class ContactsScreensTest {
         bitmap.asImageBitmap()
     }
 
-    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, content: @Composable () -> Unit) {
+    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(
                 LocalDensity provides Density(density.density, fontScale),
                 LocalPhotoLoader provides fakePhotos,
             ) {
-                NewtTheme(darkTheme = dark) { content() }
+                NewtTheme(darkTheme = dark) {
+                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") { content() }
+                }
             }
         }
         composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
@@ -126,6 +130,16 @@ class ContactsScreensTest {
             onToggleStar = onToggleStar,
             onContactAction = onContactAction,
         )
+
+    @Test
+    fun favoritesTerminalDark() = render("terminal_favorites_dark", dark = true, terminal = true) {
+        WithTabs(Tab.FAVORITES) { Favorites(DndCalls.STARRED) }
+    }
+
+    @Test
+    fun favoritesTerminalLargestFont() = render("terminal_favorites_light_font200", dark = false, fontScale = 2f, terminal = true) {
+        WithTabs(Tab.FAVORITES) { Favorites(DndCalls.CONTACTS) }
+    }
 
     @Test
     fun favoritesStarredDndLight() = render("favorites_dnd-starred_light", dark = false) {

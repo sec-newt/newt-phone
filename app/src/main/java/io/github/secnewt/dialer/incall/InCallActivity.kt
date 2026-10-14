@@ -26,7 +26,9 @@ import io.github.secnewt.dialer.ui.CallActions
 import io.github.secnewt.dialer.ui.CallScreen
 import io.github.secnewt.dialer.ui.ContactsPhotoLoader
 import io.github.secnewt.dialer.ui.LocalPhotoLoader
+import io.github.secnewt.ui.NewtLookTheme
 import io.github.secnewt.ui.NewtTheme
+import io.github.secnewt.ui.rememberFamilyLook
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -67,22 +69,25 @@ class InCallActivity : ComponentActivity() {
         val photoLoader = ContactsPhotoLoader(this)
         setContent {
             NewtTheme {
-                CompositionLocalProvider(LocalPhotoLoader provides photoLoader) {
-                    val calls by CallManager.calls.collectAsState()
-                    val audio by CallManager.audio.collectAsState()
-                    var last by remember { mutableStateOf<LiveCall?>(null) }
-                    val main = LiveCalls.primary(calls)
-                    LaunchedEffect(main) { if (main != null) last = main }
-                    LaunchedEffect(calls.isEmpty()) {
-                        if (calls.isEmpty()) {
-                            // Show "Call ended" for a moment, then get out of the way.
-                            if (last != null) delay(ENDED_SCREEN_MILLIS)
-                            finishAndRemoveTask()
+                // Follows Newt Home's look (`look terminal` / `look clean`); clean without it.
+                NewtLookTheme(rememberFamilyLook(), host = "phone") {
+                    CompositionLocalProvider(LocalPhotoLoader provides photoLoader) {
+                        val calls by CallManager.calls.collectAsState()
+                        val audio by CallManager.audio.collectAsState()
+                        var last by remember { mutableStateOf<LiveCall?>(null) }
+                        val main = LiveCalls.primary(calls)
+                        LaunchedEffect(main) { if (main != null) last = main }
+                        LaunchedEffect(calls.isEmpty()) {
+                            if (calls.isEmpty()) {
+                                // Show "Call ended" for a moment, then get out of the way.
+                                if (last != null) delay(ENDED_SCREEN_MILLIS)
+                                finishAndRemoveTask()
+                            }
                         }
-                    }
-                    val shown = main ?: last?.copy(phase = CallPhase.ENDED)
-                    if (shown != null) {
-                        CallScreen(call = shown, other = LiveCalls.secondary(calls), audio = audio, actions = actions)
+                        val shown = main ?: last?.copy(phase = CallPhase.ENDED)
+                        if (shown != null) {
+                            CallScreen(call = shown, other = LiveCalls.secondary(calls), audio = audio, actions = actions)
+                        }
                     }
                 }
             }

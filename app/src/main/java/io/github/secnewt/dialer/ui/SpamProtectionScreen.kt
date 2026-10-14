@@ -52,6 +52,7 @@ import io.github.secnewt.ui.ScreenHeader
 import io.github.secnewt.ui.CardTitle
 import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.TabHeader
+import io.github.secnewt.ui.newtContainerColor
 
 @Composable
 fun SpamProtectionScreen(
@@ -68,7 +69,7 @@ fun SpamProtectionScreen(
     /** Set when opened from Recents: shows a back button instead of the tab title. */
     onBack: (() -> Unit)? = null,
 ) {
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 32.dp),

@@ -59,6 +59,7 @@ import io.github.secnewt.ui.SectionLabel
 import io.github.secnewt.ui.SectionHeading
 import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.neonFieldColors
+import io.github.secnewt.ui.newtContainerColor
 
 /** The three kinds of unknown callers a person can set an action for. */
 private enum class CallerType(val title: String, val explanation: String) {
@@ -93,7 +94,7 @@ fun SpamSettingsScreen(
     var choosing by remember { mutableStateOf<CallerType?>(null) }
     var choosingAnnounce by remember { mutableStateOf(false) }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),

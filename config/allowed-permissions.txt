@@ -29,3 +29,7 @@ android.permission.WAKE_LOCK
 # Ringing in turns with the caller announcement: vibrate for the call while
 # Android's own ringtone and vibration are silenced.
 android.permission.VIBRATE
+#
+# Follows Newt Home's look (terminal or clean). Signature-level, so Newt Home
+# grants it only to Newt-signed apps; it shares nothing but which look.
+io.github.secnewt.home.permission.READ_LOOK

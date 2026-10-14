@@ -68,6 +68,7 @@ import io.github.secnewt.dialer.contacts.Contact
 import io.github.secnewt.ui.NewtFonts
 import kotlinx.coroutines.delay
 import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.newtContainerColor
 
 /** What the call screen's buttons do. */
 data class CallActions(
@@ -104,7 +105,7 @@ fun CallScreen(
     nowMillis: Long? = null,
 ) {
     val now = nowMillis ?: ticking()
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         if (call.phase == CallPhase.RINGING) {
             IncomingCallScreen(call, other, actions)
         } else {

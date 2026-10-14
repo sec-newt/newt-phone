@@ -47,6 +47,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import io.github.secnewt.ui.NewtLook
+import io.github.secnewt.ui.NewtLookTheme
 
 /** Screenshots, accessibility checks and taps for Recents and the dialpad. */
 @RunWith(AndroidJUnit4::class)
@@ -79,11 +81,13 @@ class CallingScreensTest {
         Contact(2, "Mona's bakery", starred = false, phones = listOf(PhoneEntry("5550129999", "Work"))),
     )
 
-    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, content: @Composable () -> Unit) {
+    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                NewtTheme(darkTheme = dark) { content() }
+                NewtTheme(darkTheme = dark) {
+                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") { content() }
+                }
             }
         }
         composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
@@ -124,6 +128,15 @@ class CallingScreensTest {
 
     @Composable
     private fun Pad(number: String) = DialpadScreen(number, {}, contacts, onCall = {}, onBack = {})
+
+    @Test
+    fun recentsTerminalDark() = render("terminal_recents_dark", dark = true, terminal = true) { Recents() }
+
+    @Test
+    fun recentsTerminalLight() = render("terminal_recents_light", dark = false, terminal = true) { Recents() }
+
+    @Test
+    fun recentsTerminalLargestFont() = render("terminal_recents_dark_font200", dark = true, fontScale = 2f, terminal = true) { Recents() }
 
     @Test
     fun recentsDark() = render("recents_dark", dark = true) { Recents() }

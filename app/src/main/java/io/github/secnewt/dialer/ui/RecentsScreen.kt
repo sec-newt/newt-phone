@@ -57,6 +57,7 @@ import io.github.secnewt.ui.NewtFonts
 import java.time.ZonedDateTime
 import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.TabHeader
+import io.github.secnewt.ui.newtContainerColor
 
 /** The phone's call history, with spam labels from the screening log and one-tap call back. */
 @Composable
@@ -77,7 +78,7 @@ fun RecentsScreen(
     onNumberAction: (NumberAction, String) -> Unit = { _, _ -> },
     isBlocked: (String) -> Boolean = { false },
 ) {
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 120.dp),

@@ -68,6 +68,7 @@ import io.github.secnewt.dialer.contacts.ContactList
 import io.github.secnewt.ui.NewtFonts
 import java.util.Locale
 import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.newtContainerColor
 
 /**
  * Dialpad laid out like the stock one: a scrolling list of contacts on top (favorites first,
@@ -86,7 +87,7 @@ fun DialpadScreen(
     onNumberAction: (NumberAction, String) -> Unit = { _, _ -> },
 ) {
     val matches = remember(contacts, number) { ContactList.dialpadMatches(contacts, number) }
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         Column(modifier = Modifier.safeDrawingPadding()) {
             LazyColumn(
                 modifier = Modifier

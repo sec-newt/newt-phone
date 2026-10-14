@@ -39,6 +39,7 @@ import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.PhoneNumbers
 import io.github.secnewt.ui.ScreenHeader
 import io.github.secnewt.ui.neonFieldColors
+import io.github.secnewt.ui.newtContainerColor
 
 @Composable
 fun BlockListScreen(
@@ -50,7 +51,7 @@ fun BlockListScreen(
 ) {
     var adding by remember { mutableStateOf(false) }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
