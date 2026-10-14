@@ -68,6 +68,7 @@ import io.github.secnewt.dialer.contacts.Contact
 import io.github.secnewt.ui.NewtFonts
 import kotlinx.coroutines.delay
 import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.newtContainerColor
 
 /** What the call screen's buttons do. */
 data class CallActions(
@@ -104,7 +105,7 @@ fun CallScreen(
     nowMillis: Long? = null,
 ) {
     val now = nowMillis ?: ticking()
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         if (call.phase == CallPhase.RINGING) {
             IncomingCallScreen(call, other, actions)
         } else {
@@ -143,7 +144,7 @@ private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallAc
             Text(
                 "Incoming call",
                 style = MaterialTheme.typography.titleLarge,
-                fontFamily = NewtFonts.Display,
+                fontFamily = displayFont(),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier
@@ -203,7 +204,7 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
             Text(
                 LiveCalls.status(call, now),
                 style = MaterialTheme.typography.headlineSmall,
-                fontFamily = NewtFonts.Display,
+                fontFamily = displayFont(),
                 fontWeight = FontWeight.Bold,
                 color = if (call.phase == CallPhase.ENDED) {
                     MaterialTheme.colorScheme.error
@@ -272,7 +273,7 @@ private fun CallerHeader(call: LiveCall, avatarSize: Int) {
     Text(
         text = title,
         style = MaterialTheme.typography.headlineLarge,
-        fontFamily = if (call.name == null && call.number != null) NewtFonts.Mono else NewtFonts.Body,
+        fontFamily = if (call.name == null && call.number != null) NewtFonts.Mono else bodyFont(),
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onBackground,
@@ -307,7 +308,7 @@ private fun SpamWarning(text: String) {
         Text(
             text,
             style = MaterialTheme.typography.titleMedium,
-            fontFamily = NewtFonts.Display,
+            fontFamily = displayFont(),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(start = 8.dp),

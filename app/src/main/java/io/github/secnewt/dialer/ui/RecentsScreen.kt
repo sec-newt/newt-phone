@@ -57,6 +57,7 @@ import io.github.secnewt.ui.NewtFonts
 import java.time.ZonedDateTime
 import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.TabHeader
+import io.github.secnewt.ui.newtContainerColor
 
 /** The phone's call history, with spam labels from the screening log and one-tap call back. */
 @Composable
@@ -77,7 +78,7 @@ fun RecentsScreen(
     onNumberAction: (NumberAction, String) -> Unit = { _, _ -> },
     isBlocked: (String) -> Boolean = { false },
 ) {
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 120.dp),
@@ -142,7 +143,7 @@ private fun DayHeading(day: String) {
     Text(
         text = day,
         style = MaterialTheme.typography.titleSmall,
-        fontFamily = NewtFonts.Display,
+        fontFamily = displayFont(),
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.tertiary,
         modifier = Modifier
@@ -259,7 +260,7 @@ private fun RecentRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                fontFamily = if (call.name == null && number != null) NewtFonts.Mono else NewtFonts.Body,
+                fontFamily = if (call.name == null && number != null) NewtFonts.Mono else bodyFont(),
                 fontWeight = FontWeight.Bold,
                 color = if (missed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
@@ -318,7 +319,7 @@ private fun SpamTag(text: String) {
         Text(
             text,
             style = MaterialTheme.typography.bodyLarge,
-            fontFamily = NewtFonts.Display,
+            fontFamily = displayFont(),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(start = 6.dp),

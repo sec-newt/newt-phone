@@ -72,6 +72,7 @@ import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.neonFieldColors
 import io.github.secnewt.ui.TabHeader
 import io.github.secnewt.ui.StarOutline
+import io.github.secnewt.ui.newtContainerColor
 
 /** Starred contacts as a grid of photo tiles: tap a tile to call, or the corner button for details. */
 @Composable
@@ -89,7 +90,7 @@ fun FavoritesScreen(
 ) {
     val favorites = ContactList.favorites(contacts)
     val fullWidth: (LazyGridItemSpanScope) -> GridItemSpan = { GridItemSpan(it.maxLineSpan) }
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.safeDrawingPadding(),
@@ -218,7 +219,7 @@ fun ContactsScreen(
     onContactAction: (NumberAction, Contact, String?) -> Unit = { _, _, _ -> },
 ) {
     val shown = ContactList.search(contacts, query)
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 32.dp),
@@ -356,7 +357,7 @@ fun ContactDetailScreen(
     onContactAction: (NumberAction, Contact, String?) -> Unit = { _, _, _ -> },
     isBlocked: (String) -> Boolean = { false },
 ) {
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
@@ -381,7 +382,7 @@ fun ContactDetailScreen(
                     Text(
                         text = contact.name,
                         style = MaterialTheme.typography.headlineMedium,
-                        fontFamily = NewtFonts.Body,
+                        fontFamily = bodyFont(),
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.semantics { heading() },
                     )

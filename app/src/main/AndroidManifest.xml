@@ -31,7 +31,13 @@
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <!-- Lets the app find the phone's text-to-speech voice (required since Android 11). -->
+    <!-- Follows Newt Home's look (terminal or clean). Newt Home grants this only to apps signed
+         with the Newt key; it says only which look, and nobody is asked. -->
+    <uses-permission android:name="io.github.secnewt.home.permission.READ_LOOK" />
+
     <queries>
+        <!-- Newt Home's look setting (see above), and no other app's data. -->
+        <provider android:authorities="io.github.secnewt.home.look" />
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>

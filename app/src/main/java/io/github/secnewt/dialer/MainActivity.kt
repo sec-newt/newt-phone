@@ -93,7 +93,10 @@ import io.github.secnewt.dialer.ui.SpamProtectionScreen
 import io.github.secnewt.dialer.ui.SpamSettingsScreen
 import io.github.secnewt.dialer.ui.SystemSetting
 import io.github.secnewt.dialer.ui.Tab
+import io.github.secnewt.ui.NewtLookTheme
 import io.github.secnewt.ui.NewtTheme
+import io.github.secnewt.ui.newtContainerColor
+import io.github.secnewt.ui.rememberFamilyLook
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -186,252 +189,256 @@ class MainActivity : ComponentActivity() {
         val roleManager = getSystemService(RoleManager::class.java)
         setContent {
             NewtTheme {
-                CompositionLocalProvider(LocalPhotoLoader provides photoLoader) {
-                    var screen by rememberSaveable { mutableStateOf(Screen.TABS) }
-                    var tab by rememberSaveable { mutableStateOf(Tab.FAVORITES) }
-                    // Swipe sideways between the tabs. The tab bar follows where a swipe or tap is
-                    // heading; [tab] changes once the page has settled.
-                    val pager = rememberPagerState(initialPage = tab.ordinal) { Tab.entries.size }
-                    LaunchedEffect(pager.settledPage) { tab = Tab.entries[pager.settledPage] }
-                    LaunchedEffect(tab) {
-                        if (pager.settledPage != tab.ordinal) pager.animateScrollToPage(tab.ordinal)
-                    }
-                    var openContactId by rememberSaveable { mutableStateOf<Long?>(null) }
-                    var contactQuery by rememberSaveable { mutableStateOf("") }
-                    var dialNumber by rememberSaveable { mutableStateOf("") }
-                    val requestRole = rememberLauncherForActivityResult(
-                        ActivityResultContracts.StartActivityForResult()
-                    ) { refresh() }
-                    val requestPhoneAppRole = rememberLauncherForActivityResult(
-                        ActivityResultContracts.StartActivityForResult()
-                    ) {
-                        refresh()
-                        phoneAppDenied = !phoneAppRoleHeld
-                        if (phoneAppRoleHeld) askForNotifications()
-                    }
-                    val liveCalls by CallManager.calls.collectAsState()
-                    val ongoingCall = LiveCalls.primary(liveCalls)?.takeIf { it.phase != CallPhase.ENDED }
+                // Follows Newt Home's look (`look terminal` / `look clean`); clean without it.
+                NewtLookTheme(rememberFamilyLook(), host = "phone") {
+                    CompositionLocalProvider(LocalPhotoLoader provides photoLoader) {
+                        var screen by rememberSaveable { mutableStateOf(Screen.TABS) }
+                        var tab by rememberSaveable { mutableStateOf(Tab.FAVORITES) }
+                        // Swipe sideways between the tabs. The tab bar follows where a swipe or tap is
+                        // heading; [tab] changes once the page has settled.
+                        val pager = rememberPagerState(initialPage = tab.ordinal) { Tab.entries.size }
+                        LaunchedEffect(pager.settledPage) { tab = Tab.entries[pager.settledPage] }
+                        LaunchedEffect(tab) {
+                            if (pager.settledPage != tab.ordinal) pager.animateScrollToPage(tab.ordinal)
+                        }
+                        var openContactId by rememberSaveable { mutableStateOf<Long?>(null) }
+                        var contactQuery by rememberSaveable { mutableStateOf("") }
+                        var dialNumber by rememberSaveable { mutableStateOf("") }
+                        val requestRole = rememberLauncherForActivityResult(
+                            ActivityResultContracts.StartActivityForResult()
+                        ) { refresh() }
+                        val requestPhoneAppRole = rememberLauncherForActivityResult(
+                            ActivityResultContracts.StartActivityForResult()
+                        ) {
+                            refresh()
+                            phoneAppDenied = !phoneAppRoleHeld
+                            if (phoneAppRoleHeld) askForNotifications()
+                        }
+                        val liveCalls by CallManager.calls.collectAsState()
+                        val ongoingCall = LiveCalls.primary(liveCalls)?.takeIf { it.phase != CallPhase.ENDED }
 
-                    LaunchedEffect(openRecents) {
-                        if (openRecents) {
-                            screen = Screen.TABS
-                            tab = Tab.RECENTS
-                            openRecents = false
-                        }
-                    }
-                    // Looking at Recents clears Android's missed-call notification.
-                    LaunchedEffect(screen == Screen.TABS && tab == Tab.RECENTS && resumed) {
-                        if (screen == Screen.TABS && tab == Tab.RECENTS && resumed) clearMissedCalls()
-                    }
-                    // "call mom" from Newt Home: Contacts, searched for the name. Never calls.
-                    LaunchedEffect(incomingSearch) {
-                        incomingSearch?.let {
-                            contactQuery = it
-                            screen = Screen.TABS
-                            tab = Tab.CONTACTS
-                            incomingSearch = null
-                        }
-                    }
-                    LaunchedEffect(incomingDial) {
-                        incomingDial?.let {
-                            dialNumber = it
-                            screen = Screen.DIALPAD
-                            incomingDial = null
-                        }
-                    }
-                    val requestAnnouncePermissions = rememberLauncherForActivityResult(
-                        ActivityResultContracts.RequestMultiplePermissions()
-                    ) { results ->
-                        val mode = pendingAnnounceMode
-                        pendingAnnounceMode = null
-                        if (mode != null && results.values.all { it }) {
-                            updateAnnounce(announce.copy(mode = mode))
-                            announceMessage = null
-                        } else {
-                            announceMessage = "Announcing needs Phone, Call log and Contacts access. " +
-                                "Nothing was changed."
-                        }
-                    }
-                    val requestContactsPermissions = rememberLauncherForActivityResult(
-                        ActivityResultContracts.RequestMultiplePermissions()
-                    ) { results ->
-                        if (results.values.all { it }) {
-                            contactsMessage = null
-                            refreshContacts()
-        refreshCallLog()
-                        } else {
-                            contactsMessage = "Contacts access wasn't allowed. If no question appeared, turn on " +
-                                "Contacts in Settings, Apps, ${getString(R.string.app_name)}, Permissions."
-                        }
-                    }
-
-                    BackHandler(enabled = screen != Screen.TABS || tab != Tab.FAVORITES) {
-                        when (screen) {
-                            Screen.TABS -> tab = Tab.FAVORITES
-                            Screen.BLOCK_LIST -> screen = Screen.SETTINGS
-                            else -> screen = Screen.TABS
-                        }
-                    }
-
-                    val openSettings = { screen = Screen.SETTINGS }
-                    val openContact = { contact: Contact ->
-                        openContactId = contact.id
-                        screen = Screen.CONTACT
-                    }
-                    val allowContacts = { requestContactsPermissions.launch(ContactsRepository.PERMISSIONS) }
-                    val enableScreening = {
-                        requestRole.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING))
-                    }
-
-                    when (screen) {
-                        Screen.TABS -> Scaffold(
-                            topBar = {
-                                ongoingCall?.let { ReturnToCallBar(it, onClick = ::openCallScreen) }
-                            },
-                            bottomBar = {
-                                DialerTabBar(selected = Tab.entries[pager.targetPage], onSelect = { tab = it })
-                            },
-                            floatingActionButton = {
-                                LargeFloatingActionButton(
-                                    onClick = { screen = Screen.DIALPAD },
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                                ) {
-                                    Icon(DialpadIcon, contentDescription = "Open dialpad", modifier = Modifier.size(36.dp))
-                                }
-                            },
-                            contentWindowInsets = WindowInsets(0),
-                        ) { padding ->
-                            HorizontalPager(
-                                state = pager,
-                                key = { Tab.entries[it] },
-                                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
-                            ) { page ->
-                                when (Tab.entries[page]) {
-                                    Tab.RECENTS -> RecentsScreen(
-                                        groups = callGroups,
-                                        hasAccess = callLogAccess,
-                                        screened = recentCalls,
-                                        roleHeld = screeningRoleHeld,
-                                        observeOnly = settings.observeOnly,
-                                        announceMode = announce.mode,
-                                        onOpenSettings = openSettings,
-                                        onOpenSpamProtection = { screen = Screen.SPAM },
-                                        onEnableSpamProtection = enableScreening,
-                                        onAllowAccess = { requestCallLog.launch(Manifest.permission.READ_CALL_LOG) },
-                                        onCall = ::call,
-                                        message = callMessage,
-                                        onNumberAction = ::onNumberAction,
-                                        isBlocked = { BlockList.match(blockRules, it) != null },
-                                    )
-                                    Tab.FAVORITES -> FavoritesScreen(
-                                        contacts = contacts,
-                                        hasAccess = contactsAccess,
-                                        dnd = dndCalls,
-                                        onOpenSettings = openSettings,
-                                        onAllowAccess = allowContacts,
-                                        onOpenContact = openContact,
-                                        onCall = ::call,
-                                        onOpenDndSettings = ::openDndSettings,
-                                        message = contactsMessage,
-                                        onContactAction = ::onContactAction,
-                                    )
-                                    Tab.CONTACTS -> ContactsScreen(
-                                        contacts = contacts,
-                                        hasAccess = contactsAccess,
-                                        query = contactQuery,
-                                        onQueryChange = { contactQuery = it },
-                                        onOpenSettings = openSettings,
-                                        onAllowAccess = allowContacts,
-                                        onOpenContact = openContact,
-                                        onToggleStar = ::toggleStar,
-                                        message = contactsMessage,
-                                        onContactAction = ::onContactAction,
-                                    )
-                                }
+                        LaunchedEffect(openRecents) {
+                            if (openRecents) {
+                                screen = Screen.TABS
+                                tab = Tab.RECENTS
+                                openRecents = false
                             }
                         }
-                        Screen.SETTINGS -> SpamSettingsScreen(
-                            settings = settings,
-                            blockListSize = blockRules.size,
-                            onSettingsChange = ::updateSettings,
-                            onOpenBlockList = { screen = Screen.BLOCK_LIST },
-                            onBack = { screen = Screen.TABS },
-                            announce = announce,
-                            announceMessage = announceMessage,
-                            onAnnounceModeChange = { mode ->
+                        // Looking at Recents clears Android's missed-call notification.
+                        LaunchedEffect(screen == Screen.TABS && tab == Tab.RECENTS && resumed) {
+                            if (screen == Screen.TABS && tab == Tab.RECENTS && resumed) clearMissedCalls()
+                        }
+                        // "call mom" from Newt Home: Contacts, searched for the name. Never calls.
+                        LaunchedEffect(incomingSearch) {
+                            incomingSearch?.let {
+                                contactQuery = it
+                                screen = Screen.TABS
+                                tab = Tab.CONTACTS
+                                incomingSearch = null
+                            }
+                        }
+                        LaunchedEffect(incomingDial) {
+                            incomingDial?.let {
+                                dialNumber = it
+                                screen = Screen.DIALPAD
+                                incomingDial = null
+                            }
+                        }
+                        val requestAnnouncePermissions = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestMultiplePermissions()
+                        ) { results ->
+                            val mode = pendingAnnounceMode
+                            pendingAnnounceMode = null
+                            if (mode != null && results.values.all { it }) {
+                                updateAnnounce(announce.copy(mode = mode))
                                 announceMessage = null
-                                if (mode == AnnounceMode.OFF || hasAnnouncePermissions()) {
-                                    updateAnnounce(announce.copy(mode = mode))
-                                } else {
-                                    pendingAnnounceMode = mode
-                                    requestAnnouncePermissions.launch(ANNOUNCE_PERMISSIONS)
-                                }
-                            },
-                            onQuietDuringDndChange = { updateAnnounce(announce.copy(quietDuringDnd = it)) },
-                            onRepeatChange = { updateAnnounce(announce.copy(repeat = it)) },
-                            onTestAnnouncement = ::testAnnouncement,
-                            isPhoneApp = phoneAppRoleHeld,
-                            onMakePhoneApp = {
-                                requestPhoneAppRole.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_DIALER))
-                            },
-                            phoneAppDenied = phoneAppDenied,
-                            onOpenSystemSetting = ::openSystemSetting,
-                            ringSettings = ringSettings,
-                            onRingSettingsChange = {
-                                ringSettings = it
-                                store.saveRingSettings(it)
-                            },
-                            keypadTones = keypadTones,
-                            onKeypadTonesChange = {
-                                keypadTones = it
-                                store.saveKeypadTones(it)
-                            },
-                        )
-                        Screen.SPAM -> SpamProtectionScreen(
-                            roleHeld = screeningRoleHeld,
-                            recentCalls = recentCalls,
-                            observeOnly = settings.observeOnly,
-                            blockRules = blockRules,
-                            announceMode = announce.mode,
-                            onEnable = enableScreening,
-                            onOpenSettings = openSettings,
-                            onBlock = { addRule(BlockRule.Number(it)) },
-                            onUnblock = ::removeNumber,
-                            onBack = { screen = Screen.TABS },
-                        )
-                        Screen.DIALPAD -> DialpadScreen(
-                            number = dialNumber,
-                            onNumberChange = { dialNumber = it },
-                            contacts = contacts,
-                            onCall = ::call,
-                            onBack = { screen = Screen.TABS },
-                            onVoicemail = { call(VOICEMAIL) },
-                            onKeyTone = ::playKeyTone,
-                            onNumberAction = ::onNumberAction,
-                        )
-                        Screen.BLOCK_LIST -> BlockListScreen(
-                            rules = blockRules,
-                            onAdd = ::addRule,
-                            onRemove = { rule -> saveRules(blockRules - rule) },
-                            onBack = { screen = Screen.SETTINGS },
-                            sharedWithAndroid = phoneAppRoleHeld && systemBlockListSynced && !settings.observeOnly,
-                        )
-                        Screen.CONTACT -> {
-                            val contact = contacts.firstOrNull { it.id == openContactId }
-                            if (contact == null) {
-                                // Deleted or no longer visible: go back to the list.
-                                LaunchedEffect(Unit) { screen = Screen.TABS }
                             } else {
-                                ContactDetailScreen(
-                                    contact = contact,
-                                    dnd = dndCalls,
-                                    onBack = { screen = Screen.TABS },
-                                    onToggleStar = { toggleStar(contact) },
-                                    onCall = ::call,
-                                    onContactAction = ::onContactAction,
-                                    isBlocked = { BlockList.match(blockRules, it) != null },
-                                )
+                                announceMessage = "Announcing needs Phone, Call log and Contacts access. " +
+                                    "Nothing was changed."
+                            }
+                        }
+                        val requestContactsPermissions = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestMultiplePermissions()
+                        ) { results ->
+                            if (results.values.all { it }) {
+                                contactsMessage = null
+                                refreshContacts()
+            refreshCallLog()
+                            } else {
+                                contactsMessage = "Contacts access wasn't allowed. If no question appeared, turn on " +
+                                    "Contacts in Settings, Apps, ${getString(R.string.app_name)}, Permissions."
+                            }
+                        }
+
+                        BackHandler(enabled = screen != Screen.TABS || tab != Tab.FAVORITES) {
+                            when (screen) {
+                                Screen.TABS -> tab = Tab.FAVORITES
+                                Screen.BLOCK_LIST -> screen = Screen.SETTINGS
+                                else -> screen = Screen.TABS
+                            }
+                        }
+
+                        val openSettings = { screen = Screen.SETTINGS }
+                        val openContact = { contact: Contact ->
+                            openContactId = contact.id
+                            screen = Screen.CONTACT
+                        }
+                        val allowContacts = { requestContactsPermissions.launch(ContactsRepository.PERMISSIONS) }
+                        val enableScreening = {
+                            requestRole.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING))
+                        }
+
+                        when (screen) {
+                            Screen.TABS -> Scaffold(
+                                containerColor = newtContainerColor(),
+                                topBar = {
+                                    ongoingCall?.let { ReturnToCallBar(it, onClick = ::openCallScreen) }
+                                },
+                                bottomBar = {
+                                    DialerTabBar(selected = Tab.entries[pager.targetPage], onSelect = { tab = it })
+                                },
+                                floatingActionButton = {
+                                    LargeFloatingActionButton(
+                                        onClick = { screen = Screen.DIALPAD },
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                                    ) {
+                                        Icon(DialpadIcon, contentDescription = "Open dialpad", modifier = Modifier.size(36.dp))
+                                    }
+                                },
+                                contentWindowInsets = WindowInsets(0),
+                            ) { padding ->
+                                HorizontalPager(
+                                    state = pager,
+                                    key = { Tab.entries[it] },
+                                    modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
+                                ) { page ->
+                                    when (Tab.entries[page]) {
+                                        Tab.RECENTS -> RecentsScreen(
+                                            groups = callGroups,
+                                            hasAccess = callLogAccess,
+                                            screened = recentCalls,
+                                            roleHeld = screeningRoleHeld,
+                                            observeOnly = settings.observeOnly,
+                                            announceMode = announce.mode,
+                                            onOpenSettings = openSettings,
+                                            onOpenSpamProtection = { screen = Screen.SPAM },
+                                            onEnableSpamProtection = enableScreening,
+                                            onAllowAccess = { requestCallLog.launch(Manifest.permission.READ_CALL_LOG) },
+                                            onCall = ::call,
+                                            message = callMessage,
+                                            onNumberAction = ::onNumberAction,
+                                            isBlocked = { BlockList.match(blockRules, it) != null },
+                                        )
+                                        Tab.FAVORITES -> FavoritesScreen(
+                                            contacts = contacts,
+                                            hasAccess = contactsAccess,
+                                            dnd = dndCalls,
+                                            onOpenSettings = openSettings,
+                                            onAllowAccess = allowContacts,
+                                            onOpenContact = openContact,
+                                            onCall = ::call,
+                                            onOpenDndSettings = ::openDndSettings,
+                                            message = contactsMessage,
+                                            onContactAction = ::onContactAction,
+                                        )
+                                        Tab.CONTACTS -> ContactsScreen(
+                                            contacts = contacts,
+                                            hasAccess = contactsAccess,
+                                            query = contactQuery,
+                                            onQueryChange = { contactQuery = it },
+                                            onOpenSettings = openSettings,
+                                            onAllowAccess = allowContacts,
+                                            onOpenContact = openContact,
+                                            onToggleStar = ::toggleStar,
+                                            message = contactsMessage,
+                                            onContactAction = ::onContactAction,
+                                        )
+                                    }
+                                }
+                            }
+                            Screen.SETTINGS -> SpamSettingsScreen(
+                                settings = settings,
+                                blockListSize = blockRules.size,
+                                onSettingsChange = ::updateSettings,
+                                onOpenBlockList = { screen = Screen.BLOCK_LIST },
+                                onBack = { screen = Screen.TABS },
+                                announce = announce,
+                                announceMessage = announceMessage,
+                                onAnnounceModeChange = { mode ->
+                                    announceMessage = null
+                                    if (mode == AnnounceMode.OFF || hasAnnouncePermissions()) {
+                                        updateAnnounce(announce.copy(mode = mode))
+                                    } else {
+                                        pendingAnnounceMode = mode
+                                        requestAnnouncePermissions.launch(ANNOUNCE_PERMISSIONS)
+                                    }
+                                },
+                                onQuietDuringDndChange = { updateAnnounce(announce.copy(quietDuringDnd = it)) },
+                                onRepeatChange = { updateAnnounce(announce.copy(repeat = it)) },
+                                onTestAnnouncement = ::testAnnouncement,
+                                isPhoneApp = phoneAppRoleHeld,
+                                onMakePhoneApp = {
+                                    requestPhoneAppRole.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_DIALER))
+                                },
+                                phoneAppDenied = phoneAppDenied,
+                                onOpenSystemSetting = ::openSystemSetting,
+                                ringSettings = ringSettings,
+                                onRingSettingsChange = {
+                                    ringSettings = it
+                                    store.saveRingSettings(it)
+                                },
+                                keypadTones = keypadTones,
+                                onKeypadTonesChange = {
+                                    keypadTones = it
+                                    store.saveKeypadTones(it)
+                                },
+                            )
+                            Screen.SPAM -> SpamProtectionScreen(
+                                roleHeld = screeningRoleHeld,
+                                recentCalls = recentCalls,
+                                observeOnly = settings.observeOnly,
+                                blockRules = blockRules,
+                                announceMode = announce.mode,
+                                onEnable = enableScreening,
+                                onOpenSettings = openSettings,
+                                onBlock = { addRule(BlockRule.Number(it)) },
+                                onUnblock = ::removeNumber,
+                                onBack = { screen = Screen.TABS },
+                            )
+                            Screen.DIALPAD -> DialpadScreen(
+                                number = dialNumber,
+                                onNumberChange = { dialNumber = it },
+                                contacts = contacts,
+                                onCall = ::call,
+                                onBack = { screen = Screen.TABS },
+                                onVoicemail = { call(VOICEMAIL) },
+                                onKeyTone = ::playKeyTone,
+                                onNumberAction = ::onNumberAction,
+                            )
+                            Screen.BLOCK_LIST -> BlockListScreen(
+                                rules = blockRules,
+                                onAdd = ::addRule,
+                                onRemove = { rule -> saveRules(blockRules - rule) },
+                                onBack = { screen = Screen.SETTINGS },
+                                sharedWithAndroid = phoneAppRoleHeld && systemBlockListSynced && !settings.observeOnly,
+                            )
+                            Screen.CONTACT -> {
+                                val contact = contacts.firstOrNull { it.id == openContactId }
+                                if (contact == null) {
+                                    // Deleted or no longer visible: go back to the list.
+                                    LaunchedEffect(Unit) { screen = Screen.TABS }
+                                } else {
+                                    ContactDetailScreen(
+                                        contact = contact,
+                                        dnd = dndCalls,
+                                        onBack = { screen = Screen.TABS },
+                                        onToggleStar = { toggleStar(contact) },
+                                        onCall = ::call,
+                                        onContactAction = ::onContactAction,
+                                        isBlocked = { BlockList.match(blockRules, it) != null },
+                                    )
+                                }
                             }
                         }
                     }

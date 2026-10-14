@@ -68,6 +68,7 @@ import io.github.secnewt.dialer.contacts.ContactList
 import io.github.secnewt.ui.NewtFonts
 import java.util.Locale
 import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.newtContainerColor
 
 /**
  * Dialpad laid out like the stock one: a scrolling list of contacts on top (favorites first,
@@ -86,7 +87,7 @@ fun DialpadScreen(
     onNumberAction: (NumberAction, String) -> Unit = { _, _ -> },
 ) {
     val matches = remember(contacts, number) { ContactList.dialpadMatches(contacts, number) }
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         Column(modifier = Modifier.safeDrawingPadding()) {
             LazyColumn(
                 modifier = Modifier
@@ -103,7 +104,7 @@ fun DialpadScreen(
                             else -> "Matching contacts"
                         },
                         style = MaterialTheme.typography.titleMedium,
-                        fontFamily = NewtFonts.Display,
+                        fontFamily = displayFont(),
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier
@@ -163,7 +164,7 @@ private fun NumberRow(
         Text(
             text = shown.ifEmpty { "Enter a number" },
             style = if (shown.length > 14) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
-            fontFamily = if (shown.isEmpty()) NewtFonts.Body else NewtFonts.Mono,
+            fontFamily = if (shown.isEmpty()) bodyFont() else NewtFonts.Mono,
             fontWeight = FontWeight.Bold,
             color = if (shown.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
@@ -325,7 +326,7 @@ internal fun Key(
         Text(
             key.digit.toString(),
             style = MaterialTheme.typography.headlineMedium,
-            fontFamily = NewtFonts.Display,
+            fontFamily = displayFont(),
             fontWeight = FontWeight.Bold,
             color = digitColor,
         )
