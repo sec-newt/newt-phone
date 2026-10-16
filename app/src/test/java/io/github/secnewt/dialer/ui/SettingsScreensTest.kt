@@ -79,13 +79,13 @@ class SettingsScreensTest {
     @Composable
     private fun Settings(settings: SpamSettings, announce: AnnounceSettings = AnnounceSettings(), nowMillis: Long = NOW) =
         SpamSettingsScreen(
-            nowMillis = nowMillis,
             settings,
             blockListSize = 2,
             onSettingsChange = {},
             onOpenBlockList = {},
             onBack = {},
             announce = announce,
+            nowMillis = nowMillis,
         )
 
     @Test
