@@ -15,7 +15,61 @@ class CallScreenerTest {
         verification: Verification = Verification.NONE,
         settings: SpamSettings = balanced,
         rules: List<BlockRule> = noRules,
-    ) = CallScreener.decide(number, verification, settings, rules)
+        history: CallerHistory = CallerHistory(),
+    ) = CallScreener.decide(number, verification, settings, rules, history)
+
+    // A stranger: contacts and the call log were read, and they're in neither.
+    private val stranger = CallerHistory(known = true)
+
+    @Test
+    fun `a new number follows the new-numbers setting`() {
+        assertEquals(ScreeningDecision(CallAction.SILENCE, Reason.NEW_NUMBER), decide("9723600633", history = stranger))
+        assertEquals(CallAction.SILENCE, decide("9723600633", settings = strict, history = stranger).action)
+        assertEquals(CallAction.RING, decide("9723600633", settings = off, history = stranger).action)
+    }
+
+    @Test
+    fun `job hunting: new numbers can be set to ring`() {
+        val expecting = balanced.withNewNumbers(CallAction.RING)
+        assertEquals(CallAction.RING, decide("9723600633", settings = expecting, history = stranger).action)
+    }
+
+    @Test
+    fun `a number I've called before is not new`() {
+        assertEquals(ScreeningDecision(CallAction.RING, Reason.NONE), decide("3073171463", history = stranger.copy(calledBefore = true)))
+    }
+
+    @Test
+    fun `a second call within minutes is not new`() {
+        assertEquals(CallAction.RING, decide("9723600633", history = stranger.copy(repeatCaller = true)).action)
+    }
+
+    @Test
+    fun `without the call history, nobody counts as new`() {
+        assertEquals(CallAction.RING, decide("9723600633", history = CallerHistory(known = false)).action)
+    }
+
+    @Test
+    fun `contacts always ring, even copycats`() {
+        val contact = stranger.copy(inContacts = true)
+        assertEquals(ScreeningDecision(CallAction.RING, Reason.NONE), decide("5550149999", history = contact))
+    }
+
+    @Test
+    fun `a number I've called is never a copycat`() {
+        assertEquals(CallAction.RING, decide("5550149999", history = stranger.copy(calledBefore = true)).action)
+    }
+
+    @Test
+    fun `the block list beats being a contact`() {
+        val rules = listOf<BlockRule>(BlockRule.Number("5550149999"))
+        assertEquals(Reason.BLOCK_LIST, decide("5550149999", rules = rules, history = stranger.copy(inContacts = true)).reason)
+    }
+
+    @Test
+    fun `hidden numbers keep their own setting`() {
+        assertEquals(Reason.HIDDEN_NUMBER, decide(null, history = stranger).reason)
+    }
 
     @Test
     fun `an ordinary unknown caller rings`() {

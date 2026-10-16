@@ -19,9 +19,15 @@ class SpamSettingsTest {
         assertEquals(CallAction.BLOCK, strict.likelySpam)
         assertEquals(CallAction.SILENCE, strict.hiddenNumbers)
         assertEquals(CallAction.BLOCK, strict.copycatNumbers)
+        // New numbers are only ever silenced by a preset, never blocked.
+        assertEquals(CallAction.SILENCE, strict.newNumbers)
+        assertEquals(CallAction.SILENCE, SpamSettings().newNumbers)
 
         val off = strict.withLevel(ProtectionLevel.OFF)
-        assertEquals(listOf(CallAction.RING, CallAction.RING, CallAction.RING), listOf(off.likelySpam, off.hiddenNumbers, off.copycatNumbers))
+        assertEquals(
+            listOf(CallAction.RING, CallAction.RING, CallAction.RING, CallAction.RING),
+            listOf(off.likelySpam, off.hiddenNumbers, off.copycatNumbers, off.newNumbers),
+        )
     }
 
     @Test
@@ -35,6 +41,13 @@ class SpamSettingsTest {
     fun `changing rows back to a preset shows that preset again`() {
         val back = SpamSettings().withHiddenNumbers(CallAction.RING).withHiddenNumbers(CallAction.SILENCE)
         assertEquals(ProtectionLevel.BALANCED, back.level)
+    }
+
+    @Test
+    fun `ringing new numbers for a while, then back, returns to balanced`() {
+        val hunting = SpamSettings().withNewNumbers(CallAction.RING)
+        assertEquals(ProtectionLevel.CUSTOM, hunting.level)
+        assertEquals(ProtectionLevel.BALANCED, hunting.withNewNumbers(CallAction.SILENCE).level)
     }
 
     @Test

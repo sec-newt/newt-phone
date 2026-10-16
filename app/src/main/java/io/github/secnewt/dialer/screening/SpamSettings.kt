@@ -13,6 +13,11 @@ data class SpamSettings(
     val hiddenNumbers: CallAction = CallAction.SILENCE,
     /** Calls that copy the start of my own number. */
     val copycatNumbers: CallAction = CallAction.SILENCE,
+    /**
+     * New numbers: not in my contacts and never called by me. Set to Ring while I'm expecting
+     * calls from people I don't know yet, like during a job search.
+     */
+    val newNumbers: CallAction = CallAction.SILENCE,
     /** When on, every call rings and the app only records what it would have done. */
     val observeOnly: Boolean = true,
     /** Used for the copycat check. Typed in by hand; never read from the SIM. */
@@ -26,17 +31,20 @@ data class SpamSettings(
             likelySpam = preset.likelySpam,
             hiddenNumbers = preset.hiddenNumbers,
             copycatNumbers = preset.copycatNumbers,
+            newNumbers = preset.newNumbers,
         )
     }
 
     fun withLikelySpam(action: CallAction) = copy(likelySpam = action).withMatchingLevel()
     fun withHiddenNumbers(action: CallAction) = copy(hiddenNumbers = action).withMatchingLevel()
     fun withCopycatNumbers(action: CallAction) = copy(copycatNumbers = action).withMatchingLevel()
+    fun withNewNumbers(action: CallAction) = copy(newNumbers = action).withMatchingLevel()
 
     /** After a row changes, show the preset it now matches, or "Custom". */
     private fun withMatchingLevel(): SpamSettings {
         val match = PRESETS.entries.firstOrNull { (_, p) ->
-            p.likelySpam == likelySpam && p.hiddenNumbers == hiddenNumbers && p.copycatNumbers == copycatNumbers
+            p.likelySpam == likelySpam && p.hiddenNumbers == hiddenNumbers && p.copycatNumbers == copycatNumbers &&
+                p.newNumbers == newNumbers
         }?.key
         return copy(level = match ?: ProtectionLevel.CUSTOM)
     }
@@ -45,13 +53,15 @@ data class SpamSettings(
         val likelySpam: CallAction,
         val hiddenNumbers: CallAction,
         val copycatNumbers: CallAction,
+        val newNumbers: CallAction,
     )
 
     private companion object {
         val PRESETS = mapOf(
-            ProtectionLevel.OFF to Preset(CallAction.RING, CallAction.RING, CallAction.RING),
-            ProtectionLevel.BALANCED to Preset(CallAction.SILENCE, CallAction.SILENCE, CallAction.SILENCE),
-            ProtectionLevel.STRICT to Preset(CallAction.BLOCK, CallAction.SILENCE, CallAction.BLOCK),
+            ProtectionLevel.OFF to Preset(CallAction.RING, CallAction.RING, CallAction.RING, CallAction.RING),
+            ProtectionLevel.BALANCED to Preset(CallAction.SILENCE, CallAction.SILENCE, CallAction.SILENCE, CallAction.SILENCE),
+            // New numbers are only silenced, even here: a real first call should still reach voicemail.
+            ProtectionLevel.STRICT to Preset(CallAction.BLOCK, CallAction.SILENCE, CallAction.BLOCK, CallAction.SILENCE),
         )
     }
 }

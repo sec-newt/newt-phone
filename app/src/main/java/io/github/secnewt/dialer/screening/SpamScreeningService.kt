@@ -6,8 +6,8 @@ import android.telecom.Connection
 import android.util.Log
 
 /**
- * Sees every incoming call from someone not in my contacts before it rings,
- * once the app holds the "Caller ID & spam app" role.
+ * Sees incoming calls before they ring, once the app holds the "Caller ID & spam app"
+ * role (contacts are checked again in [CallScreener], in case Android sends them too).
  *
  * It applies the spam rules and the block list. In observe-only mode (the
  * default) every call still rings and the decision is only recorded.
@@ -31,7 +31,10 @@ class SpamScreeningService : CallScreeningService() {
         val (decision, enforced) = try {
             val store = SpamSettingsStore(this)
             val settings = store.settings()
-            CallScreener.decide(number, verification, settings, store.blockRules()) to !settings.observeOnly
+            val history = number?.let {
+                CallerHistoryReader(this).read(it, System.currentTimeMillis(), ScreeningLog(this).read())
+            } ?: CallerHistory()
+            CallScreener.decide(number, verification, settings, store.blockRules(), history) to !settings.observeOnly
         } catch (e: Exception) {
             Log.w(TAG, "Screening failed, letting the call ring", e)
             ScreeningDecision(CallAction.RING, Reason.NONE) to false

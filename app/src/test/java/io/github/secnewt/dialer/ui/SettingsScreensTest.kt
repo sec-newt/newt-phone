@@ -102,6 +102,26 @@ class SettingsScreensTest {
     fun settingsCustomDark() = render("settings_custom_dark", dark = true) { Settings(custom.copy(observeOnly = false)) }
 
     @Test
+    fun settingsNewNumbersRingDark() = render("settings_new-numbers-ring_dark", dark = true) {
+        Settings(SpamSettings(observeOnly = false).withNewNumbers(CallAction.RING))
+    }
+
+    @Test
+    fun newNumbersCanBeSetToRing() {
+        val changes = mutableListOf<SpamSettings>()
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                SpamSettingsScreen(SpamSettings(), blockListSize = 0, onSettingsChange = { changes += it }, onOpenBlockList = {}, onBack = {})
+            }
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("New numbers"))
+        composeRule.onNodeWithText("New numbers").performClick()
+        composeRule.onNodeWithText("Ring like any other call").performClick()
+        assertEquals(CallAction.RING, changes.single().newNumbers)
+        assertEquals(ProtectionLevel.CUSTOM, changes.single().level)
+    }
+
+    @Test
     fun settingsLargestFont() = render("settings_default_light_font200", dark = false, fontScale = 2f) {
         Settings(SpamSettings())
     }

@@ -86,6 +86,10 @@ class AnnouncementTest {
             "Blocked number, from 5 5 5, 0 1 9, 7 7 3 1",
             Announcement.text(null, "5550197731", call(CallAction.BLOCK, Reason.BLOCK_LIST, enforced = false)),
         )
+        assertEquals(
+            "New number, 5 5 5, 0 1 9, 7 7 3 1",
+            Announcement.text(null, "5550197731", call(CallAction.SILENCE, Reason.NEW_NUMBER, enforced = false)),
+        )
     }
 
     @Test
