@@ -29,7 +29,7 @@ class CallScreenerTest {
     }
 
     @Test
-    fun `job hunting: new numbers can be set to ring`() {
+    fun `new numbers can be set to ring while job hunting`() {
         val expecting = balanced.withNewNumbers(CallAction.RING)
         assertEquals(CallAction.RING, decide("9723600633", settings = expecting, history = stranger).action)
     }
