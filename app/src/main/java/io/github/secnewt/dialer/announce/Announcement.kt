@@ -54,6 +54,7 @@ object Announcement {
         return when {
             flagged && screening?.reason == Reason.BLOCK_LIST -> "Blocked number, from $spoken"
             flagged && screening?.reason == Reason.NEW_NUMBER -> "New number, $spoken"
+            flagged && screening?.reason == Reason.FAKE_NUMBER -> "Made-up number, from $spoken"
             flagged -> "Likely spam, from $spoken"
             else -> "Call from $spoken"
         }

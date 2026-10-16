@@ -16,16 +16,19 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
 
     fun settings(): SpamSettings {
         val defaults = SpamSettings()
+        val level = enumOr(prefs.getString(KEY_LEVEL, null), defaults.level)
+        // A choice added after the settings were saved starts where the saved level puts it.
+        val preset = if (level == ProtectionLevel.CUSTOM) defaults else defaults.withLevel(level)
         return SpamSettings(
-            level = enumOr(prefs.getString(KEY_LEVEL, null), defaults.level),
+            level = level,
             likelySpam = enumOr(prefs.getString(KEY_LIKELY_SPAM, null), defaults.likelySpam),
             hiddenNumbers = enumOr(prefs.getString(KEY_HIDDEN, null), defaults.hiddenNumbers),
             copycatNumbers = enumOr(prefs.getString(KEY_COPYCAT, null), defaults.copycatNumbers),
             // Saved before this choice existed: follow the saved level, so Off stays off.
-            newNumbers = enumOr(
-                prefs.getString(KEY_NEW_NUMBERS, null),
-                if (prefs.getString(KEY_LEVEL, null) == ProtectionLevel.OFF.name) CallAction.RING else defaults.newNumbers,
-            ),
+            newNumbers = enumOr(prefs.getString(KEY_NEW_NUMBERS, null), preset.newNumbers),
+            fakeNumbers = enumOr(prefs.getString(KEY_FAKE_NUMBERS, null), preset.fakeNumbers),
+            ringAfterICall = prefs.getBoolean(KEY_RING_AFTER_I_CALL, defaults.ringAfterICall),
+            expectingUntil = prefs.getLong(KEY_EXPECTING_UNTIL, defaults.expectingUntil),
             observeOnly = prefs.getBoolean(KEY_OBSERVE_ONLY, defaults.observeOnly),
             myNumber = prefs.getString(KEY_MY_NUMBER, null),
         )
@@ -38,6 +41,9 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
             .putString(KEY_HIDDEN, settings.hiddenNumbers.name)
             .putString(KEY_COPYCAT, settings.copycatNumbers.name)
             .putString(KEY_NEW_NUMBERS, settings.newNumbers.name)
+            .putString(KEY_FAKE_NUMBERS, settings.fakeNumbers.name)
+            .putBoolean(KEY_RING_AFTER_I_CALL, settings.ringAfterICall)
+            .putLong(KEY_EXPECTING_UNTIL, settings.expectingUntil)
             .putBoolean(KEY_OBSERVE_ONLY, settings.observeOnly)
             .putString(KEY_MY_NUMBER, settings.myNumber)
             .apply()
@@ -130,6 +136,9 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
         const val KEY_HIDDEN = "hidden_numbers"
         const val KEY_COPYCAT = "copycat_numbers"
         const val KEY_NEW_NUMBERS = "new_numbers"
+        const val KEY_FAKE_NUMBERS = "fake_numbers"
+        const val KEY_RING_AFTER_I_CALL = "ring_after_i_call"
+        const val KEY_EXPECTING_UNTIL = "expecting_until"
         const val KEY_OBSERVE_ONLY = "observe_only"
         const val KEY_MY_NUMBER = "my_number"
         const val KEY_BLOCK_RULES = "block_rules"

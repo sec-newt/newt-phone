@@ -77,7 +77,7 @@ class SettingsScreensTest {
     private val rules = listOf(BlockRule.Number("5550197731"), BlockRule.StartsWith("800555"))
 
     @Composable
-    private fun Settings(settings: SpamSettings, announce: AnnounceSettings = AnnounceSettings()) =
+    private fun Settings(settings: SpamSettings, announce: AnnounceSettings = AnnounceSettings(), nowMillis: Long = NOW) =
         SpamSettingsScreen(
             settings,
             blockListSize = 2,
@@ -85,6 +85,7 @@ class SettingsScreensTest {
             onOpenBlockList = {},
             onBack = {},
             announce = announce,
+            nowMillis = nowMillis,
         )
 
     @Test
@@ -104,6 +105,64 @@ class SettingsScreensTest {
     @Test
     fun settingsNewNumbersRingDark() = render("settings_new-numbers-ring_dark", dark = true) {
         Settings(SpamSettings(observeOnly = false).withNewNumbers(CallAction.RING))
+    }
+
+    private companion object {
+        const val NOW = 1_792_000_000_000L
+        const val HOUR = 3_600_000L
+    }
+
+    @Test
+    fun letThroughDark() = renderScrolledTo(
+        "settings_let-through_dark", "After you call 911, every call rings for an hour so they can call you back. This is always on.",
+        dark = true, fontScale = 1f, SpamSettings(observeOnly = false, expectingUntil = NOW + 3 * HOUR),
+    )
+
+    @Test
+    fun letThroughLargestFont() = renderScrolledTo(
+        "settings_let-through_light_font200", "Expecting a call", dark = false, fontScale = 2f, SpamSettings(observeOnly = false),
+    )
+
+    @Test
+    fun expectingACallSetsATimeAndTurnsOff() {
+        val changes = mutableListOf<SpamSettings>()
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                SpamSettingsScreen(
+                    SpamSettings(), blockListSize = 0, onSettingsChange = { changes += it }, onOpenBlockList = {}, onBack = {},
+                    nowMillis = NOW,
+                )
+            }
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Expecting a call"))
+        composeRule.onNodeWithText("Expecting a call").performClick()
+        composeRule.onNodeWithText("For 3 hours").performClick()
+        assertEquals(NOW + 3 * HOUR, changes.last().expectingUntil)
+    }
+
+    @Test
+    fun callBacksCanBeTurnedOff() {
+        val changes = mutableListOf<SpamSettings>()
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                SpamSettingsScreen(SpamSettings(), blockListSize = 0, onSettingsChange = { changes += it }, onOpenBlockList = {}, onBack = {})
+            }
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Call-backs after I call"))
+        composeRule.onNodeWithText("Call-backs after I call").performClick()
+        assertEquals(false, changes.single().ringAfterICall)
+    }
+
+    @Test
+    fun theChoiceSaysWhatTheRowMeans() {
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                SpamSettingsScreen(SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {})
+            }
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("New numbers"))
+        composeRule.onNodeWithText("New numbers").performClick()
+        composeRule.onNodeWithText("like during a job search", substring = true).assertIsDisplayed()
     }
 
     // The unknown-callers rows sit below the first screenful, so scroll to them first.

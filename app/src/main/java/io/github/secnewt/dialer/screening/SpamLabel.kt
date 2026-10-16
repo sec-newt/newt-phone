@@ -21,6 +21,7 @@ object SpamLabel {
             match.reason == Reason.BLOCK_LIST -> "Blocked number"
             // Not called spam: it's someone I don't know yet, and might be real.
             match.reason == Reason.NEW_NUMBER && match.action != CallAction.RING -> "New number"
+            match.reason == Reason.FAKE_NUMBER && match.action != CallAction.RING -> "Made-up number"
             match.action != CallAction.RING || match.verification == Verification.FAILED -> "Likely spam"
             else -> null
         }

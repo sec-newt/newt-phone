@@ -153,15 +153,22 @@ button on every tab.
 The app takes the "Caller ID & spam app" role and checks calls from
 unknown numbers before they ring:
 
-- **Spam settings:** a protection level (Off, Balanced, Strict) and four plain
-  choices (Ring, Silence or Block) for new numbers, likely spam, hidden numbers and
-  copycat numbers.
+- **Spam settings:** a protection level (Off, Balanced, Strict) and five plain
+  choices (Ring, Silence or Block) for new numbers, made-up numbers, likely spam,
+  hidden numbers and copycat numbers. Tapping a row explains it.
 - **New numbers:** a caller who isn't in your contacts and whom you've never called.
   Silenced by default (still in Recents and voicemail). A second call within 3 minutes
   rings, and calling a number back or adding it to contacts lets it ring from then on.
   Set New numbers to **Ring** while you're expecting calls from people you don't know
   yet, like during a job search. Needs contacts and call history access; without them,
   nobody counts as new.
+- **Made-up numbers:** the exchange (area code + next three digits) belongs to no phone
+  company, so the caller ID was faked. Checked offline against NANPA's national list,
+  built into the app by `scripts/build-exchanges.py`. Only US area codes are checked.
+- **Let through:** for an hour after you call a number that isn't a contact, new numbers
+  ring (offices often call back from another number; can be turned off). **Expecting a
+  call** lets new numbers ring for 1, 3 or 8 hours, then turns itself off. After a 911
+  call, every call rings for an hour; that one is always on.
 - **Block list:** exact numbers or "numbers starting with", added from the
   settings or straight from Recent calls.
 - **Observe only (on by default):** every call rings, and Recent calls show

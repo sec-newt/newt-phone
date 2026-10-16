@@ -31,6 +31,8 @@ class SpamSettingsStoreTest {
             .withLevel(ProtectionLevel.STRICT)
             .withHiddenNumbers(CallAction.RING)
             .withNewNumbers(CallAction.RING)
+            .withFakeNumbers(CallAction.RING)
+            .copy(ringAfterICall = false, expectingUntil = 1_800_000_000_000L)
         store.saveSettings(settings)
         assertEquals(settings, store.settings())
     }
@@ -41,6 +43,9 @@ class SpamSettingsStoreTest {
         prefs.edit().putString("level", "OFF").apply()
         assertEquals(CallAction.RING, store.settings().newNumbers)
         prefs.edit().putString("level", "CUSTOM").apply()
+        assertEquals(CallAction.SILENCE, store.settings().newNumbers)
+        prefs.edit().putString("level", "STRICT").apply()
+        assertEquals(CallAction.BLOCK, store.settings().fakeNumbers)
         assertEquals(CallAction.SILENCE, store.settings().newNumbers)
     }
 

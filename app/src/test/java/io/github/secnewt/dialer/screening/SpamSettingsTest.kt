@@ -22,11 +22,14 @@ class SpamSettingsTest {
         // New numbers are only ever silenced by a preset, never blocked.
         assertEquals(CallAction.SILENCE, strict.newNumbers)
         assertEquals(CallAction.SILENCE, SpamSettings().newNumbers)
+        assertEquals(CallAction.BLOCK, strict.fakeNumbers)
+        assertEquals(CallAction.SILENCE, SpamSettings().fakeNumbers)
+        assertTrue(SpamSettings().ringAfterICall)
 
         val off = strict.withLevel(ProtectionLevel.OFF)
         assertEquals(
-            listOf(CallAction.RING, CallAction.RING, CallAction.RING, CallAction.RING),
-            listOf(off.likelySpam, off.hiddenNumbers, off.copycatNumbers, off.newNumbers),
+            listOf(CallAction.RING, CallAction.RING, CallAction.RING, CallAction.RING, CallAction.RING),
+            listOf(off.likelySpam, off.hiddenNumbers, off.copycatNumbers, off.newNumbers, off.fakeNumbers),
         )
     }
 
@@ -48,6 +51,12 @@ class SpamSettingsTest {
         val hunting = SpamSettings().withNewNumbers(CallAction.RING)
         assertEquals(ProtectionLevel.CUSTOM, hunting.level)
         assertEquals(ProtectionLevel.BALANCED, hunting.withNewNumbers(CallAction.SILENCE).level)
+    }
+
+    @Test
+    fun `expecting a call and call-backs don't change the level`() {
+        val settings = SpamSettings().withLevel(ProtectionLevel.STRICT).copy(expectingUntil = 5L, ringAfterICall = false)
+        assertEquals(ProtectionLevel.STRICT, settings.withLikelySpam(CallAction.BLOCK).level)
     }
 
     @Test

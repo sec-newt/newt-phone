@@ -1,5 +1,10 @@
 package io.github.secnewt.dialer.ui
 
+import java.util.Date
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import android.text.format.DateFormat
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -66,8 +71,13 @@ private enum class CallerType(val title: String, val explanation: String) {
     NEW_NUMBERS(
         "New numbers",
         "Not in your contacts, and you've never called them. Choose Ring while you expect calls from new people, " +
-            "like during a job search. A second call within 3 minutes always rings, and once you call a number " +
-            "back or add it to contacts, it rings from then on.",
+            "like during a job search, or use Expecting a call below for a few hours. A second call within 3 " +
+            "minutes always rings, and once you call a number back or add it to contacts, it rings from then on.",
+    ),
+    FAKE_NUMBERS(
+        "Made-up numbers",
+        "Numbers from an exchange no phone company has, so the caller ID was faked. Checked against the " +
+            "national numbering list built into the app.",
     ),
     LIKELY_SPAM("Likely spam", "Calls your carrier could not verify."),
     HIDDEN("Hidden numbers", "Private or unknown callers. Doctors and pharmacies sometimes call this way."),
@@ -96,9 +106,11 @@ fun SpamSettingsScreen(
     onKeypadTonesChange: (Boolean) -> Unit = {},
     ringSettings: RingSettings = RingSettings(),
     onRingSettingsChange: (RingSettings) -> Unit = {},
+    nowMillis: Long = System.currentTimeMillis(),
 ) {
     var choosing by remember { mutableStateOf<CallerType?>(null) }
     var choosingAnnounce by remember { mutableStateOf(false) }
+    var choosingExpecting by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         LazyColumn(
@@ -173,6 +185,8 @@ fun SpamSettingsScreen(
                     SectionLabel("Unknown callers", modifier = Modifier.padding(bottom = 4.dp))
                     CallerTypeRow(CallerType.NEW_NUMBERS, settings.newNumbers) { choosing = it }
                     HorizontalDivider()
+                    CallerTypeRow(CallerType.FAKE_NUMBERS, settings.fakeNumbers) { choosing = it }
+                    HorizontalDivider()
                     CallerTypeRow(CallerType.LIKELY_SPAM, settings.likelySpam) { choosing = it }
                     HorizontalDivider()
                     CallerTypeRow(CallerType.HIDDEN, settings.hiddenNumbers) { choosing = it }
@@ -199,6 +213,16 @@ fun SpamSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+
+            item { SectionHeading("Let through", modifier = Modifier.padding(top = 16.dp)) }
+            item {
+                LetThroughSection(
+                    settings = settings,
+                    nowMillis = nowMillis,
+                    onRingAfterICallChange = { onSettingsChange(settings.copy(ringAfterICall = it)) },
+                    onChooseExpecting = { choosingExpecting = true },
+                )
             }
 
             item { SectionHeading("Block list", modifier = Modifier.padding(top = 16.dp)) }
@@ -264,21 +288,38 @@ fun SpamSettingsScreen(
         )
     }
 
+    if (choosingExpecting) {
+        ChoiceDialog(
+            title = "Expecting a call",
+            description = "New numbers ring until then. It turns itself off.",
+            options = EXPECTING_HOURS.map { hours -> hours to (expectingName(hours) to expectingExplanation(hours)) },
+            current = if (settings.expecting(nowMillis)) -1 else 0,
+            onChoose = { hours ->
+                onSettingsChange(settings.copy(expectingUntil = if (hours == 0) 0L else nowMillis + hours * 3_600_000L))
+                choosingExpecting = false
+            },
+            onDismiss = { choosingExpecting = false },
+        )
+    }
+
     choosing?.let { type ->
         val current = when (type) {
             CallerType.NEW_NUMBERS -> settings.newNumbers
+            CallerType.FAKE_NUMBERS -> settings.fakeNumbers
             CallerType.LIKELY_SPAM -> settings.likelySpam
             CallerType.HIDDEN -> settings.hiddenNumbers
             CallerType.COPYCAT -> settings.copycatNumbers
         }
         ChoiceDialog(
             title = type.title,
+            description = type.explanation,
             options = CallAction.entries.map { it to (actionLabel(it) to actionExplanation(it)) },
             current = current,
             onChoose = { action ->
                 onSettingsChange(
                     when (type) {
                         CallerType.NEW_NUMBERS -> settings.withNewNumbers(action)
+                        CallerType.FAKE_NUMBERS -> settings.withFakeNumbers(action)
                         CallerType.LIKELY_SPAM -> settings.withLikelySpam(action)
                         CallerType.HIDDEN -> settings.withHiddenNumbers(action)
                         CallerType.COPYCAT -> settings.withCopycatNumbers(action)
@@ -422,6 +463,68 @@ private fun SystemSettingRow(setting: SystemSetting, onClick: () -> Unit) {
     }
 }
 
+/** Hours for "Expecting a call"; 0 turns it off. */
+private val EXPECTING_HOURS = listOf(0, 1, 3, 8)
+
+private fun expectingName(hours: Int) = when (hours) {
+    0 -> "Off"
+    1 -> "For 1 hour"
+    else -> "For $hours hours"
+}
+
+private fun expectingExplanation(hours: Int) =
+    if (hours == 0) "New numbers follow the choice above" else "Then back to normal by itself"
+
+/**
+ * Who gets through even though they're new: call-backs after I call someone new, anyone
+ * while I'm expecting a call, and everyone after an emergency call (always on).
+ */
+@Composable
+private fun LetThroughSection(
+    settings: SpamSettings,
+    nowMillis: Long,
+    onRingAfterICallChange: (Boolean) -> Unit,
+    onChooseExpecting: () -> Unit,
+) {
+    val context = LocalContext.current
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .toggleable(value = settings.ringAfterICall, role = Role.Switch, onValueChange = onRingAfterICallChange),
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Call-backs after I call", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "For an hour after you call a number that isn't a contact, new numbers ring. Offices often call back from a different number.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = settings.ringAfterICall, onCheckedChange = null)
+        }
+        HorizontalDivider()
+        NavigationRow(
+            title = "Expecting a call",
+            value = if (settings.expecting(nowMillis)) {
+                "Until " + DateFormat.getTimeFormat(context).format(Date(settings.expectingUntil))
+            } else {
+                "Off"
+            },
+            onClick = onChooseExpecting,
+        )
+        HorizontalDivider()
+        Text(
+            "After you call 911, every call rings for an hour so they can call you back. This is always on.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+}
+
 @Composable
 fun NavigationRow(title: String, value: String, onClick: () -> Unit) {
     Row(
@@ -449,12 +552,16 @@ private fun <T> ChoiceDialog(
     current: T,
     onChoose: (T) -> Unit,
     onDismiss: () -> Unit,
+    description: String? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            Column(Modifier.selectableGroup()) {
+            Column(Modifier.selectableGroup().verticalScroll(rememberScrollState())) {
+                if (description != null) {
+                    Text(description, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(bottom = 12.dp))
+                }
                 Text("What should happen?", style = MaterialTheme.typography.bodyLarge)
                 options.forEach { (option, words) ->
                     val (label, explanation) = words
@@ -585,8 +692,8 @@ private fun levelName(level: ProtectionLevel) = when (level) {
 
 private fun levelDescription(level: ProtectionLevel) = when (level) {
     ProtectionLevel.OFF -> "Only your block list is used. Everything else rings."
-    ProtectionLevel.BALANCED -> "Silences new numbers, likely spam, hidden and copycat numbers. Contacts always ring."
-    ProtectionLevel.STRICT -> "Blocks likely spam and copycat numbers, silences new and hidden numbers. Contacts always ring."
+    ProtectionLevel.BALANCED -> "Silences new, made-up, hidden and copycat numbers and likely spam. Contacts always ring."
+    ProtectionLevel.STRICT -> "Blocks made-up and copycat numbers and likely spam, silences new and hidden numbers. Contacts always ring."
     ProtectionLevel.CUSTOM -> "Custom: you changed the choices below. Contacts always ring."
 }
 
