@@ -71,6 +71,12 @@ class CallFormattingTest {
     }
 
     @Test
+    fun `silenced new numbers say so`() {
+        val call = ScreenedCall(1, "9723600633", Verification.NONE, CallAction.SILENCE, Reason.NEW_NUMBER, enforced = true)
+        assertEquals("Silenced: new number", outcomeLabel(call))
+    }
+
+    @Test
     fun `block rules read plainly`() {
         assertEquals("(555) 019-7731", ruleLabel(BlockRule.Number("5550197731")))
         assertEquals("Numbers starting with 800555", ruleLabel(BlockRule.StartsWith("800555")))

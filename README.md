@@ -14,8 +14,8 @@ with words, and a voice that says who is calling.
 
 - **Phone app:** dialpad, Recents, Favorites and Contacts, plus its own
   incoming-call and in-call screens.
-- **Spam screening, on the phone:** labels or silences likely spam, hidden and
-  copycat numbers, and keeps a block list. No lookup services, no internet.
+- **Spam screening, on the phone:** labels or silences new numbers, likely spam,
+  hidden and copycat numbers, and keeps a block list. No lookup services, no internet.
 - **Caller announcement:** says "Call from Mom" (or the number) while it rings.
 - **Ringing rules:** favorites and repeat callers ring even on silent, and
   optional quiet hours.
@@ -153,9 +153,15 @@ button on every tab.
 The app takes the "Caller ID & spam app" role and checks calls from
 unknown numbers before they ring:
 
-- **Spam settings:** a protection level (Off, Balanced, Strict) and three plain
-  choices (Ring, Silence or Block) for likely spam, hidden numbers and copycat
-  numbers.
+- **Spam settings:** a protection level (Off, Balanced, Strict) and four plain
+  choices (Ring, Silence or Block) for new numbers, likely spam, hidden numbers and
+  copycat numbers.
+- **New numbers:** a caller who isn't in your contacts and whom you've never called.
+  Silenced by default (still in Recents and voicemail). A second call within 3 minutes
+  rings, and calling a number back or adding it to contacts lets it ring from then on.
+  Set New numbers to **Ring** while you're expecting calls from people you don't know
+  yet, like during a job search. Needs contacts and call history access; without them,
+  nobody counts as new.
 - **Block list:** exact numbers or "numbers starting with", added from the
   settings or straight from Recent calls.
 - **Observe only (on by default):** every call rings, and Recent calls show

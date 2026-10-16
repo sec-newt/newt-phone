@@ -9,7 +9,7 @@ object SpamLabel {
     private const val MATCH_WINDOW_MILLIS = 2 * 60_000L
 
     /**
-     * "Blocked number" or "Likely spam" when the screening log flagged this call, matched by
+     * "Blocked number", "New number" or "Likely spam" when the screening log flagged this call, matched by
      * number and time; null when it wasn't flagged or the number is hidden.
      */
     fun forCall(number: String?, timeMillis: Long, screened: List<ScreenedCall>): String? {
@@ -19,6 +19,8 @@ object SpamLabel {
         } ?: return null
         return when {
             match.reason == Reason.BLOCK_LIST -> "Blocked number"
+            // Not called spam: it's someone I don't know yet, and might be real.
+            match.reason == Reason.NEW_NUMBER && match.action != CallAction.RING -> "New number"
             match.action != CallAction.RING || match.verification == Verification.FAILED -> "Likely spam"
             else -> null
         }

@@ -53,6 +53,7 @@ object Announcement {
         val flagged = screening != null && screening.action != CallAction.RING
         return when {
             flagged && screening?.reason == Reason.BLOCK_LIST -> "Blocked number, from $spoken"
+            flagged && screening?.reason == Reason.NEW_NUMBER -> "New number, $spoken"
             flagged -> "Likely spam, from $spoken"
             else -> "Call from $spoken"
         }

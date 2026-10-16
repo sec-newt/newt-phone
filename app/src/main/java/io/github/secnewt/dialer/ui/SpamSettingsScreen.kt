@@ -61,8 +61,14 @@ import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.neonFieldColors
 import io.github.secnewt.ui.newtContainerColor
 
-/** The three kinds of unknown callers a person can set an action for. */
+/** The kinds of unknown callers a person can set an action for. */
 private enum class CallerType(val title: String, val explanation: String) {
+    NEW_NUMBERS(
+        "New numbers",
+        "Not in your contacts, and you've never called them. Choose Ring while you expect calls from new people, " +
+            "like during a job search. A second call within 3 minutes always rings, and once you call a number " +
+            "back or add it to contacts, it rings from then on.",
+    ),
     LIKELY_SPAM("Likely spam", "Calls your carrier could not verify."),
     HIDDEN("Hidden numbers", "Private or unknown callers. Doctors and pharmacies sometimes call this way."),
     COPYCAT("Copycat numbers", "Numbers that start like yours, a common scam trick."),
@@ -165,6 +171,8 @@ fun SpamSettingsScreen(
             item {
                 Column {
                     SectionLabel("Unknown callers", modifier = Modifier.padding(bottom = 4.dp))
+                    CallerTypeRow(CallerType.NEW_NUMBERS, settings.newNumbers) { choosing = it }
+                    HorizontalDivider()
                     CallerTypeRow(CallerType.LIKELY_SPAM, settings.likelySpam) { choosing = it }
                     HorizontalDivider()
                     CallerTypeRow(CallerType.HIDDEN, settings.hiddenNumbers) { choosing = it }
@@ -258,6 +266,7 @@ fun SpamSettingsScreen(
 
     choosing?.let { type ->
         val current = when (type) {
+            CallerType.NEW_NUMBERS -> settings.newNumbers
             CallerType.LIKELY_SPAM -> settings.likelySpam
             CallerType.HIDDEN -> settings.hiddenNumbers
             CallerType.COPYCAT -> settings.copycatNumbers
@@ -269,6 +278,7 @@ fun SpamSettingsScreen(
             onChoose = { action ->
                 onSettingsChange(
                     when (type) {
+                        CallerType.NEW_NUMBERS -> settings.withNewNumbers(action)
                         CallerType.LIKELY_SPAM -> settings.withLikelySpam(action)
                         CallerType.HIDDEN -> settings.withHiddenNumbers(action)
                         CallerType.COPYCAT -> settings.withCopycatNumbers(action)
@@ -575,8 +585,8 @@ private fun levelName(level: ProtectionLevel) = when (level) {
 
 private fun levelDescription(level: ProtectionLevel) = when (level) {
     ProtectionLevel.OFF -> "Only your block list is used. Everything else rings."
-    ProtectionLevel.BALANCED -> "Silences likely spam, hidden and copycat numbers. Contacts always ring."
-    ProtectionLevel.STRICT -> "Blocks likely spam and copycat numbers, silences hidden numbers. Contacts always ring."
+    ProtectionLevel.BALANCED -> "Silences new numbers, likely spam, hidden and copycat numbers. Contacts always ring."
+    ProtectionLevel.STRICT -> "Blocks likely spam and copycat numbers, silences new and hidden numbers. Contacts always ring."
     ProtectionLevel.CUSTOM -> "Custom: you changed the choices below. Contacts always ring."
 }
 

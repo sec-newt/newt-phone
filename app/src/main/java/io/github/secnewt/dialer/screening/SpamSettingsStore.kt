@@ -21,6 +21,11 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
             likelySpam = enumOr(prefs.getString(KEY_LIKELY_SPAM, null), defaults.likelySpam),
             hiddenNumbers = enumOr(prefs.getString(KEY_HIDDEN, null), defaults.hiddenNumbers),
             copycatNumbers = enumOr(prefs.getString(KEY_COPYCAT, null), defaults.copycatNumbers),
+            // Saved before this choice existed: follow the saved level, so Off stays off.
+            newNumbers = enumOr(
+                prefs.getString(KEY_NEW_NUMBERS, null),
+                if (prefs.getString(KEY_LEVEL, null) == ProtectionLevel.OFF.name) CallAction.RING else defaults.newNumbers,
+            ),
             observeOnly = prefs.getBoolean(KEY_OBSERVE_ONLY, defaults.observeOnly),
             myNumber = prefs.getString(KEY_MY_NUMBER, null),
         )
@@ -32,6 +37,7 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
             .putString(KEY_LIKELY_SPAM, settings.likelySpam.name)
             .putString(KEY_HIDDEN, settings.hiddenNumbers.name)
             .putString(KEY_COPYCAT, settings.copycatNumbers.name)
+            .putString(KEY_NEW_NUMBERS, settings.newNumbers.name)
             .putBoolean(KEY_OBSERVE_ONLY, settings.observeOnly)
             .putString(KEY_MY_NUMBER, settings.myNumber)
             .apply()
@@ -123,6 +129,7 @@ class SpamSettingsStore(private val prefs: SharedPreferences) {
         const val KEY_LIKELY_SPAM = "likely_spam"
         const val KEY_HIDDEN = "hidden_numbers"
         const val KEY_COPYCAT = "copycat_numbers"
+        const val KEY_NEW_NUMBERS = "new_numbers"
         const val KEY_OBSERVE_ONLY = "observe_only"
         const val KEY_MY_NUMBER = "my_number"
         const val KEY_BLOCK_RULES = "block_rules"

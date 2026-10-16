@@ -30,8 +30,18 @@ class SpamSettingsStoreTest {
         val settings = SpamSettings(observeOnly = false, myNumber = "5550142290")
             .withLevel(ProtectionLevel.STRICT)
             .withHiddenNumbers(CallAction.RING)
+            .withNewNumbers(CallAction.RING)
         store.saveSettings(settings)
         assertEquals(settings, store.settings())
+    }
+
+    @Test
+    fun `settings saved before new numbers existed follow their level`() {
+        val prefs = ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("spam_settings", Context.MODE_PRIVATE)
+        prefs.edit().putString("level", "OFF").apply()
+        assertEquals(CallAction.RING, store.settings().newNumbers)
+        prefs.edit().putString("level", "CUSTOM").apply()
+        assertEquals(CallAction.SILENCE, store.settings().newNumbers)
     }
 
     @Test
