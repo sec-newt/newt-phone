@@ -20,12 +20,23 @@ _(Diagram in the living copy: call screening flow · 3 checks, 4 outcomes)_
 
 Contacts and starred numbers skip scoring entirely, so a real contact is never silenced by a rule.
 
-- **Carrier verification (STIR/SHAKEN):** on Android 11+, the screening app sees whether the network verified the caller ID. T-Mobile signs and checks calls, but whether Ting passes the result through needs a real-world test (see Open questions).
-- **Neighbor spoofing:** scammers often fake numbers that start like mine. Unknown callers matching my first 6 digits get a high score.
+- **Strangers (the main rule, planned):** a number that isn't a contact and that I've never called. Real spam on Oct 15, 2026 was four different numbers, three in 972 with three different exchanges and one from Hawaii, and none was reused, so this is the only signal that caught all of them. Escape hatches so real callers still get through: a second call from the same number within a few minutes rings, silenced calls still go to voicemail, and the log has "Allow this number".
+- **Carrier verification (STIR/SHAKEN):** tested, and it doesn't work on Ting. Every call, spam or not, arrives "Not verified", so it can't be a spam signal (and "silence unverified" would silence everyone). The code stays in case that changes.
+- **Neighbor spoofing:** scammers often fake numbers that start like mine. Unknown callers matching my first 6 digits get a high score. My own spam so far matched only the area code, not 6 digits, so this rule alone wouldn't have caught it.
 - **Hidden or unknown numbers:** a separate rule with its own action, since doctors and pharmacies sometimes call this way.
-- **Optional offline spam list:** a periodically downloaded list stored on the phone. Candidate source: public complaint data such as the FTC's Do Not Call reports. Off by default, so the app needs no internet.
+- **Offline spam list (a backstop):** built from public complaint data (the FTC's Do Not Call reports) by a weekly GitHub Actions job and shipped inside a signed app update, which Obtainium installs. **The app never gets the internet permission**, and the build's permission check fails if it ever appears. Lookups happen on the phone; no number is ever sent anywhere. Chosen over a separate downloader app or internet in the app itself (Oct 16, 2026). To check: whether the FTC data needs a free api.data.gov key (a CI secret), and its terms.
 - **My own reports:** marking a call as spam adds it to the block list, and the blocked-calls log lets me undo mistakes.
 - **Paid databases** (Hiya, Truecaller, Nomorobo): skipped. They cost money and send callers' numbers to a third party, which goes against the privacy goal.
+
+### Caller ID without the internet
+
+Carrier caller names (CNAM) aren't an option: Ting sends none (the app already shows one when the network provides it), and paid lookups send every caller's number to a third party. Instead, three pieces, all offline:
+
+- **Where the number is from:** the public exchange records (NANPA assignments, mirrored free at localcallingguide.com) say which carrier and city each block of 1,000 numbers belongs to. Shown on the incoming call and in the log, like "Carrollton, TX · VoIP" or "Dallas, TX · landline". Built into updates by the same weekly job as the spam list. It's information only, not a spam signal: spoofers use real exchanges, and my one real call on Oct 15 was VoIP too.
+- **Local business names:** a Dallas–Fort Worth slice of business phone numbers from OpenStreetMap and Foursquare Open Source Places (Apache 2.0), shipped the same way, so "CVS Pharmacy · Garland" shows when a business calls from its listed number. Only businesses are in it, never people. Many offices call from an unlisted number, so it identifies some business calls, not all.
+- **"Look up this number":** a button in the log that opens a web search in the browser. Only the browser goes online, and only when I tap it.
+
+Order: the button first (small, stands alone), then the weekly data job, then the spam list, area info and business names, which all ride on that job.
 
 ### Spam settings screen
 
@@ -125,7 +136,7 @@ Contacts sync to a Radicale server (CardDAV). When contact editing is added, new
 ## Open questions
 
 - [ ] Which Pixel model and GrapheneOS build? This sets the minimum Android version.
-- [ ] Does Ting pass STIR/SHAKEN verification through to the phone? Test it with a Phase 1 debug screen that logs each call's verification status.
+- [x] Does Ting pass STIR/SHAKEN verification through to the phone? No (Oct 15, 2026): the spam log shows every call as "Not verified".
 - [ ] Does Ting offer carrier-side scam blocking on its T-Mobile service? If so, turn it on as a first filter.
 - [ ] Default action for "likely spam": silence and label, or reject outright?
 - [ ] Should caller announcement speak during DND, or stay quiet?
