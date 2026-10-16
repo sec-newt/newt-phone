@@ -21,6 +21,12 @@ class SpamLabelTest {
     }
 
     @Test
+    fun aMadeUpNumberSaysSo() {
+        val log = listOf(ScreenedCall(now, "2125550100", Verification.NONE, CallAction.SILENCE, Reason.FAKE_NUMBER))
+        assertEquals("Made-up number", SpamLabel.forCall("2125550100", now, log))
+    }
+
+    @Test
     fun failedVerificationSaysLikelySpam() {
         val log = listOf(ScreenedCall(now, "5550197731", Verification.FAILED))
         assertEquals("Likely spam", SpamLabel.forCall("5550197731", now, log))

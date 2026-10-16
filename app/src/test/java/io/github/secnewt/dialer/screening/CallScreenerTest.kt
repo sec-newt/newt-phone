@@ -67,6 +67,45 @@ class CallScreenerTest {
     }
 
     @Test
+    fun `made-up numbers follow their setting`() {
+        val fake = stranger.copy(madeUp = true)
+        assertEquals(ScreeningDecision(CallAction.SILENCE, Reason.FAKE_NUMBER), decide("2125550100", history = fake))
+        assertEquals(CallAction.BLOCK, decide("2125550100", settings = strict, history = fake).action)
+        assertEquals(CallAction.RING, decide("2125550100", settings = off, history = fake).action)
+        // A number I've actually called exists, whatever the list says.
+        assertEquals(CallAction.RING, decide("2125550100", history = fake.copy(calledBefore = true)).action)
+    }
+
+    @Test
+    fun `after an emergency call everything rings, even blocked and hidden numbers`() {
+        val after911 = stranger.copy(emergencyCallRecently = true, madeUp = true)
+        val rules = listOf<BlockRule>(BlockRule.Number("9723600633"))
+        assertEquals(ScreeningDecision(CallAction.RING, Reason.NONE), decide("9723600633", rules = rules, history = after911))
+        assertEquals(CallAction.RING, decide(null, history = CallerHistory(emergencyCallRecently = true)).action)
+    }
+
+    @Test
+    fun `new numbers ring for a while after I call someone new, if that's on`() {
+        val callBack = stranger.copy(calledSomeoneNewRecently = true)
+        assertEquals(CallAction.RING, decide("9723600633", history = callBack).action)
+        assertEquals(CallAction.SILENCE, decide("9723600633", settings = balanced.copy(ringAfterICall = false), history = callBack).action)
+    }
+
+    @Test
+    fun `new numbers ring while I'm expecting a call, then stop`() {
+        val expecting = balanced.copy(expectingUntil = 10_000L)
+        assertEquals(CallAction.RING, CallScreener.decide("9723600633", Verification.NONE, expecting, noRules, stranger, nowMillis = 9_000L).action)
+        assertEquals(CallAction.SILENCE, CallScreener.decide("9723600633", Verification.NONE, expecting, noRules, stranger, nowMillis = 10_000L).action)
+    }
+
+    @Test
+    fun `expecting a call doesn't let made-up numbers through`() {
+        val expecting = balanced.copy(expectingUntil = 10_000L)
+        val fake = stranger.copy(madeUp = true)
+        assertEquals(Reason.FAKE_NUMBER, CallScreener.decide("2125550100", Verification.NONE, expecting, noRules, fake, nowMillis = 1L).reason)
+    }
+
+    @Test
     fun `hidden numbers keep their own setting`() {
         assertEquals(Reason.HIDDEN_NUMBER, decide(null, history = stranger).reason)
     }

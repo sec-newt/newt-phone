@@ -66,6 +66,7 @@ fun outcomeLabel(call: ScreenedCall): String? {
         Reason.COPYCAT -> "copies your number"
         Reason.FAILED_VERIFICATION -> "failed carrier verification"
         Reason.NEW_NUMBER -> "new number"
+        Reason.FAKE_NUMBER -> "made-up number"
         Reason.NONE -> return verb
     }
     return "$verb: $why"

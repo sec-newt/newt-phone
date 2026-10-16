@@ -31,10 +31,9 @@ class SpamScreeningService : CallScreeningService() {
         val (decision, enforced) = try {
             val store = SpamSettingsStore(this)
             val settings = store.settings()
-            val history = number?.let {
-                CallerHistoryReader(this).read(it, System.currentTimeMillis(), ScreeningLog(this).read())
-            } ?: CallerHistory()
-            CallScreener.decide(number, verification, settings, store.blockRules(), history) to !settings.observeOnly
+            val now = System.currentTimeMillis()
+            val history = CallerHistoryReader(this).read(number, now, ScreeningLog(this).read())
+            CallScreener.decide(number, verification, settings, store.blockRules(), history, now) to !settings.observeOnly
         } catch (e: Exception) {
             Log.w(TAG, "Screening failed, letting the call ring", e)
             ScreeningDecision(CallAction.RING, Reason.NONE) to false

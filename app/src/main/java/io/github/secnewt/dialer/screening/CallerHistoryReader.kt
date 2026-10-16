@@ -6,31 +6,70 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.CallLog.Calls
 import android.provider.ContactsContract.PhoneLookup
+import android.telephony.TelephonyManager
 import io.github.secnewt.dialer.calls.RingRules
 
 /**
  * Reads what the phone already knows about a caller: whether they're a contact, whether I've
- * called them, and whether they just called. Nothing leaves the phone.
+ * called them, whether they just called, what I've called lately, and whether the number
+ * could exist at all. Nothing leaves the phone.
  */
 class CallerHistoryReader(private val context: Context) {
 
-    fun read(number: String, nowMillis: Long, screened: List<ScreenedCall>): CallerHistory {
+    fun read(number: String?, nowMillis: Long, screened: List<ScreenedCall>): CallerHistory {
+        // A hidden number: only the emergency call-back matters (emergency services may hide theirs).
+        if (number == null) {
+            val emergency = allowed(Manifest.permission.READ_CALL_LOG) &&
+                runCatching { recentOutgoing(nowMillis).any(::isEmergency) }.getOrDefault(false)
+            return CallerHistory(emergencyCallRecently = emergency)
+        }
         val earlier = screened.map { it.number to it.timeMillis }
         val repeat = RingRules.isRepeat(number, nowMillis, earlier)
+        val madeUp = Exchanges.load(context)?.isMadeUp(number) ?: false
         if (!allowed(Manifest.permission.READ_CONTACTS) || !allowed(Manifest.permission.READ_CALL_LOG)) {
-            return CallerHistory(repeatCaller = repeat)
+            return CallerHistory(repeatCaller = repeat, madeUp = madeUp)
         }
         return try {
+            val dialed = recentOutgoing(nowMillis)
             CallerHistory(
                 inContacts = inContacts(number),
                 calledBefore = calledBefore(number),
                 repeatCaller = repeat || calledRecently(number, nowMillis),
+                calledSomeoneNewRecently = dialed.any { !isEmergency(it) && !inContacts(it) },
+                emergencyCallRecently = dialed.any(::isEmergency),
+                madeUp = madeUp,
                 known = true,
             )
         } catch (e: Exception) {
             // Couldn't read the history: treat nobody as new, so the call rings.
-            CallerHistory(repeatCaller = repeat)
+            CallerHistory(repeatCaller = repeat, madeUp = madeUp)
         }
+    }
+
+    /** Numbers I've dialed within the last hour. */
+    private fun recentOutgoing(nowMillis: Long): List<String> {
+        val since = nowMillis - RECENT_OUTGOING_MILLIS
+        return context.contentResolver.query(
+            Calls.CONTENT_URI,
+            arrayOf(Calls.NUMBER),
+            "${Calls.TYPE} = ? AND ${Calls.DATE} > ?",
+            arrayOf(Calls.OUTGOING_TYPE.toString(), since.toString()),
+            null,
+        )?.use { cursor ->
+            buildList { while (cursor.moveToNext()) cursor.getString(0)?.takeIf { it.isNotBlank() }?.let(::add) }
+        }.orEmpty()
+    }
+
+    private fun isEmergency(number: String): Boolean = try {
+        context.getSystemService(TelephonyManager::class.java).isEmergencyNumber(number)
+    } catch (e: Exception) {
+        // Unsure counts as an emergency number: ringing an extra call is the safe mistake.
+        true
+    }
+
+    companion object {
+        /** How long after I dial someone new (or 911) their call-backs ring. */
+        const val RECENT_OUTGOING_MILLIS = 60 * 60_000L
     }
 
     private fun allowed(permission: String) =
