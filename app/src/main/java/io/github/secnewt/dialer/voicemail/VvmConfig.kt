@@ -54,7 +54,9 @@ data class VvmConfig(
  * `vvm_port_number_int`, `vvm_ssl_enabled_bool`), or null when there's nothing usable.
  */
 fun vvmConfigOf(values: Map<String, Any?>, simOperator: String?): VvmConfig? {
-    val type = when (values["vvm_type_string"] as? String) {
+    // Android reports an empty string, not a missing key, when the SIM has no settings.
+    val typeName = (values["vvm_type_string"] as? String)?.takeIf { it.isNotBlank() }
+    val type = when (typeName) {
         "vvm_type_cvvm" -> VvmType.CVVM
         "vvm_type_omtp" -> VvmType.OMTP
         else -> null
@@ -70,6 +72,6 @@ fun vvmConfigOf(values: Map<String, Any?>, simOperator: String?): VvmConfig? {
         )
     }
     // A type Newt Phone doesn't speak (such as Verizon's vvm3) is not a missing config.
-    if (type == null && values["vvm_type_string"] != null) return null
+    if (type == null && typeName != null) return null
     return if (simOperator in TMOBILE_US_OPERATORS) TMOBILE_DEFAULTS else null
 }

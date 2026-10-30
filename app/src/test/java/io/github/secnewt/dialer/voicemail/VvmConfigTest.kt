@@ -38,6 +38,13 @@ class VvmConfigTest {
     }
 
     @Test
+    fun `blank values from Android count as no settings`() {
+        val blank = mapOf("vvm_type_string" to "", "vvm_destination_number_string" to "", "vvm_port_number_int" to 0, "vvm_ssl_enabled_bool" to false)
+        assertEquals(ConfigSource.TMOBILE_DEFAULTS, vvmConfigOf(blank, "310260")?.source)
+        assertNull(vvmConfigOf(blank, "311480"))
+    }
+
+    @Test
     fun `empty config elsewhere is null`() {
         assertNull(vvmConfigOf(emptyMap(), "311480"))
         assertNull(vvmConfigOf(emptyMap(), null))
