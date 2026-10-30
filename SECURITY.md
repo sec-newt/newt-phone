@@ -14,9 +14,11 @@ confirmed problems as soon as I can and credit you if you'd like.
 
 ## How the app protects your data
 
-- **No internet permission.** The app can't send data off the phone. A check
-  in every build fails if any permission outside `config/allowed-permissions.txt`
-  is added.
+- **Internet for visual voicemail only.** It's off by default; when on, it only
+  reaches the carrier's voicemail server over mobile data. `NetworkUseTest` fails
+  the build if networking or texting code appears outside the voicemail package,
+  and a check in every build fails if any permission outside
+  `config/allowed-permissions.txt` is added.
 - **Only Android can reach the call parts.** The call service, the spam
   screening service and the call-notification buttons accept requests only
   from Android itself or from the app. The one screen other apps can open
