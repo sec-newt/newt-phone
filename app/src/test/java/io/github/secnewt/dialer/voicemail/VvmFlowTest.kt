@@ -69,6 +69,10 @@ class VvmFlowTest {
     fun `sync new message rechecks`() = assertEquals(VvmAction.SendStatus, actionForSync("NM"))
 
     @Test
+    fun `sync while already waiting sends nothing more`() =
+        assertEquals(VvmAction.Stop(VvmText.ALREADY_ASKED), actionForSync("NM", alreadyWaiting = true))
+
+    @Test
     fun `a reply only counts shortly after asking`() {
         assertFalse(expectingReply(null, 1_000))
         assertTrue(expectingReply(1_000, 1_000 + REPLY_WINDOW_MILLIS))

@@ -78,7 +78,7 @@ class VoicemailActivator(private val context: Context, private val store: Voicem
             }
             "SYNC" -> {
                 log(VvmText.NEW_VOICEMAIL)
-                run(actionForSync(fields["ev"]), line)
+                run(actionForSync(fields["ev"], expectingReply(store.requestSentAt, System.currentTimeMillis())), line)
             }
         }
     }

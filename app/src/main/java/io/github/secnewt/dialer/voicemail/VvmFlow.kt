@@ -60,9 +60,12 @@ const val REPLY_WINDOW_MILLIS = 10 * 60 * 1000L
 fun expectingReply(requestSentAt: Long?, nowMillis: Long): Boolean =
     requestSentAt != null && nowMillis >= requestSentAt && nowMillis - requestSentAt <= REPLY_WINDOW_MILLIS
 
-/** A new message or mailbox change: ask again, which brings fresh login details. */
-fun actionForSync(event: String?): VvmAction = when (event) {
-    "NM", "MBU" -> VvmAction.SendStatus
+/**
+ * A new message or mailbox change: ask again, which brings fresh login details. Not while already
+ * waiting on an answer, so a burst of (possibly forged) texts sends at most one request.
+ */
+fun actionForSync(event: String?, alreadyWaiting: Boolean = false): VvmAction = when (event) {
+    "NM", "MBU" -> if (alreadyWaiting) VvmAction.Stop(VvmText.ALREADY_ASKED) else VvmAction.SendStatus
     else -> VvmAction.Stop("Ting sent an update: $event.")
 }
 
@@ -89,5 +92,6 @@ object VvmText {
     fun failed(why: String) = "Connection failed: $why"
     const val WAITING = "Ting hasn't answered the text yet."
     const val NEW_VOICEMAIL = "Ting says there's a new voicemail."
+    const val ALREADY_ASKED = "Already waiting for Ting's answer."
     const val UNASKED_REPLY = "Ignored a voicemail text that came without being asked for."
 }
