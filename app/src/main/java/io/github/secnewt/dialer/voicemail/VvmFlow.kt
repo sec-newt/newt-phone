@@ -50,6 +50,16 @@ fun actionForStatus(reply: StatusReply, activateAlreadySent: Boolean): VvmAction
     else -> if (activateAlreadySent) VvmAction.Stop(VvmText.STILL_NOT_READY) else VvmAction.SendActivate
 }
 
+/** How long after its own request the app listens for Ting's STATUS reply. */
+const val REPLY_WINDOW_MILLIS = 10 * 60 * 1000L
+
+/**
+ * Anyone can send a text that looks like Ting's reply and names a different server, so a reply
+ * only counts shortly after the app asked for one.
+ */
+fun expectingReply(requestSentAt: Long?, nowMillis: Long): Boolean =
+    requestSentAt != null && nowMillis >= requestSentAt && nowMillis - requestSentAt <= REPLY_WINDOW_MILLIS
+
 /** A new message or mailbox change: ask again, which brings fresh login details. */
 fun actionForSync(event: String?): VvmAction = when (event) {
     "NM", "MBU" -> VvmAction.SendStatus
@@ -79,4 +89,5 @@ object VvmText {
     fun failed(why: String) = "Connection failed: $why"
     const val WAITING = "Ting hasn't answered the text yet."
     const val NEW_VOICEMAIL = "Ting says there's a new voicemail."
+    const val UNASKED_REPLY = "Ignored a voicemail text that came without being asked for."
 }

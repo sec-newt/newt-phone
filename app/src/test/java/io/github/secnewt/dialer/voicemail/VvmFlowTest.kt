@@ -2,6 +2,7 @@ package io.github.secnewt.dialer.voicemail
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VvmFlowTest {
@@ -66,6 +67,14 @@ class VvmFlowTest {
 
     @Test
     fun `sync new message rechecks`() = assertEquals(VvmAction.SendStatus, actionForSync("NM"))
+
+    @Test
+    fun `a reply only counts shortly after asking`() {
+        assertFalse(expectingReply(null, 1_000))
+        assertTrue(expectingReply(1_000, 1_000 + REPLY_WINDOW_MILLIS))
+        assertFalse(expectingReply(1_000, 1_000 + REPLY_WINDOW_MILLIS + 1))
+        assertFalse(expectingReply(5_000, 1_000))
+    }
 
     @Test
     fun `config line names the source`() =

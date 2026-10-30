@@ -12,6 +12,7 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.InetSocketAddress
 import java.net.Socket
+import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 import kotlinx.coroutines.CancellationException
 
@@ -69,6 +70,8 @@ class VoicemailActivator(private val context: Context, private val store: Voicem
         val line = line()
         when (prefix) {
             "STATUS" -> {
+                if (!expectingReply(store.requestSentAt, System.currentTimeMillis())) return log(VvmText.UNASKED_REPLY)
+                store.requestSentAt = null
                 val reply = StatusReply.from(fields)
                 log(VvmText.replied(reply))
                 run(actionForStatus(reply, store.activateSent), line)
@@ -115,10 +118,12 @@ class VoicemailActivator(private val context: Context, private val store: Voicem
             line.telephony.setVisualVoicemailSmsFilterSettings(
                 VisualVoicemailSmsFilterSettings.Builder()
                     .setClientPrefix(VVM_CLIENT_PREFIX)
-                    .setDestinationPort(VisualVoicemailSmsFilterSettings.DESTINATION_PORT_ANY)
+                    // Ting answers on the port it was texted on; a plain text could come from anyone.
+                    .setDestinationPort(if (config.port > 0) config.port else VisualVoicemailSmsFilterSettings.DESTINATION_PORT_ANY)
                     .build(),
             )
             line.telephony.sendVisualVoicemailSms(config.destinationNumber, config.port, text(config), null)
+            store.requestSentAt = System.currentTimeMillis()
             log(sentText)
         } catch (e: RuntimeException) {
             log(VvmText.sendFailed(e.javaClass.simpleName))
@@ -136,7 +141,12 @@ class VoicemailActivator(private val context: Context, private val store: Voicem
                 val plain = network.socketFactory.createSocket()
                 plain.connect(address, SOCKET_TIMEOUT_MILLIS)
                 val socket: Socket = if (line.config?.ssl == true) {
-                    (SSLSocketFactory.getDefault() as SSLSocketFactory).createSocket(plain, host, reply.imapPort, true)
+                    val tls = (SSLSocketFactory.getDefault() as SSLSocketFactory)
+                        .createSocket(plain, host, reply.imapPort, true) as SSLSocket
+                    // Check the certificate is for this server, not just any valid certificate.
+                    tls.sslParameters = tls.sslParameters.apply { endpointIdentificationAlgorithm = "HTTPS" }
+                    tls.startHandshake()
+                    tls
                 } else {
                     plain
                 }

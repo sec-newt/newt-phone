@@ -41,12 +41,15 @@ class VoicemailStoreTest {
         store.enabled = true
         store.activateSent = true
         store.saveCredentials(reply)
+        store.requestSentAt = 42
         assertEquals(reply, VoicemailStore(context).credentials())
+        assertEquals(42L, VoicemailStore(context).requestSentAt)
 
         store.turnOff(nowMillis = 5)
         assertFalse(store.enabled)
         assertFalse(store.activateSent)
         assertNull(store.credentials())
+        assertNull(store.requestSentAt)
         assertEquals(listOf(StatusLine(5, VvmText.OFF)), store.lines())
     }
 

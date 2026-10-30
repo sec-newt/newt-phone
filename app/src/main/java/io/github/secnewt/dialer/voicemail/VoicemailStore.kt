@@ -25,6 +25,11 @@ class VoicemailStore(private val prefs: SharedPreferences) {
         get() = prefs.getBoolean(KEY_ACTIVATE_SENT, false)
         set(value) = prefs.edit().putBoolean(KEY_ACTIVATE_SENT, value).apply()
 
+    /** When the app last texted Ting a request, or null; replies only count soon after. */
+    var requestSentAt: Long?
+        get() = prefs.getLong(KEY_REQUEST_SENT_AT, -1).takeIf { it >= 0 }
+        set(value) = prefs.edit().apply { if (value == null) remove(KEY_REQUEST_SENT_AT) else putLong(KEY_REQUEST_SENT_AT, value) }.apply()
+
     fun saveCredentials(reply: StatusReply) {
         prefs.edit()
             .putString(KEY_ST, reply.provisioning)
@@ -82,6 +87,7 @@ class VoicemailStore(private val prefs: SharedPreferences) {
     fun turnOff(nowMillis: Long = System.currentTimeMillis()) {
         enabled = false
         activateSent = false
+        requestSentAt = null
         clearCredentials()
         saveLines(listOf(StatusLine(nowMillis, VvmText.OFF)))
     }
@@ -97,6 +103,7 @@ class VoicemailStore(private val prefs: SharedPreferences) {
         const val MAX_LINES = 20
         private const val KEY_ENABLED = "enabled"
         private const val KEY_ACTIVATE_SENT = "activate_sent"
+        private const val KEY_REQUEST_SENT_AT = "request_sent_at"
         private const val KEY_ST = "st"
         private const val KEY_RC = "rc"
         private const val KEY_HOST = "host"
