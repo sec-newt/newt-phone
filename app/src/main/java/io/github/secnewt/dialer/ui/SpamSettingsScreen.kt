@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.announce.AnnounceSettings
 import io.github.secnewt.dialer.calls.RingSettings
+import io.github.secnewt.dialer.voicemail.StatusLine
 import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
 import io.github.secnewt.dialer.screening.SpamSettings
@@ -107,6 +108,10 @@ fun SpamSettingsScreen(
     ringSettings: RingSettings = RingSettings(),
     onRingSettingsChange: (RingSettings) -> Unit = {},
     nowMillis: Long = System.currentTimeMillis(),
+    voicemailEnabled: Boolean = false,
+    voicemailLines: List<StatusLine> = emptyList(),
+    onVoicemailEnabledChange: (Boolean) -> Unit = {},
+    voicemailNowMillis: Long = nowMillis,
 ) {
     var choosing by remember { mutableStateOf<CallerType?>(null) }
     var choosingAnnounce by remember { mutableStateOf(false) }
@@ -152,6 +157,9 @@ fun SpamSettingsScreen(
 
             item { SectionHeading("Ringing", modifier = Modifier.padding(top = 16.dp)) }
             item { RingingSection(ringSettings, isPhoneApp, onRingSettingsChange) }
+
+            item { SectionHeading("Visual voicemail", modifier = Modifier.padding(top = 16.dp)) }
+            item { VoicemailSection(voicemailEnabled, voicemailLines, voicemailNowMillis, onVoicemailEnabledChange) }
 
             item { SectionHeading("Spam protection", modifier = Modifier.padding(top = 16.dp)) }
 

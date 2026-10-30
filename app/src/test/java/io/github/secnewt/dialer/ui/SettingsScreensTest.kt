@@ -34,6 +34,12 @@ import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
 import io.github.secnewt.dialer.screening.SpamSettings
 import io.github.secnewt.ui.NewtTheme
+import io.github.secnewt.dialer.voicemail.ConfigSource
+import io.github.secnewt.dialer.voicemail.StatusLine
+import io.github.secnewt.dialer.voicemail.StatusReply
+import io.github.secnewt.dialer.voicemail.VvmConfig
+import io.github.secnewt.dialer.voicemail.VvmText
+import io.github.secnewt.dialer.voicemail.VvmType
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -386,5 +392,55 @@ class SettingsScreensTest {
         composeRule.setContent { NewtTheme(darkTheme = false) { Settings(SpamSettings()) } }
         composeRule.onNodeWithText("Caller announcement").assertIsDisplayed()
         composeRule.onNodeWithText("Announce").assertIsDisplayed()
+    }
+
+    private val voicemailSteps = listOf(
+        StatusLine(NOW, VvmText.config(VvmConfig(VvmType.CVVM, "122", 1808, false, ConfigSource.TMOBILE_DEFAULTS))),
+        StatusLine(NOW, VvmText.STATUS_SENT),
+        StatusLine(NOW + 4_000, VvmText.replied(StatusReply.from(mapOf("st" to "R", "rc" to "0")))),
+        StatusLine(NOW + 4_000, VvmText.CONNECTING),
+        StatusLine(NOW + 6_000, VvmText.loggedIn(3)),
+    )
+
+    @Composable
+    private fun Voicemail(enabled: Boolean, lines: List<StatusLine> = voicemailSteps, onChange: (Boolean) -> Unit = {}) =
+        Surface {
+            Column(Modifier.padding(16.dp)) { VoicemailSection(enabled, lines, nowMillis = NOW + 10_000, onEnabledChange = onChange) }
+        }
+
+    @Test
+    fun voicemailOffDark() = render("voicemail_off_dark", dark = true) { Voicemail(enabled = false) }
+
+    @Test
+    fun voicemailStatusDark() = render("voicemail_on-status_dark", dark = true) { Voicemail(enabled = true) }
+
+    @Test
+    fun voicemailStatusLight() = render("voicemail_on-status_light", dark = false) { Voicemail(enabled = true) }
+
+    @Test
+    fun voicemailStatusLargestFont() = render("voicemail_on-status_light_font200", dark = false, fontScale = 2f) { Voicemail(enabled = true) }
+
+    @Test
+    fun voicemailSwitchTurnsOn() {
+        val changes = mutableListOf<Boolean>()
+        composeRule.setContent { NewtTheme(darkTheme = true) { Voicemail(enabled = false) { changes += it } } }
+        composeRule.onNodeWithText("Visual voicemail").performClick()
+        assertEquals(listOf(true), changes)
+    }
+
+    @Test
+    fun voicemailSaysWhenTingHasNotAnswered() {
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                VoicemailSection(true, listOf(StatusLine(NOW, VvmText.STATUS_SENT)), nowMillis = NOW + 3 * 60_000, onEnabledChange = {})
+            }
+        }
+        composeRule.onNodeWithText(VvmText.WAITING).assertIsDisplayed()
+    }
+
+    @Test
+    fun voicemailSectionIsInSettings() {
+        composeRule.setContent { NewtTheme(darkTheme = true) { Settings(SpamSettings()) } }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Download your voicemails and read them here. Uses mobile data to reach Ting, nothing else."))
     }
 }

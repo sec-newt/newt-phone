@@ -97,7 +97,11 @@ import io.github.secnewt.ui.NewtLookTheme
 import io.github.secnewt.ui.NewtTheme
 import io.github.secnewt.ui.newtContainerColor
 import io.github.secnewt.ui.rememberFamilyLook
+import io.github.secnewt.dialer.voicemail.StatusLine
+import io.github.secnewt.dialer.voicemail.VoicemailActivator
+import io.github.secnewt.dialer.voicemail.VoicemailStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.ZoneId
@@ -124,12 +128,18 @@ class MainActivity : ComponentActivity() {
     private val photoLoader by lazy { ContactsPhotoLoader(this) }
     private val callLogRepo by lazy { CallLogRepository(this) }
     private val caller by lazy { Caller(this) }
+    private val voicemailStore by lazy { VoicemailStore(this) }
+    private val voicemailActivator by lazy { VoicemailActivator(this, voicemailStore) }
     private val systemBlockList by lazy { SystemBlockList(this) }
 
     /** True once exact numbers are known to be on Android's block list as well. */
     private var systemBlockListSynced by mutableStateOf(false)
 
     private var callLogAccess by mutableStateOf(false)
+    private var voicemailEnabled by mutableStateOf(false)
+    private var voicemailLines by mutableStateOf(emptyList<StatusLine>())
+    /** Ticks while Settings polls, so "Ting hasn't answered" can appear on its own. */
+    private var voicemailNow by mutableStateOf(0L)
     private var callGroups by mutableStateOf(emptyList<CallGroup>())
     private var callMessage by mutableStateOf<String?>(null)
 
@@ -217,6 +227,14 @@ class MainActivity : ComponentActivity() {
                         val liveCalls by CallManager.calls.collectAsState()
                         val ongoingCall = LiveCalls.primary(liveCalls)?.takeIf { it.phase != CallPhase.ENDED }
 
+                        // The voicemail service writes its steps from the background; show them as they come.
+                        LaunchedEffect(screen == Screen.SETTINGS && voicemailEnabled && resumed) {
+                            while (screen == Screen.SETTINGS && voicemailEnabled && resumed) {
+                                voicemailLines = voicemailStore.lines()
+                                voicemailNow = System.currentTimeMillis()
+                                delay(2_000)
+                            }
+                        }
                         LaunchedEffect(openRecents) {
                             if (openRecents) {
                                 screen = Screen.TABS
@@ -393,6 +411,10 @@ class MainActivity : ComponentActivity() {
                                     keypadTones = it
                                     store.saveKeypadTones(it)
                                 },
+                                voicemailEnabled = voicemailEnabled,
+                                voicemailLines = voicemailLines,
+                                onVoicemailEnabledChange = ::setVisualVoicemail,
+                                voicemailNowMillis = voicemailNow,
                             )
                             Screen.SPAM -> SpamProtectionScreen(
                                 roleHeld = screeningRoleHeld,
@@ -538,6 +560,24 @@ class MainActivity : ComponentActivity() {
         refresh()
     }
 
+    /** Turns visual voicemail on (asking Ting by text) or off (telling Ting to stop). */
+    private fun setVisualVoicemail(on: Boolean) {
+        voicemailEnabled = on
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                if (on) {
+                    voicemailStore.clearLines()
+                    voicemailStore.activateSent = false
+                    voicemailStore.enabled = true
+                    voicemailActivator.start()
+                } else {
+                    voicemailActivator.stop()
+                }
+            }
+            voicemailLines = voicemailStore.lines()
+        }
+    }
+
     private fun refresh() {
         val roles = getSystemService(RoleManager::class.java)
         screeningRoleHeld = roles.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)
@@ -548,6 +588,9 @@ class MainActivity : ComponentActivity() {
         syncWithSystemBlockList()
         announce = store.announceSettings()
         keypadTones = store.keypadTones()
+        voicemailEnabled = voicemailStore.enabled
+        voicemailLines = voicemailStore.lines()
+        voicemailNow = System.currentTimeMillis()
         ringSettings = store.ringSettings()
         refreshContacts()
         // Every time the app comes back, so Recents shows new calls and current contact names,

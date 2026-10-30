@@ -27,7 +27,7 @@ Contacts and starred numbers skip scoring entirely, so a real contact is never s
 - **Made-up numbers (built Oct 16, 2026):** the exchange belongs to no phone company per NANPA's public code reports (reports.nanpa.com, updated daily; `scripts/build-exchanges.py` turns them into a 125 KB bit table in the app). Balanced silences, Strict blocks. 972 is almost fully assigned, so this mostly catches fakes in other area codes. The data is refreshed by rerunning the script; new exchanges usually take effect weeks after NANPA assigns them, so a monthly refresh is enough.
 - **Let through (built Oct 16, 2026):** new numbers ring for an hour after I call a non-contact (on by default), while "Expecting a call" is set (1, 3 or 8 hours), and every call rings for an hour after an emergency call (always on). Ideas from SpamBlocker (github.com/aj3423/SpamBlocker).
 - **Research (Oct 16, 2026):** complaint lists barely help against rotating spoofed numbers. USENIX Security 2020 (Prasad et al.) found most campaigns rotate caller IDs and list-based blocking ineffective; in current FTC data only ~3% of numbers recur week to week, and none of my Oct 15 spam numbers appeared in 5 weeks of FTC + FCC complaints. So the lists below are labels only, never a reason to block.
-- **Offline spam list (a backstop, labels only):** built from public complaint data (the FTC's Do Not Call reports) by a weekly GitHub Actions job and shipped inside a signed app update, which Obtainium installs. **The app never gets the internet permission**, and the build's permission check fails if it ever appears. Lookups happen on the phone; no number is ever sent anywhere. Chosen over a separate downloader app or internet in the app itself (Oct 16, 2026). To check: whether the FTC data needs a free api.data.gov key (a CI secret), and its terms.
+- **Offline spam list (a backstop, labels only):** built from public complaint data (the FTC's Do Not Call reports) by a weekly GitHub Actions job and shipped inside a signed app update, which Obtainium installs. **This feature never uses the internet.** (The app's only internet use is visual voicemail, approved Oct 29, 2026; `NetworkUseTest` keeps it to that code.) Lookups happen on the phone; no number is ever sent anywhere. Chosen over a separate downloader app or internet in the app itself (Oct 16, 2026). To check: whether the FTC data needs a free api.data.gov key (a CI secret), and its terms.
 - **My own reports:** marking a call as spam adds it to the block list, and the blocked-calls log lets me undo mistakes.
 - **Paid databases** (Hiya, Truecaller, Nomorobo): skipped. They cost money and send callers' numbers to a third party, which goes against the privacy goal.
 
@@ -68,7 +68,7 @@ Everything here works with standard Android APIs on GrapheneOS, and none of it n
 | In-call screen | Mute, speaker, hold, keypad, Bluetooth, merge or swap | In-call service | High |
 | System block list | Shares blocks with the OS, so they carry over if I switch dialers | Blocked-numbers provider (default dialer only) | Low |
 
-**Stretch ideas:** let starred contacts ring through silent mode; let a number through DND if it calls twice within 3 minutes; quiet hours separate from DND; visual voicemail (depends on the carrier, and probably unsupported on Ting).
+**Stretch ideas:** let starred contacts ring through silent mode; let a number through DND if it calls twice within 3 minutes; quiet hours separate from DND; visual voicemail (in progress: Ting supports it; see `docs/superpowers/specs/2026-10-30-visual-voicemail-design.md`).
 
 ## Look and readability
 
@@ -123,7 +123,7 @@ GrapheneOS supports everything this app needs. A few of its privacy features nee
 - **Contact Scopes:** if the app only gets scoped contacts, it can't tell contacts from unknown callers. Give it full contacts access.
 - **Text-to-speech voice:** caller announcement needs a TTS engine. If none is installed, a FOSS one from F-Droid works, such as RHVoice or eSpeak NG. Check Settings → Accessibility → Text-to-speech output.
 - **Roles:** Settings → Apps → Default apps → Caller ID & spam app (screening, Phase 1) and Phone app (Phase 3).
-- **Network permission:** the app doesn't need internet for Phase 1. Leave GrapheneOS's Network permission off unless an optional downloaded spam list is turned on.
+- **Network permission:** only visual voicemail uses it. GrapheneOS's Network permission must be on for visual voicemail to work; leave it off if visual voicemail is off.
 - **Installing:** allow "install unknown apps" for the browser or Obtainium. Updates stay signed with the same key, so they install over the previous build.
 - **Prior art to study:** Fossify Phone (open-source dialer) and Yet Another Call Blocker (open-source, offline spam lists), both on F-Droid.
 
