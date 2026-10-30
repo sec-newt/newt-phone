@@ -138,6 +138,8 @@ class MainActivity : ComponentActivity() {
     private var callLogAccess by mutableStateOf(false)
     private var voicemailEnabled by mutableStateOf(false)
     private var voicemailLines by mutableStateOf(emptyList<StatusLine>())
+    /** Ticks while Settings polls, so "Ting hasn't answered" can appear on its own. */
+    private var voicemailNow by mutableStateOf(0L)
     private var callGroups by mutableStateOf(emptyList<CallGroup>())
     private var callMessage by mutableStateOf<String?>(null)
 
@@ -229,6 +231,7 @@ class MainActivity : ComponentActivity() {
                         LaunchedEffect(screen == Screen.SETTINGS && voicemailEnabled && resumed) {
                             while (screen == Screen.SETTINGS && voicemailEnabled && resumed) {
                                 voicemailLines = voicemailStore.lines()
+                                voicemailNow = System.currentTimeMillis()
                                 delay(2_000)
                             }
                         }
@@ -411,6 +414,7 @@ class MainActivity : ComponentActivity() {
                                 voicemailEnabled = voicemailEnabled,
                                 voicemailLines = voicemailLines,
                                 onVoicemailEnabledChange = ::setVisualVoicemail,
+                                voicemailNowMillis = voicemailNow,
                             )
                             Screen.SPAM -> SpamProtectionScreen(
                                 roleHeld = screeningRoleHeld,
@@ -586,6 +590,7 @@ class MainActivity : ComponentActivity() {
         keypadTones = store.keypadTones()
         voicemailEnabled = voicemailStore.enabled
         voicemailLines = voicemailStore.lines()
+        voicemailNow = System.currentTimeMillis()
         ringSettings = store.ringSettings()
         refreshContacts()
         // Every time the app comes back, so Recents shows new calls and current contact names,

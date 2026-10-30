@@ -113,13 +113,16 @@ class VoicemailActivator(private val context: Context, private val store: Voicem
     }
 
     private fun send(line: Line, sentText: String, text: (VvmConfig) -> String) {
+        // Turned off meanwhile: don't set the filter up again.
+        if (!store.enabled) return
         val config = line.config ?: return log(VvmText.noConfig(line.operator))
         try {
             line.telephony.setVisualVoicemailSmsFilterSettings(
                 VisualVoicemailSmsFilterSettings.Builder()
                     .setClientPrefix(VVM_CLIENT_PREFIX)
-                    // Ting answers on the port it was texted on; a plain text could come from anyone.
-                    .setDestinationPort(if (config.port > 0) config.port else VisualVoicemailSmsFilterSettings.DESTINATION_PORT_ANY)
+                    // Any port: a reply the filter misses lands in Messages, login details and all.
+                    // Forged replies are handled by only listening shortly after asking.
+                    .setDestinationPort(VisualVoicemailSmsFilterSettings.DESTINATION_PORT_ANY)
                     .build(),
             )
             line.telephony.sendVisualVoicemailSms(config.destinationNumber, config.port, text(config), null)
@@ -132,6 +135,7 @@ class VoicemailActivator(private val context: Context, private val store: Voicem
 
     private suspend fun login(reply: StatusReply, line: Line) {
         val host = reply.host ?: return log(VvmText.NO_SERVER)
+        if (!store.enabled) return
         store.saveCredentials(reply)
         log(VvmText.CONNECTING)
         val result = try {
@@ -165,6 +169,8 @@ class VoicemailActivator(private val context: Context, private val store: Voicem
         } catch (e: Exception) {
             return log(connectFailureLine(e))
         }
+        // Turned off while connecting: the login was already forgotten, keep it that way.
+        if (!store.enabled) return store.clearCredentials()
         log(if (result == null) VvmText.NO_DATA else probeLine(result))
     }
 }

@@ -3,6 +3,7 @@ package io.github.secnewt.dialer.voicemail
 import android.telecom.PhoneAccountHandle
 import android.telephony.VisualVoicemailService
 import android.telephony.VisualVoicemailSms
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,7 +16,11 @@ import kotlinx.coroutines.launch
  */
 class NewtVoicemailService : VisualVoicemailService() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    // This runs in the phone app's process, so an unexpected error becomes a status line, never a crash.
+    private val onError = CoroutineExceptionHandler { _, e ->
+        VoicemailStore(this).addLine(VvmText.failed(e.javaClass.simpleName), System.currentTimeMillis())
+    }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + onError)
     private val activator by lazy { VoicemailActivator(this, VoicemailStore(this)) }
 
     override fun onCellServiceConnected(task: VisualVoicemailTask, phoneAccountHandle: PhoneAccountHandle) {

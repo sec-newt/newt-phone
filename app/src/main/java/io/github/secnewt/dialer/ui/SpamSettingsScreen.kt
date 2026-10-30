@@ -111,6 +111,7 @@ fun SpamSettingsScreen(
     voicemailEnabled: Boolean = false,
     voicemailLines: List<StatusLine> = emptyList(),
     onVoicemailEnabledChange: (Boolean) -> Unit = {},
+    voicemailNowMillis: Long = nowMillis,
 ) {
     var choosing by remember { mutableStateOf<CallerType?>(null) }
     var choosingAnnounce by remember { mutableStateOf(false) }
@@ -158,7 +159,7 @@ fun SpamSettingsScreen(
             item { RingingSection(ringSettings, isPhoneApp, onRingSettingsChange) }
 
             item { SectionHeading("Visual voicemail", modifier = Modifier.padding(top = 16.dp)) }
-            item { VoicemailSection(voicemailEnabled, voicemailLines, nowMillis, onVoicemailEnabledChange) }
+            item { VoicemailSection(voicemailEnabled, voicemailLines, voicemailNowMillis, onVoicemailEnabledChange) }
 
             item { SectionHeading("Spam protection", modifier = Modifier.padding(top = 16.dp)) }
 

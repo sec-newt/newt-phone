@@ -429,6 +429,16 @@ class SettingsScreensTest {
     }
 
     @Test
+    fun voicemailSaysWhenTingHasNotAnswered() {
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                VoicemailSection(true, listOf(StatusLine(NOW, VvmText.STATUS_SENT)), nowMillis = NOW + 3 * 60_000, onEnabledChange = {})
+            }
+        }
+        composeRule.onNodeWithText(VvmText.WAITING).assertIsDisplayed()
+    }
+
+    @Test
     fun voicemailSectionIsInSettings() {
         composeRule.setContent { NewtTheme(darkTheme = true) { Settings(SpamSettings()) } }
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Download your voicemails and read them here. Uses mobile data to reach Ting, nothing else."))
