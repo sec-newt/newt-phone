@@ -30,14 +30,6 @@ android.permission.WAKE_LOCK
 # Android's own ringtone and vibration are silenced.
 android.permission.VIBRATE
 #
-# Visual voicemail (off by default): reach Ting's voicemail server over mobile data.
-# Nothing else in the app goes online; NetworkUseTest enforces it.
-android.permission.INTERNET
-android.permission.CHANGE_NETWORK_STATE
-# Android requires it for the visual voicemail texts to Ting's voicemail number;
-# granted with the default phone app role. No other texts are sent.
-android.permission.SEND_SMS
-#
 # Follows Newt Home's look (terminal or clean). Signature-level, so Newt Home
 # grants it only to Newt-signed apps; it shares nothing but which look.
 io.github.secnewt.home.permission.READ_LOOK

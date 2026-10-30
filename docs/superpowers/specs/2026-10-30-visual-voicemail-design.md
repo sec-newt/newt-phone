@@ -2,6 +2,14 @@
 
 Oct 30, 2026
 
+> **Outcome: dropped (Oct 30, 2026).** Step 1 shipped in PR #49 and was tested on the phone.
+> Android has no Ting carrier settings, so it used T-Mobile's (CVVM, 122, port 1808). Ting's
+> voicemail system replied right away with `st=B` (blocked), and number 128 texted a link to
+> T-Mobile's reseller app ("My Visual Voicemail", `com.vna.service.vvm`). That app failed with
+> "Activation error, ERR: VMS2200-1005". Visual voicemail is on in the account but only served
+> to T-Mobile's own app, so it was dropped and the code and the internet permission were removed.
+> Making Newt Phone pose as T-Mobile's app was ruled out.
+
 ## Why
 
 Most of my voicemails aren't important. Today I have to call voicemail and

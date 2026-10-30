@@ -3,8 +3,7 @@
 
     <!-- Phone and Call log are only used for caller announcement, and only requested when it is
          turned on. Contacts is used by announcement (names) and by Favorites.
-         Only visual voicemail uses the network, and only to reach Ting; numbers and names never
-         leave the phone. -->
+         The app has no internet access, so numbers and names never leave the phone. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
@@ -26,14 +25,6 @@
     <!-- Vibrate for an incoming call while the ringtone takes turns with the caller announcement
          (Android's own ringtone and vibration are silenced then). -->
     <uses-permission android:name="android.permission.VIBRATE" />
-
-    <!-- Visual voicemail only (off until turned on in Settings): reach Ting's voicemail
-         server over mobile data. No other part of the app uses the network; a test enforces it. -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
-    <!-- Android requires this for the visual voicemail texts to Ting's voicemail number. Granted
-         with the default phone app role; the app sends no other texts. -->
-    <uses-permission android:name="android.permission.SEND_SMS" />
 
     <!-- Calling needs a phone line, but declaring it optional keeps the app installable on
          devices without one (they simply can't place calls). -->
@@ -145,17 +136,6 @@
                 <action android:name="android.intent.action.PHONE_STATE" />
             </intent-filter>
         </receiver>
-
-        <!-- Android hands visual voicemail texts from Ting to this service while the app is the
-             default phone app. -->
-        <service
-            android:name=".voicemail.NewtVoicemailService"
-            android:exported="true"
-            android:permission="android.permission.BIND_VISUAL_VOICEMAIL_SERVICE">
-            <intent-filter>
-                <action android:name="android.telephony.VisualVoicemailService" />
-            </intent-filter>
-        </service>
 
         <!-- The missed-call count for other Newt apps (see the permission above). Read-only. -->
         <provider

@@ -115,7 +115,7 @@ fun RingingSection(settings: RingSettings, isPhoneApp: Boolean?, onChange: (Ring
 private enum class QuietEnd { START, END }
 
 @Composable
-internal fun SwitchRow(title: String, detail: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(title: String, detail: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
