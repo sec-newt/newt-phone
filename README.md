@@ -24,11 +24,8 @@ with words, and a voice that says who is calling.
 
 ## Privacy
 
-- **Internet is for visual voicemail only.** Visual voicemail is off until you turn
-  it on, and then it only reaches Ting's voicemail server over mobile data, never
-  Wi-Fi. No other part of the app can go online: a test (`NetworkUseTest`) fails the
-  build if networking code appears anywhere else, and the build fails if any other
-  permission is added (see `config/allowed-permissions.txt`).
+- **The app has no internet permission.** It can't send anything anywhere, and
+  the build fails if that permission is ever added (see `config/allowed-permissions.txt`).
 - Call history, contacts and settings stay on the phone, in the app's private
   storage, and are excluded from backups.
 - No Google Play Services, Firebase, analytics or ads.
