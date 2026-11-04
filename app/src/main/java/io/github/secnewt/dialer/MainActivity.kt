@@ -94,6 +94,7 @@ import io.github.secnewt.dialer.ui.SpamSettingsScreen
 import io.github.secnewt.dialer.ui.SystemSetting
 import io.github.secnewt.dialer.ui.Tab
 import io.github.secnewt.ui.NewtLookTheme
+import io.github.secnewt.ui.NewtReadingText
 import io.github.secnewt.ui.NewtTheme
 import io.github.secnewt.ui.newtContainerColor
 import io.github.secnewt.ui.rememberFamilyLook
@@ -314,7 +315,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
                                 ) { page ->
                                     when (Tab.entries[page]) {
-                                        Tab.RECENTS -> RecentsScreen(
+                                        Tab.RECENTS -> NewtReadingText { RecentsScreen(
                                             groups = callGroups,
                                             hasAccess = callLogAccess,
                                             screened = recentCalls,
@@ -329,7 +330,7 @@ class MainActivity : ComponentActivity() {
                                             message = callMessage,
                                             onNumberAction = ::onNumberAction,
                                             isBlocked = { BlockList.match(blockRules, it) != null },
-                                        )
+                                        ) }
                                         Tab.FAVORITES -> FavoritesScreen(
                                             contacts = contacts,
                                             hasAccess = contactsAccess,
@@ -357,7 +358,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            Screen.SETTINGS -> SpamSettingsScreen(
+                            Screen.SETTINGS -> NewtReadingText { SpamSettingsScreen(
                                 settings = settings,
                                 blockListSize = blockRules.size,
                                 onSettingsChange = ::updateSettings,
@@ -393,7 +394,7 @@ class MainActivity : ComponentActivity() {
                                     keypadTones = it
                                     store.saveKeypadTones(it)
                                 },
-                            )
+                            ) }
                             Screen.SPAM -> SpamProtectionScreen(
                                 roleHeld = screeningRoleHeld,
                                 recentCalls = recentCalls,
