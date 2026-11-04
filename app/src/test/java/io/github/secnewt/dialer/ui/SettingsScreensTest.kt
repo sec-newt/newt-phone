@@ -35,16 +35,9 @@ import io.github.secnewt.dialer.screening.ProtectionLevel
 import io.github.secnewt.dialer.screening.SpamSettings
 import io.github.secnewt.ui.NewtTheme
 import androidx.compose.ui.test.onNodeWithContentDescription
-import io.github.secnewt.test.assertTextAtLeast
 import io.github.secnewt.ui.NewtSettingsCard
 import io.github.secnewt.ui.NewtReadingText
 import org.junit.Assert.assertEquals
-import org.hamcrest.TypeSafeMatcher
-import org.hamcrest.Matcher
-import org.hamcrest.Description
-import com.google.android.apps.common.testing.accessibility.framework.checks.TextContrastCheck
-import com.google.android.apps.common.testing.accessibility.framework.AccessibilityViewCheckResult
-import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckPreset
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,10 +56,6 @@ class SettingsScreensTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    /**
-     * [redesigned] screens (the UI refresh) show in reading text, as in the app, and fail on any
-     * text under 16sp at the normal font size.
-     */
     private fun render(
         name: String,
         dark: Boolean,
@@ -75,52 +64,9 @@ class SettingsScreensTest {
         redesigned: Boolean = true,
         contrastFalseAlarm: String? = null,
         content: @Composable () -> Unit,
-    ) {
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                NewtTheme(darkTheme = dark) {
-                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") {
-                        if (redesigned) NewtReadingText(content) else content()
-                    }
-                }
-            }
-        }
-        composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
-        composeRule.onRoot().checkRoboAccessibility(
-            RoborazziATFAccessibilityCheckOptions(
-                checker = RoborazziATFAccessibilityChecker(
-                    checks = AccessibilityCheckPreset.getAccessibilityHierarchyChecksForPreset(AccessibilityCheckPreset.LATEST),
-                    suppressions = contrastFalseAlarmOn(contrastFalseAlarm),
-                ),
-                failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning,
-            )
-        )
-        if (redesigned && fontScale == 1f) composeRule.assertTextAtLeast(16f)
-    }
+    ) = composeRule.renderScreen(name, dark, fontScale, terminal, redesigned, contrastFalseAlarm, content)
 
-    /**
-     * Ignores the text-contrast check for one label only. The checker estimates colors from its
-     * own picture and can miss white text on the blue-to-purple fill: it reported "Watch" as 1.01:1
-     * (purple on purple) while the screenshot's pixels are white (255,255,255) on #1A43A3–#5E33B0,
-     * about 7.6:1. The library's TonesTest proves text on the fill is 7:1 or better.
-     */
-    private fun contrastFalseAlarmOn(label: String?): Matcher<in AccessibilityViewCheckResult> =
-        object : TypeSafeMatcher<AccessibilityViewCheckResult>() {
-            override fun matchesSafely(result: AccessibilityViewCheckResult): Boolean =
-                label != null &&
-                    result.sourceCheckClass == TextContrastCheck::class.java &&
-                    result.element?.text?.toString() == label
-
-            override fun describeTo(description: Description) {
-                description.appendText("contrast false alarm on \"$label\"")
-            }
-        }
-
-    /** Settings in reading text, for behavior tests. */
-    private fun showSettings(content: @Composable () -> Unit) = composeRule.setContent {
-        NewtTheme(darkTheme = true) { NewtReadingText(content) }
-    }
+    private fun showSettings(content: @Composable () -> Unit) = composeRule.showScreen(content)
 
     private val custom = SpamSettings(myNumber = "5550142290")
         .withLevel(ProtectionLevel.STRICT)
