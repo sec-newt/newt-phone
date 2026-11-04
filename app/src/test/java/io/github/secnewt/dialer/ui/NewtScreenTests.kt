@@ -4,7 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
@@ -25,7 +28,8 @@ import org.hamcrest.TypeSafeMatcher
 
 /**
  * A screenshot plus accessibility checks. [redesigned] screens (the UI refresh) show in reading
- * text, as in the app, and fail on any text under 16sp at the normal font size.
+ * text, as in the app, and fail on any text under 16sp at the normal font size. [scrollTo] checks
+ * the part of a long screen around that text instead of the top.
  */
 @OptIn(ExperimentalRoborazziApi::class)
 fun ComposeContentTestRule.renderScreen(
@@ -35,6 +39,7 @@ fun ComposeContentTestRule.renderScreen(
     terminal: Boolean = false,
     redesigned: Boolean = true,
     contrastFalseAlarm: String? = null,
+    scrollTo: String? = null,
     content: @Composable () -> Unit,
 ) {
     setContent {
@@ -47,6 +52,8 @@ fun ComposeContentTestRule.renderScreen(
             }
         }
     }
+    // Long lists only build what's on screen: scroll so the part being checked is really there.
+    if (scrollTo != null) onNode(hasScrollAction()).performScrollToNode(hasText(scrollTo))
     onRoot().captureRoboImage("build/screenshots/$name.png")
     onRoot().checkRoboAccessibility(
         RoborazziATFAccessibilityCheckOptions(
@@ -69,7 +76,9 @@ fun ComposeContentTestRule.showScreen(content: @Composable () -> Unit) = setCont
  * Ignores the text-contrast check for one label only. The checker estimates colors from its
  * own picture and can miss white text on the blue-to-purple fill: it reported "Watch" as 1.01:1
  * (purple on purple) while the screenshot's pixels are white (255,255,255) on #1A43A3–#5E33B0,
- * about 7.6:1. The library's TonesTest proves text on the fill is 7:1 or better.
+ * about 7.6:1. In dark mode it compared two shades of the fill (#A9A0F8 on #A7A0F7) although the
+ * commonest color there is the #0A0B10 text, about 9:1. The library's TonesTest proves text on
+ * the fill is 7:1 or better.
  */
 private fun contrastFalseAlarmOn(label: String?): Matcher<in AccessibilityViewCheckResult> =
     object : TypeSafeMatcher<AccessibilityViewCheckResult>() {

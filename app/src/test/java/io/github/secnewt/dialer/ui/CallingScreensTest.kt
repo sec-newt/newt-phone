@@ -155,6 +155,11 @@ class CallingScreensTest {
     fun recentsLargestFont() = composeRule.renderScreen("recents_dark_font200", dark = true, fontScale = 2f) { Recents() }
 
     @Test
+    fun recentsOlderCallsLargestFont() = composeRule.renderScreen(
+        "recents_older_dark_font200", dark = true, fontScale = 2f, scrollTo = "Blocked number",
+    ) { Recents() }
+
+    @Test
     fun recentsNoAccess() = composeRule.renderScreen("recents_no-access_dark", dark = true) { Recents(hasAccess = false, roleHeld = false) }
 
     @Test

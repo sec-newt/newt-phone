@@ -64,7 +64,7 @@ class SettingsScreensTest {
         redesigned: Boolean = true,
         contrastFalseAlarm: String? = null,
         content: @Composable () -> Unit,
-    ) = composeRule.renderScreen(name, dark, fontScale, terminal, redesigned, contrastFalseAlarm, content)
+    ) = composeRule.renderScreen(name, dark, fontScale, terminal, redesigned, contrastFalseAlarm, content = content)
 
     private fun showSettings(content: @Composable () -> Unit) = composeRule.showScreen(content)
 
@@ -100,6 +100,30 @@ class SettingsScreensTest {
 
     @Test
     fun settingsCustomDark() = render("settings_custom_dark", dark = true) { Settings(custom.copy(observeOnly = false)) }
+
+    // The lower cards, which the top-of-screen pictures never reach.
+
+    @Test
+    fun settingsSpamCardCustomDark() = composeRule.renderScreen("settings_spam-card_custom_dark", dark = true, scrollTo = "Block list") {
+        Settings(custom.copy(observeOnly = false))
+    }
+
+    @Test
+    fun settingsSpamCardLargestFont() = composeRule.renderScreen(
+        "settings_spam-card_light_font200", dark = false, fontScale = 2f, scrollTo = "Unknown callers", contrastFalseAlarm = "Watch",
+    ) { Settings(custom) }
+
+    @Test
+    fun settingsPhoneCardDark() = composeRule.renderScreen(
+        "settings_phone-card_dark", dark = true, scrollTo = "Hearing aids and TTY", contrastFalseAlarm = "Watch",
+    ) {
+        Settings(SpamSettings())
+    }
+
+    @Test
+    fun settingsPhoneCardLargestFont() = composeRule.renderScreen(
+        "settings_phone-card_light_font200", dark = false, fontScale = 2f, scrollTo = "Hearing aids and TTY",
+    ) { Settings(SpamSettings()) }
 
     @Test
     fun settingsLargestFont() = render("settings_default_light_font200", dark = false, fontScale = 2f) {

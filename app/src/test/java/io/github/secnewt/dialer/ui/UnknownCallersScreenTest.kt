@@ -74,6 +74,16 @@ class UnknownCallersScreenTest {
         UnknownCallersScreen(SpamSettings(), onSettingsChange = {}, onBack = {}, nowMillis = NOW)
     }
 
+    @Test
+    fun letThroughDark() = composeRule.renderScreen("unknown-callers_let-through_dark", dark = true, scrollTo = "Expecting a call") {
+        UnknownCallersScreen(SpamSettings(observeOnly = false, expectingUntil = NOW + 3 * HOUR), onSettingsChange = {}, onBack = {}, nowMillis = NOW)
+    }
+
+    @Test
+    fun letThroughLargestFont() = composeRule.renderScreen(
+        "unknown-callers_let-through_light_font200", dark = false, fontScale = 2f, scrollTo = "Expecting a call",
+    ) { UnknownCallersScreen(custom, onSettingsChange = {}, onBack = {}, nowMillis = NOW) }
+
     // Behavior
 
     @Test
