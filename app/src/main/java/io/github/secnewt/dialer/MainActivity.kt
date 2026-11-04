@@ -364,6 +364,7 @@ class MainActivity : ComponentActivity() {
                                 onSettingsChange = ::updateSettings,
                                 onOpenBlockList = { screen = Screen.BLOCK_LIST },
                                 onBack = { screen = Screen.TABS },
+                                roleHeld = screeningRoleHeld,
                                 announce = announce,
                                 announceMessage = announceMessage,
                                 onAnnounceModeChange = { mode ->

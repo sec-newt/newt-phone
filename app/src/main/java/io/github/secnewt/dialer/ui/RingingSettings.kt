@@ -3,6 +3,7 @@ package io.github.secnewt.dialer.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.selection.toggleable
@@ -30,7 +31,8 @@ import io.github.secnewt.dialer.calls.RingSettings
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import io.github.secnewt.ui.neonOutline
+import io.github.secnewt.ui.NewtSwitchRow
+import io.github.secnewt.ui.NewtValueRow
 
 /** "10:00 PM" for 22 * 60, in the phone's own clock style. */
 fun quietTimeLabel(minutesAfterMidnight: Int): String =
@@ -41,60 +43,35 @@ fun quietTimeLabel(minutesAfterMidnight: Int): String =
 @Composable
 fun RingingSection(settings: RingSettings, isPhoneApp: Boolean?, onChange: (RingSettings) -> Unit) {
     var picking by remember { mutableStateOf<QuietEnd?>(null) }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    NewtSwitchRow(
+        title = "Favorites",
+        checked = settings.starredRingThrough,
+        onCheckedChange = { onChange(settings.copy(starredRingThrough = it)) },
+        hint = "At alarm volume",
+    )
+    NewtSwitchRow(
+        title = "Repeat callers",
+        checked = settings.repeatRingThrough,
+        onCheckedChange = { onChange(settings.copy(repeatRingThrough = it)) },
+        hint = "Twice in 3 minutes, never likely spam",
+    )
+    NewtSwitchRow(
+        title = "Quiet hours",
+        checked = settings.quietHours.enabled,
+        onCheckedChange = { onChange(settings.copy(quietHours = settings.quietHours.copy(enabled = it))) },
+        hint = "Only those two ring, at night",
+    )
+    if (settings.quietHours.enabled) {
+        NewtValueRow("Starts", quietTimeLabel(settings.quietHours.startMinutes), onClick = { picking = QuietEnd.START })
+        NewtValueRow("Ends", quietTimeLabel(settings.quietHours.endMinutes), onClick = { picking = QuietEnd.END })
+    }
+    if (isPhoneApp == false) {
         Text(
-            text = "Who still rings when the phone is on silent or vibrate, and a quiet time each night.",
+            text = "These work once Newt Phone is your phone app.",
             style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(14.dp),
         )
-        SwitchRow(
-            title = "Starred contacts ring on silent",
-            detail = "Your favorites ring at alarm volume.",
-            checked = settings.starredRingThrough,
-            onChange = { onChange(settings.copy(starredRingThrough = it)) },
-        )
-        HorizontalDivider()
-        SwitchRow(
-            title = "Repeat callers ring on silent",
-            detail = "Anyone who calls again within 3 minutes. Never likely spam.",
-            checked = settings.repeatRingThrough,
-            onChange = { onChange(settings.copy(repeatRingThrough = it)) },
-        )
-        HorizontalDivider()
-        SwitchRow(
-            title = "Quiet hours",
-            detail = "Only starred contacts and repeat callers ring. Other calls still show, silently.",
-            checked = settings.quietHours.enabled,
-            onChange = { onChange(settings.copy(quietHours = settings.quietHours.copy(enabled = it))) },
-        )
-        if (settings.quietHours.enabled) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = { picking = QuietEnd.START },
-                    border = neonOutline(),
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 56.dp),
-                ) {
-                    Text("From ${quietTimeLabel(settings.quietHours.startMinutes)}", style = MaterialTheme.typography.titleMedium)
-                }
-                OutlinedButton(
-                    onClick = { picking = QuietEnd.END },
-                    border = neonOutline(),
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 56.dp),
-                ) {
-                    Text("To ${quietTimeLabel(settings.quietHours.endMinutes)}", style = MaterialTheme.typography.titleMedium)
-                }
-            }
-        }
-        if (isPhoneApp == false) {
-            Text(
-                text = "These work once Newt Phone is your phone app.",
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
     }
 
     picking?.let { end ->
@@ -113,23 +90,6 @@ fun RingingSection(settings: RingSettings, isPhoneApp: Boolean?, onChange: (Ring
 }
 
 private enum class QuietEnd { START, END }
-
-@Composable
-private fun SwitchRow(title: String, detail: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange),
-    ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Switch(checked = checked, onCheckedChange = null)
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
