@@ -22,7 +22,7 @@ concurrency:
 jobs:
   newt:
     name: Newt
-    uses: sec-newt/newt-android-lib/.github/workflows/newt-app.yml@ca24dc1e6105d0a41e3213ac1f38a7beb83efb04 # v1.3.1
+    uses: sec-newt/newt-android-lib/.github/workflows/newt-app.yml@9e96e5a725fa28ed265e4f258b2b731b07348c7c # v1.4.0
     # The app's names, used for the test APK and release files.
     with:
       app-slug: newt-phone
