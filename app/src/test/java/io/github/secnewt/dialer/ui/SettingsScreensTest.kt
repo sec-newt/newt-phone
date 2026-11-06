@@ -34,6 +34,9 @@ import io.github.secnewt.dialer.screening.CallAction
 import io.github.secnewt.dialer.screening.ProtectionLevel
 import io.github.secnewt.dialer.screening.SpamSettings
 import io.github.secnewt.ui.NewtTheme
+import androidx.compose.ui.test.onNodeWithContentDescription
+import io.github.secnewt.ui.NewtSettingsCard
+import io.github.secnewt.ui.NewtReadingText
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -53,22 +56,17 @@ class SettingsScreensTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) {
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                NewtTheme(darkTheme = dark) {
-                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") { content() }
-                }
-            }
-        }
-        composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
-        composeRule.onRoot().checkRoboAccessibility(
-            RoborazziATFAccessibilityCheckOptions(
-                failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning,
-            )
-        )
-    }
+    private fun render(
+        name: String,
+        dark: Boolean,
+        fontScale: Float = 1f,
+        terminal: Boolean = false,
+        redesigned: Boolean = true,
+        contrastFalseAlarm: String? = null,
+        content: @Composable () -> Unit,
+    ) = composeRule.renderScreen(name, dark, fontScale, terminal, redesigned, contrastFalseAlarm, content = content)
+
+    private fun showSettings(content: @Composable () -> Unit) = composeRule.showScreen(content)
 
     private val custom = SpamSettings(myNumber = "5550142290")
         .withLevel(ProtectionLevel.STRICT)
@@ -77,7 +75,7 @@ class SettingsScreensTest {
     private val rules = listOf(BlockRule.Number("5550197731"), BlockRule.StartsWith("800555"))
 
     @Composable
-    private fun Settings(settings: SpamSettings, announce: AnnounceSettings = AnnounceSettings(), nowMillis: Long = NOW) =
+    private fun Settings(settings: SpamSettings, announce: AnnounceSettings = AnnounceSettings()) =
         SpamSettingsScreen(
             settings,
             blockListSize = 2,
@@ -85,7 +83,6 @@ class SettingsScreensTest {
             onOpenBlockList = {},
             onBack = {},
             announce = announce,
-            nowMillis = nowMillis,
         )
 
     @Test
@@ -97,113 +94,36 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun settingsDefaultLight() = render("settings_default_light", dark = false) { Settings(SpamSettings()) }
+    fun settingsDefaultLight() = render("settings_default_light", dark = false, contrastFalseAlarm = "Watch") {
+        Settings(SpamSettings())
+    }
 
     @Test
     fun settingsCustomDark() = render("settings_custom_dark", dark = true) { Settings(custom.copy(observeOnly = false)) }
 
-    @Test
-    fun settingsNewNumbersRingDark() = render("settings_new-numbers-ring_dark", dark = true) {
-        Settings(SpamSettings(observeOnly = false).withNewNumbers(CallAction.RING))
-    }
+    // The lower cards, which the top-of-screen pictures never reach.
 
-    private companion object {
-        const val NOW = 1_792_000_000_000L
-        const val HOUR = 3_600_000L
+    @Test
+    fun settingsSpamCardCustomDark() = composeRule.renderScreen("settings_spam-card_custom_dark", dark = true, scrollTo = "Block list") {
+        Settings(custom.copy(observeOnly = false))
     }
 
     @Test
-    fun letThroughDark() = renderScrolledTo(
-        "settings_let-through_dark", "After you call 911, every call rings for an hour so they can call you back. This is always on.",
-        dark = true, fontScale = 1f, SpamSettings(observeOnly = false, expectingUntil = NOW + 3 * HOUR),
-    )
+    fun settingsSpamCardLargestFont() = composeRule.renderScreen(
+        "settings_spam-card_light_font200", dark = false, fontScale = 2f, scrollTo = "Unknown callers", contrastFalseAlarm = "Watch",
+    ) { Settings(custom) }
 
     @Test
-    fun letThroughLargestFont() = renderScrolledTo(
-        "settings_let-through_light_font200", "Expecting a call", dark = false, fontScale = 2f, SpamSettings(observeOnly = false),
-    )
-
-    @Test
-    fun expectingACallSetsATimeAndTurnsOff() {
-        val changes = mutableListOf<SpamSettings>()
-        composeRule.setContent {
-            NewtTheme(darkTheme = true) {
-                SpamSettingsScreen(
-                    SpamSettings(), blockListSize = 0, onSettingsChange = { changes += it }, onOpenBlockList = {}, onBack = {},
-                    nowMillis = NOW,
-                )
-            }
-        }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Expecting a call"))
-        composeRule.onNodeWithText("Expecting a call").performClick()
-        composeRule.onNodeWithText("For 3 hours").performClick()
-        assertEquals(NOW + 3 * HOUR, changes.last().expectingUntil)
+    fun settingsPhoneCardDark() = composeRule.renderScreen(
+        "settings_phone-card_dark", dark = true, scrollTo = "Hearing aids and TTY", contrastFalseAlarm = "Watch",
+    ) {
+        Settings(SpamSettings())
     }
 
     @Test
-    fun callBacksCanBeTurnedOff() {
-        val changes = mutableListOf<SpamSettings>()
-        composeRule.setContent {
-            NewtTheme(darkTheme = true) {
-                SpamSettingsScreen(SpamSettings(), blockListSize = 0, onSettingsChange = { changes += it }, onOpenBlockList = {}, onBack = {})
-            }
-        }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Call-backs after I call"))
-        composeRule.onNodeWithText("Call-backs after I call").performClick()
-        assertEquals(false, changes.single().ringAfterICall)
-    }
-
-    @Test
-    fun theChoiceSaysWhatTheRowMeans() {
-        composeRule.setContent {
-            NewtTheme(darkTheme = true) {
-                SpamSettingsScreen(SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {})
-            }
-        }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("New numbers"))
-        composeRule.onNodeWithText("New numbers").performClick()
-        composeRule.onNodeWithText("like during a job search", substring = true).assertIsDisplayed()
-    }
-
-    // The unknown-callers rows sit below the first screenful, so scroll to them first.
-    private fun renderScrolledTo(name: String, text: String, dark: Boolean, fontScale: Float, settings: SpamSettings) {
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                NewtTheme(darkTheme = dark) { NewtLookTheme(NewtLook.CLEAN, host = "phone") { Settings(settings) } }
-            }
-        }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText(text))
-        composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
-        composeRule.onRoot().checkRoboAccessibility(
-            RoborazziATFAccessibilityCheckOptions(failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning),
-        )
-    }
-
-    @Test
-    fun unknownCallersRowsDark() =
-        renderScrolledTo("settings_unknown-callers_dark", "Copycat numbers", dark = true, fontScale = 1f, SpamSettings(observeOnly = false))
-
-    @Test
-    fun unknownCallersRowsLargestFont() = renderScrolledTo(
-        "settings_unknown-callers_light_font200", "New numbers", dark = false, fontScale = 2f,
-        SpamSettings(observeOnly = false).withNewNumbers(CallAction.RING),
-    )
-
-    @Test
-    fun newNumbersCanBeSetToRing() {
-        val changes = mutableListOf<SpamSettings>()
-        composeRule.setContent {
-            NewtTheme(darkTheme = true) {
-                SpamSettingsScreen(SpamSettings(), blockListSize = 0, onSettingsChange = { changes += it }, onOpenBlockList = {}, onBack = {})
-            }
-        }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("New numbers"))
-        composeRule.onNodeWithText("New numbers").performClick()
-        composeRule.onNodeWithText("Ring like any other call").performClick()
-        assertEquals(CallAction.RING, changes.single().newNumbers)
-        assertEquals(ProtectionLevel.CUSTOM, changes.single().level)
-    }
+    fun settingsPhoneCardLargestFont() = composeRule.renderScreen(
+        "settings_phone-card_light_font200", dark = false, fontScale = 2f, scrollTo = "Hearing aids and TTY",
+    ) { Settings(SpamSettings()) }
 
     @Test
     fun settingsLargestFont() = render("settings_default_light_font200", dark = false, fontScale = 2f) {
@@ -221,22 +141,22 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun blockListEmptyLight() = render("block-list_empty_light", dark = false) {
+    fun blockListEmptyLight() = render("block-list_empty_light", dark = false, redesigned = false) {
         BlockListScreen(rules = emptyList(), onAdd = {}, onRemove = {}, onBack = {})
     }
 
     @Test
-    fun blockListDark() = render("block-list_dark", dark = true) {
+    fun blockListDark() = render("block-list_dark", dark = true, redesigned = false) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {})
     }
 
     @Test
-    fun blockListSharedWithAndroidDark() = render("block-list_shared_dark", dark = true) {
+    fun blockListSharedWithAndroidDark() = render("block-list_shared_dark", dark = true, redesigned = false) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {}, sharedWithAndroid = true)
     }
 
     @Test
-    fun blockListLargestFont() = render("block-list_light_font200", dark = false, fontScale = 2f) {
+    fun blockListLargestFont() = render("block-list_light_font200", dark = false, fontScale = 2f, redesigned = false) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {})
     }
 
@@ -328,8 +248,8 @@ class SettingsScreensTest {
                 )
             }
         }
-        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Repeat until answered"))
-        composeRule.onNodeWithText("Repeat until answered").performClick()
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Keep repeating"))
+        composeRule.onNodeWithText("Keep repeating").performClick()
         assertEquals(listOf(false), changes)
     }
 
@@ -352,7 +272,9 @@ class SettingsScreensTest {
     @Composable
     private fun RingingOnly(settings: RingSettings, onChange: (RingSettings) -> Unit = {}) {
         Surface(color = MaterialTheme.colorScheme.background) {
-            Column(Modifier.padding(16.dp)) { RingingSection(settings, isPhoneApp = true, onChange = onChange) }
+            Column(Modifier.padding(16.dp)) {
+                NewtSettingsCard("Ring on silent") { RingingSection(settings, isPhoneApp = true, onChange = onChange) }
+            }
         }
     }
 
@@ -370,11 +292,11 @@ class SettingsScreensTest {
     fun ringingSwitchesAndQuietHoursTimes() {
         val changes = mutableListOf<RingSettings>()
         composeRule.setContent {
-            NewtTheme(darkTheme = true) { RingingOnly(RingSettings(quietHours = QuietHours(enabled = true))) { changes += it } }
+            NewtTheme(darkTheme = true) { NewtReadingText { RingingOnly(RingSettings(quietHours = QuietHours(enabled = true))) { changes += it } } }
         }
-        composeRule.onNodeWithText("Starred contacts ring on silent").performClick()
-        composeRule.onNodeWithText("From 10:00", substring = true).assertExists()
-        composeRule.onNodeWithText("To 7:00", substring = true).performClick()
+        composeRule.onNodeWithText("Favorites").performClick()
+        composeRule.onNodeWithText("10:00", substring = true).assertExists()
+        composeRule.onNodeWithText("Ends").performClick()
         composeRule.onNodeWithText("Quiet hours end").assertExists()
         composeRule.onNodeWithText("Set").performClick()
         assertEquals(false, changes[0].starredRingThrough)
@@ -382,9 +304,70 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun announcementIsTheFirstSection() {
-        composeRule.setContent { NewtTheme(darkTheme = false) { Settings(SpamSettings()) } }
-        composeRule.onNodeWithText("Caller announcement").assertIsDisplayed()
-        composeRule.onNodeWithText("Announce").assertIsDisplayed()
+    fun announcementIsTheFirstCard() {
+        showSettings { Settings(SpamSettings()) }
+        composeRule.onNodeWithText("Say who's calling").assertIsDisplayed()
+        composeRule.onNodeWithText("Always").assertIsDisplayed()
+    }
+
+    @Test
+    fun summaryShowsAtTop() {
+        showSettings { Settings(SpamSettings()) }
+        composeRule.onNodeWithContentDescription(
+            "Right now. Favorites and repeat callers ring on silent. Spam is watched, not blocked.",
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun watchBlockFlipsObserveOnly() {
+        val changes = mutableListOf<SpamSettings>()
+        showSettings {
+            SpamSettingsScreen(SpamSettings(), blockListSize = 0, onSettingsChange = { changes += it }, onOpenBlockList = {}, onBack = {})
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Block"))
+        composeRule.onNodeWithText("Block").performClick()
+        assertEquals(false, changes.single().observeOnly)
+    }
+
+    @Test
+    fun announceChoiceGoesThroughCallback() {
+        val modes = mutableListOf<AnnounceMode>()
+        showSettings {
+            SpamSettingsScreen(
+                SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+                onAnnounceModeChange = { modes += it },
+            )
+        }
+        composeRule.onNodeWithText("Always").performClick()
+        assertEquals(listOf(AnnounceMode.ALWAYS), modes)
+    }
+
+    @Test
+    fun permissionLineShowsWhileOff() {
+        showSettings { Settings(SpamSettings()) }
+        composeRule.onNodeWithText(
+            "Turning this on asks for Phone, Call log and Contacts access, used only on this phone.",
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun unknownCallersRowOpensPage() {
+        var opened = 0
+        showSettings {
+            SpamSettingsScreen(
+                SpamSettings(), blockListSize = 0, onSettingsChange = {}, onOpenBlockList = {}, onBack = {},
+                onOpenUnknownCallers = { opened++ },
+            )
+        }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Unknown callers"))
+        composeRule.onNode(hasText("Unknown callers") and hasText("Balanced")).performClick()
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun customLevelReadsCustom() {
+        showSettings { Settings(custom) }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Unknown callers"))
+        composeRule.onNode(hasText("Unknown callers") and hasText("Custom")).assertExists()
     }
 }

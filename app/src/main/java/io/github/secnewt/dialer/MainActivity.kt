@@ -91,9 +91,11 @@ import io.github.secnewt.dialer.ui.DialerTabBar
 import io.github.secnewt.dialer.ui.FavoritesScreen
 import io.github.secnewt.dialer.ui.SpamProtectionScreen
 import io.github.secnewt.dialer.ui.SpamSettingsScreen
+import io.github.secnewt.dialer.ui.UnknownCallersScreen
 import io.github.secnewt.dialer.ui.SystemSetting
 import io.github.secnewt.dialer.ui.Tab
 import io.github.secnewt.ui.NewtLookTheme
+import io.github.secnewt.ui.NewtReadingText
 import io.github.secnewt.ui.NewtTheme
 import io.github.secnewt.ui.newtContainerColor
 import io.github.secnewt.ui.rememberFamilyLook
@@ -103,7 +105,7 @@ import kotlinx.coroutines.withContext
 import java.time.ZoneId
 
 /** TABS shows Calls, Favorites or Contacts with the bottom bar; the others are full pages. */
-private enum class Screen { TABS, SETTINGS, BLOCK_LIST, CONTACT, SPAM, DIALPAD }
+private enum class Screen { TABS, SETTINGS, UNKNOWN_CALLERS, BLOCK_LIST, CONTACT, SPAM, DIALPAD }
 
 private const val KEY_TONE_VOLUME = 80
 private const val KEY_TONE_MILLIS = 120
@@ -273,7 +275,7 @@ class MainActivity : ComponentActivity() {
                         BackHandler(enabled = screen != Screen.TABS || tab != Tab.FAVORITES) {
                             when (screen) {
                                 Screen.TABS -> tab = Tab.FAVORITES
-                                Screen.BLOCK_LIST -> screen = Screen.SETTINGS
+                                Screen.BLOCK_LIST, Screen.UNKNOWN_CALLERS -> screen = Screen.SETTINGS
                                 else -> screen = Screen.TABS
                             }
                         }
@@ -314,7 +316,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
                                 ) { page ->
                                     when (Tab.entries[page]) {
-                                        Tab.RECENTS -> RecentsScreen(
+                                        Tab.RECENTS -> NewtReadingText { RecentsScreen(
                                             groups = callGroups,
                                             hasAccess = callLogAccess,
                                             screened = recentCalls,
@@ -329,7 +331,7 @@ class MainActivity : ComponentActivity() {
                                             message = callMessage,
                                             onNumberAction = ::onNumberAction,
                                             isBlocked = { BlockList.match(blockRules, it) != null },
-                                        )
+                                        ) }
                                         Tab.FAVORITES -> FavoritesScreen(
                                             contacts = contacts,
                                             hasAccess = contactsAccess,
@@ -357,12 +359,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            Screen.SETTINGS -> SpamSettingsScreen(
+                            Screen.SETTINGS -> NewtReadingText { SpamSettingsScreen(
                                 settings = settings,
                                 blockListSize = blockRules.size,
                                 onSettingsChange = ::updateSettings,
                                 onOpenBlockList = { screen = Screen.BLOCK_LIST },
                                 onBack = { screen = Screen.TABS },
+                                roleHeld = screeningRoleHeld,
+                                onOpenUnknownCallers = { screen = Screen.UNKNOWN_CALLERS },
                                 announce = announce,
                                 announceMessage = announceMessage,
                                 onAnnounceModeChange = { mode ->
@@ -393,7 +397,14 @@ class MainActivity : ComponentActivity() {
                                     keypadTones = it
                                     store.saveKeypadTones(it)
                                 },
-                            )
+                            ) }
+                            Screen.UNKNOWN_CALLERS -> NewtReadingText {
+                                UnknownCallersScreen(
+                                    settings = settings,
+                                    onSettingsChange = ::updateSettings,
+                                    onBack = { screen = Screen.SETTINGS },
+                                )
+                            }
                             Screen.SPAM -> SpamProtectionScreen(
                                 roleHeld = screeningRoleHeld,
                                 recentCalls = recentCalls,

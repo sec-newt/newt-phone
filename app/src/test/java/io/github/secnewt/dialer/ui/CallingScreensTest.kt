@@ -14,6 +14,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.junit4.createComposeRule
+import io.github.secnewt.ui.NewtReadingText
+import org.junit.Assert.assertFalse
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -130,25 +137,30 @@ class CallingScreensTest {
     private fun Pad(number: String) = DialpadScreen(number, {}, contacts, onCall = {}, onBack = {})
 
     @Test
-    fun recentsTerminalDark() = render("terminal_recents_dark", dark = true, terminal = true) { Recents() }
+    fun recentsTerminalDark() = composeRule.renderScreen("terminal_recents_dark", dark = true, terminal = true) { Recents() }
 
     @Test
-    fun recentsTerminalLight() = render("terminal_recents_light", dark = false, terminal = true) { Recents() }
+    fun recentsTerminalLight() = composeRule.renderScreen("terminal_recents_light", dark = false, terminal = true) { Recents() }
 
     @Test
-    fun recentsTerminalLargestFont() = render("terminal_recents_dark_font200", dark = true, fontScale = 2f, terminal = true) { Recents() }
+    fun recentsTerminalLargestFont() = composeRule.renderScreen("terminal_recents_dark_font200", dark = true, fontScale = 2f, terminal = true) { Recents() }
 
     @Test
-    fun recentsDark() = render("recents_dark", dark = true) { Recents() }
+    fun recentsDark() = composeRule.renderScreen("recents_dark", dark = true) { Recents() }
 
     @Test
-    fun recentsLight() = render("recents_light", dark = false) { Recents() }
+    fun recentsLight() = composeRule.renderScreen("recents_light", dark = false) { Recents() }
 
     @Test
-    fun recentsLargestFont() = render("recents_dark_font200", dark = true, fontScale = 2f) { Recents() }
+    fun recentsLargestFont() = composeRule.renderScreen("recents_dark_font200", dark = true, fontScale = 2f) { Recents() }
 
     @Test
-    fun recentsNoAccess() = render("recents_no-access_dark", dark = true) { Recents(hasAccess = false, roleHeld = false) }
+    fun recentsOlderCallsLargestFont() = composeRule.renderScreen(
+        "recents_older_dark_font200", dark = true, fontScale = 2f, scrollTo = "Blocked number",
+    ) { Recents() }
+
+    @Test
+    fun recentsNoAccess() = composeRule.renderScreen("recents_no-access_dark", dark = true) { Recents(hasAccess = false, roleHeld = false) }
 
     @Test
     fun dialpadEmptyDark() = render("dialpad_empty_dark", dark = true) { Pad("") }
@@ -158,6 +170,51 @@ class CallingScreensTest {
 
     @Test
     fun dialpadLargestFont() = render("dialpad_light_font200", dark = false, fontScale = 2f) { Pad("5550197731") }
+
+    @Test
+    fun spamRowHasWordsNotJustColor() {
+        composeRule.showScreen { Recents() }
+        composeRule.onNode(hasText("Likely spam") and hasClickAction()).assertExists()
+    }
+
+    @Test
+    fun statusChipsOpenTheirScreens() {
+        var spam = 0
+        var settings = 0
+        composeRule.showScreen {
+            RecentsScreen(
+                groups = CallHistory.group(calls, zone), hasAccess = true, screened = screened, roleHeld = true,
+                observeOnly = true, announceMode = AnnounceMode.ALWAYS,
+                onOpenSettings = { settings++ }, onOpenSpamProtection = { spam++ }, onEnableSpamProtection = {},
+                onAllowAccess = {}, onCall = {}, now = now,
+            )
+        }
+        composeRule.onNodeWithText("Spam: Watching").performClick()
+        composeRule.onNodeWithText("Announce: Always").performClick()
+        assertEquals(1, spam)
+        assertEquals(1, settings)
+    }
+
+    @Test
+    fun numbersAreNeverCutOffAt200pct() {
+        composeRule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                NewtTheme(darkTheme = true) { NewtReadingText { Recents() } }
+            }
+        }
+        val node = composeRule.onNodeWithText("(555) 019-7731", useUnmergedTree = true).fetchSemanticsNode()
+        val results = mutableListOf<TextLayoutResult>()
+        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        val layout = results.single()
+        assertFalse(layout.isLineEllipsized(layout.lineCount - 1))
+    }
+
+    @Test
+    fun callButtonIsBigEnough() {
+        composeRule.showScreen { Recents() }
+        composeRule.onNodeWithContentDescription("Call Mom").assertHeightIsAtLeast(58.dp)
+    }
 
     @Test
     fun recentsFlagSpamAndCallBack() {

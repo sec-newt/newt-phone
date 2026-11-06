@@ -22,29 +22,22 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.announce.AnnounceMode
 import io.github.secnewt.dialer.calls.CallGroup
@@ -55,9 +48,23 @@ import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.SpamLabel
 import io.github.secnewt.ui.NewtFonts
 import java.time.ZonedDateTime
-import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.TabHeader
 import io.github.secnewt.ui.newtContainerColor
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import io.github.secnewt.ui.NewtPrimaryButton
+import io.github.secnewt.ui.NewtRuleHeading
+import io.github.secnewt.ui.NewtTone
+import io.github.secnewt.ui.color
+import io.github.secnewt.ui.newtStripe
 
 /** The phone's call history, with spam labels from the screening log and one-tap call back. */
 @Composable
@@ -139,23 +146,14 @@ fun RecentsScreen(
 }
 
 @Composable
-private fun DayHeading(day: String) {
-    Text(
-        text = day,
-        style = MaterialTheme.typography.titleSmall,
-        fontFamily = displayFont(),
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.tertiary,
-        modifier = Modifier
-            .padding(top = 12.dp, bottom = 2.dp)
-            .semantics { heading() },
-    )
-}
+private fun DayHeading(day: String) = NewtRuleHeading(day)
 
 /** "Likely spam" or "Blocked number" when the screening log flagged this call. */
 private fun spamLabel(group: CallGroup, screened: List<ScreenedCall>): String? =
     SpamLabel.forCall(group.latest.number, group.latest.timeMillis, screened)
 
+/** Spam protection and caller announcements at a glance, each a chip that opens its screen. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StatusPanel(
     roleHeld: Boolean,
@@ -165,35 +163,43 @@ private fun StatusPanel(
     onOpenSettings: () -> Unit,
     onEnable: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = neonOutline(),
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
-            NavigationRow(
-                title = "Spam protection",
-                value = when {
-                    !roleHeld -> "Off"
-                    observeOnly -> "Observe only"
-                    else -> "On"
-                },
-                onClick = onOpenSpamProtection,
-            )
-            HorizontalDivider()
-            NavigationRow(title = "Announcing callers", value = announceModeName(announceMode), onClick = onOpenSettings)
-            if (!roleHeld) {
-                Button(
-                    onClick = onEnable,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                        .heightIn(min = 56.dp),
-                ) {
-                    Text("Turn on spam protection", style = MaterialTheme.typography.titleMedium)
-                }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val spam = when {
+                !roleHeld -> "Off"
+                observeOnly -> "Watching"
+                else -> "On"
             }
+            StatusChip("Spam: $spam", onOpenSpamProtection)
+            StatusChip("Announce: ${announceModeName(announceMode)}", onOpenSettings)
         }
+        if (!roleHeld) {
+            NewtPrimaryButton("Turn on spam protection", onClick = onEnable, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
+@Composable
+private fun StatusChip(text: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier
+            .heightIn(min = 52.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(2.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+    ) {
+        Text(text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(26.dp),
+        )
     }
 }
 
@@ -236,13 +242,15 @@ private fun RecentRow(
     } else {
         Modifier
     }
+    val flagged = missed || spam != null
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 68.dp)
+            .heightIn(min = 76.dp)
+            .then(if (flagged) Modifier.newtStripe(MaterialTheme.colorScheme.error) else Modifier)
             .then(openMenu)
-            .padding(vertical = 4.dp),
+            .padding(start = if (flagged) 10.dp else 0.dp, top = 6.dp, bottom = 6.dp),
     ) {
         ContactAvatar(
             contact = avatar,
@@ -259,12 +267,10 @@ private fun RecentRow(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontFamily = if (call.name == null && number != null) NewtFonts.Mono else bodyFont(),
                 fontWeight = FontWeight.Bold,
                 color = if (missed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
             KindLine(
                 call.kind,
@@ -274,8 +280,17 @@ private fun RecentRow(
             spam?.let { SpamTag(it) }
         }
         if (number != null) {
-            FilledTonalIconButton(onClick = { onCall(number) }, modifier = Modifier.size(56.dp)) {
-                Icon(Icons.Filled.Call, contentDescription = "Call $title", modifier = Modifier.size(28.dp))
+            val green = NewtTone.Good.color()
+            val shape = RoundedCornerShape(18.dp)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(58.dp)
+                    .clip(shape)
+                    .border(2.5.dp, green, shape)
+                    .clickable(role = Role.Button) { onCall(number) },
+            ) {
+                Icon(Icons.Filled.Call, contentDescription = "Call $title", tint = green, modifier = Modifier.size(28.dp))
             }
         }
     }
@@ -318,8 +333,7 @@ private fun SpamTag(text: String) {
         Icon(Icons.Filled.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
         Text(
             text,
-            style = MaterialTheme.typography.bodyLarge,
-            fontFamily = displayFont(),
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.padding(start = 6.dp),

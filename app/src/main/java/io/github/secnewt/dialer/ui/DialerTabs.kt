@@ -1,5 +1,6 @@
 package io.github.secnewt.dialer.ui
 
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
@@ -33,6 +34,7 @@ fun DialerTabBar(selected: Tab, onSelect: (Tab) -> Unit) {
                     Text(
                         tab.label,
                         style = MaterialTheme.typography.titleSmall,
+                        fontSize = 16.sp,
                         fontWeight = if (tab == selected) FontWeight.Bold else FontWeight.Medium,
                     )
                 },
