@@ -157,6 +157,15 @@ object CallManager {
         call.stopDtmfTone()
     }
 
+    /** Starts a tone and leaves it playing until [stopTone], like a key held down. */
+    fun startTone(id: String, digit: Char) {
+        telecomCalls[id]?.playDtmfTone(digit)
+    }
+
+    fun stopTone(id: String) {
+        telecomCalls[id]?.stopDtmfTone()
+    }
+
     fun setMuted(muted: Boolean) {
         service?.setMuted(muted)
     }

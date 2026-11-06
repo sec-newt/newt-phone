@@ -1,5 +1,17 @@
 package io.github.secnewt.dialer.ui
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onLongClick
+import io.github.secnewt.dialer.incall.ToneSender
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +26,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -81,6 +94,9 @@ data class CallActions(
     val onSwap: () -> Unit = {},
     val onMerge: (String) -> Unit = {},
     val onTone: (String, Char) -> Unit = { _, _ -> },
+    /** Pasted digits: start a tone and keep it playing until [onToneStop], like a held key. */
+    val onToneStart: (String, Char) -> Unit = { _, _ -> },
+    val onToneStop: (String) -> Unit = {},
     val onAddCall: () -> Unit = {},
 )
 
@@ -187,6 +203,37 @@ private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallAc
 private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, actions: CallActions, now: Long) {
     var keypadOpen by rememberSaveable { mutableStateOf(false) }
     var tones by rememberSaveable(call.id) { mutableStateOf("") }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    // Pasted digits waiting for "Send", and the send in progress. Never added to [tones] or
+    // saved: a card number shouldn't sit on the screen.
+    var pasted by remember(call.id) { mutableStateOf<String?>(null) }
+    var pasteNote by remember(call.id) { mutableStateOf<String?>(null) }
+    var sending by remember(call.id) { mutableStateOf<Job?>(null) }
+    var sent by remember(call.id) { mutableStateOf(0 to 0) }
+    pasted?.let { digits ->
+        SendTonesDialog(
+            prompt = Dialpad.tonePrompt(digits),
+            onSend = {
+                pasted = null
+                pasteNote = null
+                sent = 0 to digits.length
+                sending = scope.launch {
+                    try {
+                        ToneSender.send(
+                            digits,
+                            start = { actions.onToneStart(call.id, it) },
+                            stop = { actions.onToneStop(call.id) },
+                            onSent = { sent = it to digits.length },
+                        )
+                    } finally {
+                        sending = null
+                    }
+                }
+            },
+            onCancel = { pasted = null },
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -225,10 +272,25 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
             if (keypadOpen) {
                 ToneKeypad(
                     tones = tones,
+                    status = when {
+                        sending != null -> "Sending ${sent.first} of ${sent.second}"
+                        else -> pasteNote
+                    },
+                    sending = sending != null,
                     onTone = { digit ->
                         tones = (tones + digit).takeLast(Dialpad.MAX_LENGTH)
                         actions.onTone(call.id, digit)
                     },
+                    onPaste = {
+                        val digits = Dialpad.toneDigits(clipboardText(context).orEmpty())
+                        when {
+                            digits.isEmpty() -> pasteNote = "Nothing to paste. Copy a number first."
+                            digits.length > Dialpad.MAX_LENGTH ->
+                                pasteNote = "That's more than ${Dialpad.MAX_LENGTH} digits. Copy just the number."
+                            else -> pasted = digits
+                        }
+                    },
+                    onStop = { sending?.cancel() },
                     onHide = { keypadOpen = false },
                 )
             }
@@ -270,6 +332,9 @@ private fun CallerHeader(call: LiveCall, avatarSize: Int) {
             .size(avatarSize.dp)
             .border(neonOutline(3.dp), CircleShape),
     )
+    val context = LocalContext.current
+    val number = call.number?.takeIf { it.isNotBlank() && !call.isConference }
+    val copy = number?.let { n -> Modifier.holdToCopy { copyNumber(context, n) } } ?: Modifier
     Text(
         text = title,
         style = MaterialTheme.typography.headlineLarge,
@@ -277,6 +342,7 @@ private fun CallerHeader(call: LiveCall, avatarSize: Int) {
         fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
         color = MaterialTheme.colorScheme.onBackground,
+        modifier = copy,
     )
     if (call.isConference && call.participants.isNotEmpty()) {
         Text(
@@ -291,6 +357,7 @@ private fun CallerHeader(call: LiveCall, avatarSize: Int) {
             style = MaterialTheme.typography.titleLarge,
             fontFamily = NewtFonts.Mono,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = copy,
         )
     }
 }
@@ -521,11 +588,31 @@ private fun BigCallButton(
     }
 }
 
-/** The dialpad during a call: each key sends its tone (for menus like "press 1 for…"). */
+/**
+ * The dialpad during a call: each key sends its tone (for menus like "press 1 for…"). Paste
+ * sends copied digits, such as a card number from a password manager, after asking first.
+ */
 @Composable
-private fun ToneKeypad(tones: String, onTone: (Char) -> Unit, onHide: () -> Unit) {
+private fun ToneKeypad(
+    tones: String,
+    status: String?,
+    sending: Boolean,
+    onTone: (Char) -> Unit,
+    onPaste: () -> Unit,
+    onStop: () -> Unit,
+    onHide: () -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        if (tones.isNotEmpty()) {
+        if (status != null) {
+            Text(
+                status,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.tertiary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        } else if (tones.isNotEmpty()) {
             Text(
                 tones,
                 style = MaterialTheme.typography.headlineMedium,
@@ -549,11 +636,67 @@ private fun ToneKeypad(tones: String, onTone: (Char) -> Unit, onHide: () -> Unit
                 }
             }
         }
-        TextButton(onClick = onHide, modifier = Modifier.heightIn(min = 52.dp)) {
-            Text("Hide keypad", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            if (sending) {
+                OutlinedButton(
+                    onClick = onStop,
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                ) {
+                    Text("Stop sending", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onPaste,
+                    border = neonOutline(),
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                ) {
+                    Icon(PasteIcon, contentDescription = null, modifier = Modifier.size(24.dp))
+                    Text(
+                        "Paste",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+            TextButton(onClick = onHide, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+                Text("Hide keypad", style = MaterialTheme.typography.titleMedium)
+            }
         }
     }
 }
+
+/** Asks before sending pasted digits, showing only how many and the last four. */
+@Composable
+private fun SendTonesDialog(prompt: String, onSend: () -> Unit, onCancel: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(prompt, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) },
+        text = {
+            Text(
+                "They're sent as key presses, the same as typing them on the keypad.",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onSend, modifier = Modifier.heightIn(min = 56.dp)) {
+                Text("Send", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 56.dp)) {
+                Text("Cancel", style = MaterialTheme.typography.titleLarge)
+            }
+        },
+    )
+}
+
+/** Hold to copy, with Android's own "Copied" message; a screen reader offers it as an action. */
+private fun Modifier.holdToCopy(onCopy: () -> Unit): Modifier = this
+    .heightIn(min = 48.dp)
+    .pointerInput(onCopy) { detectTapGestures(onLongPress = { onCopy() }) }
+    .semantics { onLongClick(label = "Copy number") { onCopy(); true } }
+    .wrapContentHeight()
 
 /** A green strip on the main screens while a call is going, to get back to it. */
 @Composable

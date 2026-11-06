@@ -128,3 +128,22 @@ val MergeIcon: ImageVector by lazy {
         "M17,20.41L18.41,19 15,15.59 13.59,17 17,20.41zM7.5,8H11v5.59L5.59,19 7,20.41l6,-6V8h3.5L12,3.5 7.5,8z",
     )
 }
+
+/** Material's content_paste: a clipboard. */
+val PasteIcon: ImageVector by lazy {
+    icon(
+        "Paste",
+        "M19,2h-4.18C14.4,0.84 13.3,0 12,0c-1.3,0 -2.4,0.84 -2.82,2L5,2c-1.1,0 -2,0.9 -2,2v16c0,1.1 0.9,2 2,2h14" +
+            "c1.1,0 2,-0.9 2,-2L21,4c0,-1.1 -0.9,-2 -2,-2zM12,2c0.55,0 1,0.45 1,1s-0.45,1 -1,1 -1,-0.45 -1,-1 " +
+            "0.45,-1 1,-1zM19,20L5,20L5,4h2v3h10L17,4h2v16z",
+    )
+}
+
+/** Material's chat bubble, for "Text". */
+val MessageIcon: ImageVector by lazy {
+    icon(
+        "Message",
+        "M20,2L4,2c-1.1,0 -1.99,0.9 -1.99,2L2,22l4,-4h14c1.1,0 2,-0.9 2,-2L22,4c0,-1.1 -0.9,-2 -2,-2zM6,9h12v2" +
+            "L6,11L6,9zM14,14L6,14v-2h8v2zM18,8L6,8L6,6h12v2z",
+    )
+}

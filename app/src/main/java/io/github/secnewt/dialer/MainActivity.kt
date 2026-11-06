@@ -7,9 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
-import android.content.ClipData
 import android.content.ContentUris
-import android.content.ClipboardManager
 import android.net.Uri
 import android.provider.ContactsContract
 import android.widget.Toast
@@ -85,6 +83,8 @@ import io.github.secnewt.dialer.ui.ContactsScreen
 import io.github.secnewt.dialer.ui.DialpadIcon
 import io.github.secnewt.dialer.ui.DialpadScreen
 import io.github.secnewt.dialer.ui.NumberAction
+import io.github.secnewt.dialer.ui.clipboardText
+import io.github.secnewt.dialer.ui.copyNumber
 import io.github.secnewt.dialer.ui.RecentsScreen
 import io.github.secnewt.dialer.ui.ReturnToCallBar
 import io.github.secnewt.dialer.ui.DialerTabBar
@@ -95,7 +95,6 @@ import io.github.secnewt.dialer.ui.UnknownCallersScreen
 import io.github.secnewt.dialer.ui.SystemSetting
 import io.github.secnewt.dialer.ui.Tab
 import io.github.secnewt.ui.NewtLookTheme
-import io.github.secnewt.ui.NewtReadingText
 import io.github.secnewt.ui.NewtTheme
 import io.github.secnewt.ui.newtContainerColor
 import io.github.secnewt.ui.rememberFamilyLook
@@ -316,7 +315,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
                                 ) { page ->
                                     when (Tab.entries[page]) {
-                                        Tab.RECENTS -> NewtReadingText { RecentsScreen(
+                                        Tab.RECENTS -> RecentsScreen(
                                             groups = callGroups,
                                             hasAccess = callLogAccess,
                                             screened = recentCalls,
@@ -331,7 +330,7 @@ class MainActivity : ComponentActivity() {
                                             message = callMessage,
                                             onNumberAction = ::onNumberAction,
                                             isBlocked = { BlockList.match(blockRules, it) != null },
-                                        ) }
+                                        )
                                         Tab.FAVORITES -> FavoritesScreen(
                                             contacts = contacts,
                                             hasAccess = contactsAccess,
@@ -359,7 +358,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            Screen.SETTINGS -> NewtReadingText { SpamSettingsScreen(
+                            Screen.SETTINGS -> SpamSettingsScreen(
                                 settings = settings,
                                 blockListSize = blockRules.size,
                                 onSettingsChange = ::updateSettings,
@@ -397,14 +396,12 @@ class MainActivity : ComponentActivity() {
                                     keypadTones = it
                                     store.saveKeypadTones(it)
                                 },
-                            ) }
-                            Screen.UNKNOWN_CALLERS -> NewtReadingText {
-                                UnknownCallersScreen(
+                            )
+                            Screen.UNKNOWN_CALLERS -> UnknownCallersScreen(
                                     settings = settings,
                                     onSettingsChange = ::updateSettings,
                                     onBack = { screen = Screen.SETTINGS },
                                 )
-                            }
                             Screen.SPAM -> SpamProtectionScreen(
                                 roleHeld = screeningRoleHeld,
                                 recentCalls = recentCalls,
@@ -629,18 +626,11 @@ class MainActivity : ComponentActivity() {
     private fun onNumberAction(action: NumberAction, number: String) {
         when (action) {
             NumberAction.PASTE -> {
-                val clip = getSystemService(ClipboardManager::class.java).primaryClip
-                val text = clip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()
-                val pasted = Dialpad.clean(text.orEmpty())
+                val pasted = Dialpad.clean(clipboardText(this).orEmpty())
                 if (pasted.isEmpty()) say("There's no number to paste.") else incomingDial = pasted
             }
             NumberAction.COPY -> {
-                getSystemService(ClipboardManager::class.java)
-                    .setPrimaryClip(ClipData.newPlainText("Phone number", number))
-                // Android 13 and later show their own "Copied" message.
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    Toast.makeText(this, "Number copied", Toast.LENGTH_SHORT).show()
-                }
+                copyNumber(this, number)
             }
             NumberAction.ADD_CONTACT -> openOrSay(
                 Intent(Intent.ACTION_INSERT_OR_EDIT)

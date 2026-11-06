@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.Box
@@ -73,25 +75,10 @@ class ContactsScreensTest {
         bitmap.asImageBitmap()
     }
 
-    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) {
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(
-                LocalDensity provides Density(density.density, fontScale),
-                LocalPhotoLoader provides fakePhotos,
-            ) {
-                NewtTheme(darkTheme = dark) {
-                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") { content() }
-                }
-            }
+    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) =
+        composeRule.renderScreen(name, dark, fontScale, terminal) {
+            CompositionLocalProvider(LocalPhotoLoader provides fakePhotos, content = content)
         }
-        composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
-        composeRule.onRoot().checkRoboAccessibility(
-            RoborazziATFAccessibilityCheckOptions(
-                failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning,
-            )
-        )
-    }
 
     @Composable
     private fun WithTabs(tab: Tab, content: @Composable () -> Unit) {
@@ -284,5 +271,25 @@ class ContactsScreensTest {
         composeRule.onNodeWithText("Block number").assertDoesNotExist()
         composeRule.onNodeWithText("Copy number").performClick()
         assertEquals(listOf(NumberAction.EDIT_CONTACT to null, NumberAction.COPY to "5550148800"), actions)
+    }
+
+    @Test
+    fun eachNumberHasCallAndTextButtons() {
+        val called = mutableListOf<String>()
+        val actions = mutableListOf<Pair<NumberAction, String?>>()
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                ContactDetailScreen(
+                    contacts[1], DndCalls.STARRED, onBack = {}, onToggleStar = {}, onCall = { called += it },
+                    onContactAction = { a, _, n -> actions += a to n },
+                )
+            }
+        }
+        val phone = contacts[1].phones.first()
+        val formatted = formatCaller(phone.number)
+        composeRule.onNodeWithContentDescription("Call ${phone.label}, $formatted").assertHeightIsAtLeast(56.dp).performClick()
+        composeRule.onNodeWithContentDescription("Text ${phone.label}, $formatted").assertHeightIsAtLeast(56.dp).performClick()
+        assertEquals(listOf(phone.number), called)
+        assertEquals(listOf(NumberAction.MESSAGE to phone.number), actions)
     }
 }

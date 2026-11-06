@@ -64,6 +64,8 @@ class InCallActivity : ComponentActivity() {
             onSwap = CallManager::swap,
             onMerge = CallManager::merge,
             onTone = CallManager::playTone,
+            onToneStart = CallManager::startTone,
+            onToneStop = CallManager::stopTone,
             onAddCall = ::addCall,
         )
         val photoLoader = ContactsPhotoLoader(this)

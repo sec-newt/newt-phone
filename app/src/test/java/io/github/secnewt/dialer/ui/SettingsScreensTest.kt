@@ -36,7 +36,6 @@ import io.github.secnewt.dialer.screening.SpamSettings
 import io.github.secnewt.ui.NewtTheme
 import androidx.compose.ui.test.onNodeWithContentDescription
 import io.github.secnewt.ui.NewtSettingsCard
-import io.github.secnewt.ui.NewtReadingText
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -61,10 +60,9 @@ class SettingsScreensTest {
         dark: Boolean,
         fontScale: Float = 1f,
         terminal: Boolean = false,
-        redesigned: Boolean = true,
         contrastFalseAlarm: String? = null,
         content: @Composable () -> Unit,
-    ) = composeRule.renderScreen(name, dark, fontScale, terminal, redesigned, contrastFalseAlarm, content = content)
+    ) = composeRule.renderScreen(name, dark, fontScale, terminal, contrastFalseAlarm, content = content)
 
     private fun showSettings(content: @Composable () -> Unit) = composeRule.showScreen(content)
 
@@ -141,22 +139,22 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun blockListEmptyLight() = render("block-list_empty_light", dark = false, redesigned = false) {
+    fun blockListEmptyLight() = render("block-list_empty_light", dark = false) {
         BlockListScreen(rules = emptyList(), onAdd = {}, onRemove = {}, onBack = {})
     }
 
     @Test
-    fun blockListDark() = render("block-list_dark", dark = true, redesigned = false) {
+    fun blockListDark() = render("block-list_dark", dark = true) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {})
     }
 
     @Test
-    fun blockListSharedWithAndroidDark() = render("block-list_shared_dark", dark = true, redesigned = false) {
+    fun blockListSharedWithAndroidDark() = render("block-list_shared_dark", dark = true) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {}, sharedWithAndroid = true)
     }
 
     @Test
-    fun blockListLargestFont() = render("block-list_light_font200", dark = false, fontScale = 2f, redesigned = false) {
+    fun blockListLargestFont() = render("block-list_light_font200", dark = false, fontScale = 2f) {
         BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {})
     }
 
@@ -292,7 +290,7 @@ class SettingsScreensTest {
     fun ringingSwitchesAndQuietHoursTimes() {
         val changes = mutableListOf<RingSettings>()
         composeRule.setContent {
-            NewtTheme(darkTheme = true) { NewtReadingText { RingingOnly(RingSettings(quietHours = QuietHours(enabled = true))) { changes += it } } }
+            NewtTheme(darkTheme = true) { RingingOnly(RingSettings(quietHours = QuietHours(enabled = true))) { changes += it } }
         }
         composeRule.onNodeWithText("Favorites").performClick()
         composeRule.onNodeWithText("10:00", substring = true).assertExists()

@@ -20,15 +20,13 @@ import com.google.android.apps.common.testing.accessibility.framework.checks.Tex
 import io.github.secnewt.test.assertTextAtLeast
 import io.github.secnewt.ui.NewtLook
 import io.github.secnewt.ui.NewtLookTheme
-import io.github.secnewt.ui.NewtReadingText
 import io.github.secnewt.ui.NewtTheme
 import org.hamcrest.Description
 import org.hamcrest.Matcher
 import org.hamcrest.TypeSafeMatcher
 
 /**
- * A screenshot plus accessibility checks. [redesigned] screens (the UI refresh) show in reading
- * text, as in the app, and fail on any text under 16sp at the normal font size. [scrollTo] checks
+ * A screenshot plus accessibility checks, failing on any text under 16sp at the normal font size. [scrollTo] checks
  * the part of a long screen around that text instead of the top.
  */
 @OptIn(ExperimentalRoborazziApi::class)
@@ -37,7 +35,6 @@ fun ComposeContentTestRule.renderScreen(
     dark: Boolean,
     fontScale: Float = 1f,
     terminal: Boolean = false,
-    redesigned: Boolean = true,
     contrastFalseAlarm: String? = null,
     scrollTo: String? = null,
     content: @Composable () -> Unit,
@@ -47,7 +44,7 @@ fun ComposeContentTestRule.renderScreen(
         CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
             NewtTheme(darkTheme = dark) {
                 NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") {
-                    if (redesigned) NewtReadingText(content) else content()
+                    content()
                 }
             }
         }
@@ -64,12 +61,12 @@ fun ComposeContentTestRule.renderScreen(
             failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning,
         )
     )
-    if (redesigned && fontScale == 1f) assertTextAtLeast(16f)
+    if (fontScale == 1f) assertTextAtLeast(16f)
 }
 
-/** A redesigned screen in reading text, for behavior tests. */
+/** A screen in the Newt theme, for behavior tests. */
 fun ComposeContentTestRule.showScreen(content: @Composable () -> Unit) = setContent {
-    NewtTheme(darkTheme = true) { NewtReadingText(content) }
+    NewtTheme(darkTheme = true, content = content)
 }
 
 /**
