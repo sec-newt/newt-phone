@@ -73,25 +73,10 @@ class ContactsScreensTest {
         bitmap.asImageBitmap()
     }
 
-    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) {
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(
-                LocalDensity provides Density(density.density, fontScale),
-                LocalPhotoLoader provides fakePhotos,
-            ) {
-                NewtTheme(darkTheme = dark) {
-                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") { content() }
-                }
-            }
+    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) =
+        composeRule.renderScreen(name, dark, fontScale, terminal) {
+            CompositionLocalProvider(LocalPhotoLoader provides fakePhotos, content = content)
         }
-        composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
-        composeRule.onRoot().checkRoboAccessibility(
-            RoborazziATFAccessibilityCheckOptions(
-                failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning,
-            )
-        )
-    }
 
     @Composable
     private fun WithTabs(tab: Tab, content: @Composable () -> Unit) {

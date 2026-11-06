@@ -24,6 +24,7 @@ import io.github.secnewt.dialer.calls.CallPhase
 import io.github.secnewt.dialer.calls.LiveCall
 import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
+import io.github.secnewt.test.assertTextAtLeast
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,17 +51,8 @@ class InCallScreensTest {
     )
     private val unknown = LiveCall(id = "call-2", number = "+1 972-555-0142", name = null, phase = CallPhase.RINGING)
 
-    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) {
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                NewtTheme(darkTheme = dark) {
-                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") { content() }
-                }
-            }
-        }
-        snapshot(name)
-    }
+    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) =
+        composeRule.renderScreen(name, dark, fontScale, terminal, content = content)
 
     private fun snapshot(name: String) {
         composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
@@ -69,6 +61,7 @@ class InCallScreensTest {
                 failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning,
             )
         )
+        composeRule.assertTextAtLeast(16f)
     }
 
     @Composable

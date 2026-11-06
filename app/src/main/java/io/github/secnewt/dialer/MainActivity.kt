@@ -95,7 +95,6 @@ import io.github.secnewt.dialer.ui.UnknownCallersScreen
 import io.github.secnewt.dialer.ui.SystemSetting
 import io.github.secnewt.dialer.ui.Tab
 import io.github.secnewt.ui.NewtLookTheme
-import io.github.secnewt.ui.NewtReadingText
 import io.github.secnewt.ui.NewtTheme
 import io.github.secnewt.ui.newtContainerColor
 import io.github.secnewt.ui.rememberFamilyLook
@@ -316,7 +315,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
                                 ) { page ->
                                     when (Tab.entries[page]) {
-                                        Tab.RECENTS -> NewtReadingText { RecentsScreen(
+                                        Tab.RECENTS -> RecentsScreen(
                                             groups = callGroups,
                                             hasAccess = callLogAccess,
                                             screened = recentCalls,
@@ -331,7 +330,7 @@ class MainActivity : ComponentActivity() {
                                             message = callMessage,
                                             onNumberAction = ::onNumberAction,
                                             isBlocked = { BlockList.match(blockRules, it) != null },
-                                        ) }
+                                        )
                                         Tab.FAVORITES -> FavoritesScreen(
                                             contacts = contacts,
                                             hasAccess = contactsAccess,
@@ -359,7 +358,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            Screen.SETTINGS -> NewtReadingText { SpamSettingsScreen(
+                            Screen.SETTINGS -> SpamSettingsScreen(
                                 settings = settings,
                                 blockListSize = blockRules.size,
                                 onSettingsChange = ::updateSettings,
@@ -397,14 +396,12 @@ class MainActivity : ComponentActivity() {
                                     keypadTones = it
                                     store.saveKeypadTones(it)
                                 },
-                            ) }
-                            Screen.UNKNOWN_CALLERS -> NewtReadingText {
-                                UnknownCallersScreen(
+                            )
+                            Screen.UNKNOWN_CALLERS -> UnknownCallersScreen(
                                     settings = settings,
                                     onSettingsChange = ::updateSettings,
                                     onBack = { screen = Screen.SETTINGS },
                                 )
-                            }
                             Screen.SPAM -> SpamProtectionScreen(
                                 roleHeld = screeningRoleHeld,
                                 recentCalls = recentCalls,

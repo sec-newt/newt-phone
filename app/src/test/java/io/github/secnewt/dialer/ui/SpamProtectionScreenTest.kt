@@ -65,27 +65,14 @@ class SpamProtectionScreenTest {
         dark: Boolean,
         fontScale: Float = 1f,
         announceMode: AnnounceMode = AnnounceMode.OFF,
-    ) {
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                NewtTheme(darkTheme = dark) {
-                    SpamProtectionScreen(
-                        roleHeld = roleHeld,
-                        recentCalls = calls,
-                        onEnable = {},
-                        now = now,
-                        blockRules = listOf(BlockRule.Number("8005550000")),
-                        announceMode = announceMode,
-                    )
-                }
-            }
-        }
-        composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
-        composeRule.onRoot().checkRoboAccessibility(
-            RoborazziATFAccessibilityCheckOptions(
-                failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning,
-            )
+    ) = composeRule.renderScreen(name, dark, fontScale) {
+        SpamProtectionScreen(
+            roleHeld = roleHeld,
+            recentCalls = calls,
+            onEnable = {},
+            now = now,
+            blockRules = listOf(BlockRule.Number("8005550000")),
+            announceMode = announceMode,
         )
     }
 

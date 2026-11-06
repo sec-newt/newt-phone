@@ -14,7 +14,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.junit4.createComposeRule
-import io.github.secnewt.ui.NewtReadingText
 import org.junit.Assert.assertFalse
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
@@ -88,22 +87,8 @@ class CallingScreensTest {
         Contact(2, "Mona's bakery", starred = false, phones = listOf(PhoneEntry("5550129999", "Work"))),
     )
 
-    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) {
-        composeRule.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                NewtTheme(darkTheme = dark) {
-                    NewtLookTheme(if (terminal) NewtLook.TERMINAL else NewtLook.CLEAN, host = "phone") { content() }
-                }
-            }
-        }
-        composeRule.onRoot().captureRoboImage("build/screenshots/$name.png")
-        composeRule.onRoot().checkRoboAccessibility(
-            RoborazziATFAccessibilityCheckOptions(
-                failureLevel = RoborazziATFAccessibilityChecker.CheckLevel.Warning,
-            )
-        )
-    }
+    private fun render(name: String, dark: Boolean, fontScale: Float = 1f, terminal: Boolean = false, content: @Composable () -> Unit) =
+        composeRule.renderScreen(name, dark, fontScale, terminal, content = content)
 
     @Composable
     private fun Recents(
@@ -200,7 +185,7 @@ class CallingScreensTest {
         composeRule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
-                NewtTheme(darkTheme = true) { NewtReadingText { Recents() } }
+                NewtTheme(darkTheme = true) { Recents() }
             }
         }
         val node = composeRule.onNodeWithText("(555) 019-7731", useUnmergedTree = true).fetchSemanticsNode()
