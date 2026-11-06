@@ -1,6 +1,23 @@
 package io.github.secnewt.dialer.ui
 
 import android.telephony.PhoneNumberUtils
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.InterceptPlatformTextInput
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
+import io.github.secnewt.dialer.calls.DialText
+import kotlinx.coroutines.awaitCancellation
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -87,6 +104,11 @@ fun DialpadScreen(
     onNumberAction: (NumberAction, String) -> Unit = { _, _ -> },
 ) {
     val matches = remember(contacts, number) { ContactList.dialpadMatches(contacts, number) }
+    // Where the cursor is. When the number changes from outside (a paste from the menu, a
+    // contact picked, "Edit before calling"), the cursor goes to the end.
+    var dial by remember { mutableStateOf(DialText(number)) }
+    val current = if (dial.text == number) dial else DialText(number)
+    val edit: (DialText) -> Unit = { dial = it; onNumberChange(it.text) }
     Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         Column(modifier = Modifier.safeDrawingPadding()) {
             LazyColumn(
@@ -126,67 +148,104 @@ fun DialpadScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                NumberRow(number, onNumberChange, onBack, onNumberAction)
-                Keypad(number, onNumberChange, onVoicemail, onKeyTone)
-                CallButton(number, onCall)
+                NumberRow(current, edit, onBack)
+                Keypad(current, edit, onVoicemail, onKeyTone)
+                CallRow(number, onCall, onNumberAction)
             }
         }
     }
 }
 
-/** The typed number. Tap or hold it to paste a number in, or to copy, save or text it. */
-@OptIn(ExperimentalFoundationApi::class)
+/**
+ * The typed number, in a real text field: tap to put the cursor anywhere, drag to select, and
+ * hold for Android's own Cut, Copy and Paste. The keys type at the cursor. The on-screen
+ * keyboard never opens; the dialpad is the keyboard.
+ */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun NumberRow(
-    number: String,
-    onNumberChange: (String) -> Unit,
+    dial: DialText,
+    onEdit: (DialText) -> Unit,
     onBack: () -> Unit,
-    onNumberAction: (NumberAction, String) -> Unit,
 ) {
-    val shown = if (number.isEmpty()) "" else formatTyped(number)
-    var menuOpen by remember { mutableStateOf(false) }
-    if (menuOpen) {
-        NumberActionsDialog(
-            title = shown.ifEmpty { "Dialpad" },
-            number = null,
-            actions = dialpadActions(hasNumber = number.isNotEmpty()),
-            onAction = { action ->
-                menuOpen = false
-                onNumberAction(action, number)
-            },
-            onDismiss = { menuOpen = false },
-        )
-    }
+    val shown = formatTyped(dial.text)
+    val base = if (shown.length > 14) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack, modifier = Modifier.size(56.dp)) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close dialpad")
         }
-        Text(
-            text = shown.ifEmpty { "Enter a number" },
-            style = if (shown.length > 14) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineLarge,
-            fontFamily = if (shown.isEmpty()) bodyFont() else NewtFonts.Mono,
-            fontWeight = FontWeight.Bold,
-            color = if (shown.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            modifier = Modifier
-                .weight(1f)
-                .heightIn(min = 56.dp)
-                .wrapContentHeight()
-                .combinedClickable(
-                    onClickLabel = "Paste or copy",
-                    onLongClickLabel = "Paste or copy",
-                    onLongClick = { menuOpen = true },
-                    onClick = { menuOpen = true },
-                )
-                .semantics { liveRegion = LiveRegionMode.Polite },
-        )
-        DeleteButton(number, onNumberChange)
+        // Swallows the request for a keyboard, so the field keeps its cursor and selection
+        // without the keyboard covering the dialpad.
+        BoxWithConstraints(modifier = Modifier.weight(1f)) {
+        // Shrinks a long number to fit, so the whole number shows even at large text sizes.
+        // A JetBrains Mono character is 0.6 of the font size wide.
+        val fit = with(LocalDensity.current) { (maxWidth / ((shown.length + 1) * 0.6f)).toSp() }
+        val style = if (fit < base.fontSize) base.copy(fontSize = fit) else base
+        InterceptPlatformTextInput(interceptor = { _, _ -> awaitCancellation() }) {
+            BasicTextField(
+                value = TextFieldValue(dial.text, TextRange(dial.start, dial.end)),
+                onValueChange = { onEdit(Dialpad.cleanEdit(it.text, it.selection.start, it.selection.end)) },
+                singleLine = true,
+                textStyle = style.copy(
+                    fontFamily = NewtFonts.Mono,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center,
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                visualTransformation = TypedNumberFormat,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                decorationBox = { field ->
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+                        if (dial.text.isEmpty()) {
+                            Text(
+                                "Enter a number",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontFamily = bodyFont(),
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.clearAndSetSemantics {},
+                            )
+                        }
+                        field()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .wrapContentHeight()
+                    .semantics {
+                        contentDescription = "Number to call"
+                        liveRegion = LiveRegionMode.Polite
+                    },
+            )
+        }
+        }
+        DeleteButton(dial, onEdit)
+    }
+}
+
+/** Shows the typed number formatted ("(555) 019-77") while the cursor still moves by digit. */
+private object TypedNumberFormat : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val typed = text.text
+        val formatted = formatTyped(typed)
+        val positions = Dialpad.formatPositions(typed, formatted)
+            ?: return TransformedText(text, OffsetMapping.Identity)
+        val mapping = object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int =
+                if (offset < typed.length) positions[offset] else formatted.length
+
+            override fun transformedToOriginal(offset: Int): Int = positions.count { it < offset }
+        }
+        return TransformedText(AnnotatedString(formatted), mapping)
     }
 }
 
 /** "(555) 019-77" while typing US numbers; anything else shows as typed. */
 private fun formatTyped(number: String): String {
+    if (number.isEmpty()) return number
     val country = Locale.getDefault().country.ifEmpty { "US" }
     return try {
         PhoneNumberUtils.formatNumber(number, country) ?: number
@@ -234,8 +293,8 @@ private fun MatchRow(contact: Contact, phone: PhoneEntry, onPick: () -> Unit, on
 
 @Composable
 private fun Keypad(
-    number: String,
-    onNumberChange: (String) -> Unit,
+    dial: DialText,
+    onEdit: (DialText) -> Unit,
     onVoicemail: () -> Unit,
     onKeyTone: (Char) -> Unit,
 ) {
@@ -247,13 +306,13 @@ private fun Keypad(
                         key = key,
                         onPress = {
                             onKeyTone(key.digit)
-                            onNumberChange(Dialpad.press(number, key.digit))
+                            onEdit(Dialpad.type(dial, key.digit.toString()))
                         },
                         onLongPress = {
-                            if (Dialpad.holdCallsVoicemail(number, key.digit)) {
+                            if (Dialpad.holdCallsVoicemail(dial.text, key.digit)) {
                                 onVoicemail()
                             } else {
-                                onNumberChange(Dialpad.longPress(number, key.digit))
+                                onEdit(Dialpad.type(dial, if (key.digit == '0') "+" else key.digit.toString()))
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -343,9 +402,29 @@ internal fun Key(
     }
 }
 
+/** The green Call button, with "More" beside it: paste, copy, save or text the number. */
 @Composable
-private fun CallButton(number: String, onCall: (String) -> Unit) {
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
+private fun CallRow(number: String, onCall: (String) -> Unit, onNumberAction: (NumberAction, String) -> Unit) {
+    var menuOpen by remember { mutableStateOf(false) }
+    if (menuOpen) {
+        NumberActionsDialog(
+            title = if (number.isEmpty()) "Dialpad" else formatTyped(number),
+            number = null,
+            actions = dialpadActions(hasNumber = number.isNotEmpty()),
+            onAction = { action ->
+                menuOpen = false
+                onNumberAction(action, number)
+            },
+            onDismiss = { menuOpen = false },
+        )
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Box(contentAlignment = Alignment.CenterStart, modifier = Modifier.weight(1f)) {
+            TextButton(onClick = { menuOpen = true }, modifier = Modifier.heightIn(min = 56.dp)) {
+                Icon(Icons.Filled.MoreVert, contentDescription = null, modifier = Modifier.size(26.dp))
+                Text("More", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 4.dp))
+            }
+        }
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -367,28 +446,29 @@ private fun CallButton(number: String, onCall: (String) -> Unit) {
                 modifier = Modifier.size(34.dp),
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DeleteButton(number: String, onNumberChange: (String) -> Unit) {
+private fun DeleteButton(dial: DialText, onEdit: (DialText) -> Unit) {
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(56.dp)) {
-        if (number.isNotEmpty()) {
+        if (dial.text.isNotEmpty()) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
                     .combinedClickable(
-                        onClick = { onNumberChange(Dialpad.backspace(number)) },
-                        onLongClick = { onNumberChange("") },
+                        onClick = { onEdit(Dialpad.backspace(dial)) },
+                        onLongClick = { onEdit(DialText("")) },
                     )
                     .clearAndSetSemantics {
                         contentDescription = "Delete last digit"
                         role = Role.Button
-                        onClick { onNumberChange(Dialpad.backspace(number)); true }
-                        onLongClick(label = "Clear number") { onNumberChange(""); true }
+                        onClick { onEdit(Dialpad.backspace(dial)); true }
+                        onLongClick(label = "Clear number") { onEdit(DialText("")); true }
                     },
             ) {
                 Icon(

@@ -19,6 +19,10 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.performTextInputSelection
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -245,20 +249,48 @@ class CallingScreensTest {
     }
 
     @Test
-    fun theDialpadNumberOffersPasteAndMore() {
+    fun theDialpadMoreButtonOffersPasteCopyAddAndText() {
         val actions = mutableListOf<Pair<NumberAction, String>>()
         composeRule.setContent {
             NewtTheme(darkTheme = true) {
                 DialpadScreen("5550197731", {}, contacts, onCall = {}, onBack = {}, onNumberAction = { a, n -> actions += a to n })
             }
         }
-        composeRule.onNodeWithText("7731", substring = true).performTouchInput { longClick() }
+        composeRule.onNodeWithText("More").performClick()
         listOf("Paste number", "Copy number", "Add to contacts", "Send a text").forEach {
             composeRule.onNodeWithText(it).assertIsDisplayed()
         }
         composeRule.onNodeWithText("Add to contacts").performClick()
         assertEquals(listOf(NumberAction.ADD_CONTACT to "5550197731"), actions)
         assertEquals(listOf(NumberAction.PASTE), dialpadActions(hasNumber = false))
+    }
+
+    @Test
+    fun theDialpadNumberIsATextFieldShownFormatted() {
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) { DialpadScreen("5550197731", {}, contacts, onCall = {}, onBack = {}) }
+        }
+        composeRule.onNode(hasSetTextAction()).assertTextEquals(formatCaller("5550197731"), includeEditableText = true)
+    }
+
+    @Test
+    fun keysTypeAndDeleteAtTheCursor() {
+        var number by mutableStateOf("555197")
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                DialpadScreen(number, { number = it }, contacts, onCall = {}, onBack = {})
+            }
+        }
+        val field = composeRule.onNode(hasSetTextAction())
+        field.performTextInputSelection(TextRange(3))
+        composeRule.onNodeWithContentDescription("0, hold for plus").performClick()
+        assertEquals("5550197", number)
+        composeRule.onNodeWithContentDescription("Delete last digit").performClick()
+        assertEquals("555197", number)
+        // Select "51" and type over it.
+        field.performTextInputSelection(TextRange(2, 4))
+        composeRule.onNodeWithContentDescription("8, T U V").performClick()
+        assertEquals("55897", number)
     }
 
     @Test

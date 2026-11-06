@@ -2,6 +2,7 @@ package io.github.secnewt.dialer.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +35,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,6 +54,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.graphics.vector.ImageVector
+import io.github.secnewt.ui.NewtTone
+import io.github.secnewt.ui.color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -452,7 +458,10 @@ fun ContactDetailScreen(
     }
 }
 
-/** Tap or hold the number to copy, text, edit or block it; the Call button calls. */
+/**
+ * One number on a contact's page: tap or hold the number to copy, edit or block it. Under it,
+ * a green Call and a cyan Text button, outlined like the Call button in Recents.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PhoneRow(phone: PhoneEntry, onCall: (String) -> Unit, isBlocked: Boolean, onAction: (NumberAction) -> Unit) {
@@ -470,15 +479,15 @@ private fun PhoneRow(phone: PhoneEntry, onCall: (String) -> Unit, isBlocked: Boo
             onDismiss = { menuOpen = false },
         )
     }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Column(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .heightIn(min = 56.dp)
                 .combinedClickable(
                     onClickLabel = "More options",
@@ -499,15 +508,61 @@ private fun PhoneRow(phone: PhoneEntry, onCall: (String) -> Unit, isBlocked: Boo
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        FilledTonalButton(
-            onClick = { onCall(phone.number) },
-            modifier = Modifier
-                .heightIn(min = 56.dp)
-                .semantics { contentDescription = "Call ${phone.label}, $formatted" },
-        ) {
-            Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(24.dp))
-            Text("Call", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedActionButton(
+                label = "Call",
+                icon = Icons.Filled.Call,
+                color = NewtTone.Good.color(),
+                spoken = "Call ${phone.label}, $formatted",
+                onClick = { onCall(phone.number) },
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedActionButton(
+                label = "Text",
+                icon = MessageIcon,
+                color = MaterialTheme.colorScheme.tertiary,
+                spoken = "Text ${phone.label}, $formatted",
+                onClick = { onAction(NumberAction.MESSAGE) },
+                modifier = Modifier.weight(1f),
+            )
         }
+    }
+}
+
+/** A big outlined button in its own color, with an icon and a word. */
+@Composable
+private fun OutlinedActionButton(
+    label: String,
+    icon: ImageVector,
+    color: Color,
+    spoken: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = modifier
+            .heightIn(min = 58.dp)
+            .clip(shape)
+            .border(2.5.dp, color, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                role = Role.Button
+                onClick { onClick(); true }
+            }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(28.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = color,
+            modifier = Modifier.padding(start = 10.dp),
+        )
     }
 }
 

@@ -1,6 +1,13 @@
 package io.github.secnewt.dialer.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.test.core.app.ApplicationProvider
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsOff
@@ -17,6 +24,7 @@ import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityCheckOptions
 import com.github.takahirom.roborazzi.RoborazziATFAccessibilityChecker
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.checkRoboAccessibility
 import io.github.secnewt.dialer.calls.AudioRoute
 import io.github.secnewt.dialer.calls.AudioState
@@ -188,6 +196,87 @@ class InCallScreensTest {
         assertEquals(listOf("call-1" to '1', "call-1" to '#'), tones)
         composeRule.onNodeWithText("Hide keypad").performClick()
         composeRule.onNodeWithText("Mute").assertExists()
+    }
+
+    private fun copyToClipboard(text: String) {
+        ApplicationProvider.getApplicationContext<Context>().getSystemService(ClipboardManager::class.java)
+            .setPrimaryClip(ClipData.newPlainText("test", text))
+    }
+
+    @Test
+    fun pasteAsksFirstThenSendsTheDigitsAsTones() {
+        val log = mutableListOf<String>()
+        copyToClipboard("4111 1111 1111 4242")
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                Screen(
+                    mom,
+                    actions = CallActions(
+                        onToneStart = { id, digit -> log += "$id $digit" },
+                        onToneStop = { log += "stop" },
+                    ),
+                )
+            }
+        }
+        composeRule.onNodeWithText("Keypad").performClick()
+        composeRule.onNodeWithText("Paste").performClick()
+        composeRule.onNodeWithText("Send 16 digits ending in 4242?").assertIsDisplayed()
+        assertEquals(emptyList<String>(), log)
+        composeRule.onNodeWithText("Send").performClick()
+        composeRule.mainClock.advanceTimeBy(16 * 500L)
+        composeRule.waitForIdle()
+        assertEquals("4111111111114242".map { "call-1 $it" }, log.filter { it != "stop" })
+        assertEquals(16, log.count { it == "stop" })
+        // The card number never shows on screen.
+        composeRule.onNodeWithText("4242", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun cancellingThePasteSendsNothing() {
+        val log = mutableListOf<Char>()
+        copyToClipboard("PIN 1234")
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) { Screen(mom, actions = CallActions(onToneStart = { _, d -> log += d })) }
+        }
+        composeRule.onNodeWithText("Keypad").performClick()
+        composeRule.onNodeWithText("Paste").performClick()
+        composeRule.onNodeWithText("Send 1234?").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").performClick()
+        composeRule.onNodeWithText("Send 1234?").assertDoesNotExist()
+        assertEquals(emptyList<Char>(), log)
+    }
+
+    @Test
+    fun pastingWithNoDigitsSaysSo() {
+        copyToClipboard("hello")
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(mom) } }
+        composeRule.onNodeWithText("Keypad").performClick()
+        composeRule.onNodeWithText("Paste").performClick()
+        composeRule.onNodeWithText("Nothing to paste. Copy a number first.").assertIsDisplayed()
+    }
+
+    @Test
+    fun sendingPastedDigitsDark() {
+        copyToClipboard("4111111111114242")
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(mom) } }
+        composeRule.onNodeWithText("Keypad").performClick()
+        composeRule.onNodeWithText("Paste").performClick()
+        composeRule.onNodeWithText("Send").assertIsDisplayed()
+        captureScreenRoboImage("build/screenshots/incall_paste_ask_dark.png")
+        composeRule.onNodeWithText("Send").assertIsDisplayed()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNodeWithText("Send").performClick()
+        composeRule.mainClock.advanceTimeBy(1_600L)
+        snapshot("incall_paste_sending_dark")
+    }
+
+    @Test
+    fun holdingTheCallersNumberCopiesIt() {
+        copyToClipboard("")
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(mom) } }
+        composeRule.onNodeWithText(formatCaller("5550197731")).performSemanticsAction(SemanticsActions.OnLongClick)
+        val clip = ApplicationProvider.getApplicationContext<Context>().getSystemService(ClipboardManager::class.java).primaryClip
+        assertEquals("5550197731", clip?.getItemAt(0)?.text?.toString())
     }
 
     @Test
