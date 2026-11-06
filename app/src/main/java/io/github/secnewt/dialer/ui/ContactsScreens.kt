@@ -73,6 +73,10 @@ import io.github.secnewt.dialer.contacts.DndCalls
 import io.github.secnewt.dialer.contacts.PhoneEntry
 import io.github.secnewt.ui.NewtFonts
 import io.github.secnewt.ui.ScreenHeader
+import io.github.secnewt.ui.NewtPrimaryButton
+import io.github.secnewt.ui.NewtButton
+import io.github.secnewt.ui.NewtSwitchRow
+import io.github.secnewt.ui.NewtSettingsCard
 import io.github.secnewt.ui.CardTitle
 import io.github.secnewt.ui.neonOutline
 import io.github.secnewt.ui.neonFieldColors
@@ -392,67 +396,41 @@ fun ContactDetailScreen(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.semantics { heading() },
                     )
-                    if (contact.starred) {
-                        OutlinedButton(
-                            onClick = onToggleStar,
-                            border = neonOutline(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 56.dp),
-                        ) {
-                            Icon(Icons.Filled.Star, contentDescription = null, modifier = Modifier.size(24.dp))
-                            Text(
-                                "In favorites. Tap to remove",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(start = 12.dp),
-                            )
-                        }
-                    } else {
-                        Button(
-                            onClick = onToggleStar,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 56.dp),
-                        ) {
-                            Icon(StarOutline, contentDescription = null, modifier = Modifier.size(24.dp))
-                            Text(
-                                "Add to favorites",
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(start = 12.dp),
-                            )
-                        }
-                    }
-                    OutlinedButton(
-                        onClick = { onContactAction(NumberAction.EDIT_CONTACT, contact, null) },
-                        border = neonOutline(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp),
-                    ) {
-                        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(24.dp))
-                        Text(
-                            "Edit in Contacts",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(start = 12.dp),
-                        )
-                    }
-                    Dnd.contactLine(contact.starred, dnd)?.let {
-                        Text(it, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    }
                 }
             }
-            if (contact.phones.isEmpty()) {
-                item {
-                    Text(
-                        text = "No phone number saved.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp),
+            item {
+                NewtSettingsCard("Ringing", icon = Icons.Filled.Star) {
+                    NewtSwitchRow(
+                        "Favorite",
+                        checked = contact.starred,
+                        onCheckedChange = { onToggleStar() },
+                        hint = Dnd.contactLine(contact.starred, dnd),
                     )
                 }
             }
-            items(contact.phones) { phone ->
-                PhoneRow(phone, onCall, isBlocked(phone.number)) { action -> onContactAction(action, contact, phone.number) }
+            item {
+                NewtSettingsCard("Numbers", icon = Icons.Filled.Call) {
+                    if (contact.phones.isEmpty()) {
+                        Text(
+                            text = "No phone number saved.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(14.dp),
+                        )
+                    }
+                    contact.phones.forEachIndexed { index, phone ->
+                        if (index > 0) HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                        PhoneRow(phone, onCall, isBlocked(phone.number)) { action -> onContactAction(action, contact, phone.number) }
+                    }
+                }
+            }
+            item {
+                NewtButton(
+                    "Edit in Contacts",
+                    onClick = { onContactAction(NumberAction.EDIT_CONTACT, contact, null) },
+                    icon = Icons.Filled.Edit,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -483,7 +461,7 @@ private fun PhoneRow(phone: PhoneEntry, onCall: (String) -> Unit, isBlocked: Boo
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Column(
             modifier = Modifier
