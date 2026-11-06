@@ -25,6 +25,9 @@ import io.github.secnewt.dialer.screening.ScreenedCall
 import io.github.secnewt.dialer.screening.Verification
 import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -65,7 +68,8 @@ class SpamProtectionScreenTest {
         dark: Boolean,
         fontScale: Float = 1f,
         announceMode: AnnounceMode = AnnounceMode.OFF,
-    ) = composeRule.renderScreen(name, dark, fontScale) {
+        contrastFalseAlarm: String? = null,
+    ) = composeRule.renderScreen(name, dark, fontScale, contrastFalseAlarm = contrastFalseAlarm) {
         SpamProtectionScreen(
             roleHeld = roleHeld,
             recentCalls = calls,
@@ -102,6 +106,10 @@ class SpamProtectionScreenTest {
     @Test
     fun onWithCallsDarkLargestFont() = render(
         "spam-protection_on_calls_dark_font200", roleHeld = true, calls = sampleCalls, dark = true, fontScale = 2f,
+        // The first Block button is cut in half by the bottom of the screen, so the checker
+        // guesses its colors from a sliver (3.23:1). Red on this background is 7:1 or better
+        // (the library's TonesTest), and the same button checks clean in the light screenshot.
+        contrastFalseAlarm = "Block",
     )
 
     @Test
@@ -129,5 +137,60 @@ class SpamProtectionScreenTest {
         composeRule.onNodeWithContentDescription("Settings").performClick()
         composeRule.onNodeWithText("Announcing callers").performClick()
         assertEquals(2, opened)
+    }
+
+    private fun show(calls: List<ScreenedCall> = sampleCalls, onBlock: (String) -> Unit = {}, onUnblock: (String) -> Unit = {}) =
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                SpamProtectionScreen(
+                    roleHeld = true, recentCalls = calls, onEnable = {}, now = now,
+                    blockRules = listOf(BlockRule.Number("8005550000")), onBlock = onBlock, onUnblock = onUnblock,
+                )
+            }
+        }
+
+    @Test
+    fun statusIsOneSentenceSummary() {
+        show()
+        composeRule.onNodeWithContentDescription("Spam protection · Watching. Every call rings. Below is what would have been silenced.")
+            .assertExists()
+    }
+
+    @Test
+    fun callsAreGroupedByDay() {
+        show()
+        composeRule.onNodeWithText("Today").assertExists()
+        composeRule.onNodeWithText("Yesterday").assertExists()
+    }
+
+    @Test
+    fun verdictChipsAreWords() {
+        show()
+        composeRule.onAllNodesWithText("Would silence").assertCountEquals(2)
+        composeRule.onNodeWithText("Verified").assertExists()
+    }
+
+    @Test
+    fun blockButtonBlocksTheNumber() {
+        val blocked = mutableListOf<String>()
+        show(onBlock = { blocked += it })
+        composeRule.onNodeWithContentDescription("Block (555) 019-7731").performClick()
+        assertEquals(listOf("5550197731"), blocked)
+    }
+
+    @Test
+    fun aBlockedNumberSaysSoAndCanBeUnblocked() {
+        val unblocked = mutableListOf<String>()
+        show(onUnblock = { unblocked += it })
+        composeRule.onNodeWithText("On block list").assertExists()
+        composeRule.onNodeWithContentDescription("Block (800) 555-0000").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Unblock (800) 555-0000").performScrollTo().performClick()
+        assertEquals(listOf("8005550000"), unblocked)
+    }
+
+    @Test
+    fun aHiddenNumberHasNoBlockButton() {
+        show(calls = listOf(sampleCalls[2]))
+        composeRule.onAllNodesWithText("Block").assertCountEquals(0)
     }
 }

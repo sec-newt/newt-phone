@@ -1,6 +1,8 @@
 package io.github.secnewt.dialer.incall
 
 import android.os.Build
+import android.annotation.SuppressLint
+import android.content.Context
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.InCallService
@@ -26,6 +28,10 @@ data class CallerInfo(
     val isEmergency: Boolean = false,
     /** A favorite (starred contact), who may ring through silent mode. */
     val starred: Boolean = false,
+    /** The saved number's type ("mobile"), and the last answered call with this number. */
+    val numberType: String? = null,
+    val lastTalkedMillis: Long? = null,
+    val lastTalkedSeconds: Long? = null,
 )
 
 /**
@@ -121,6 +127,19 @@ object CallManager {
         CallAnnouncer.stop()
         RingThrough.stop()
         telecomCalls[id]?.reject(false, null)
+    }
+
+    /**
+     * Stops the ringtone and the caller's name being read out. The call keeps ringing silently,
+     * so it can still be answered. Android lets the phone app silence its own ringtone.
+     */
+    // silenceRinger is allowed for the default phone app, which is checked first.
+    @SuppressLint("MissingPermission")
+    fun silence(context: Context) {
+        CallAnnouncer.stop()
+        RingThrough.stop()
+        val telecom = context.getSystemService(TelecomManager::class.java)
+        if (telecom.defaultDialerPackage == context.packageName) telecom.silenceRinger()
     }
 
     fun hangUp(id: String) {
@@ -226,6 +245,10 @@ object CallManager {
             connectedAtMillis = details.connectTimeMillis.takeIf { it > 0 },
             photoUri = info.photoUri,
             spamLabel = info.spamLabel,
+            starred = info.starred,
+            numberType = info.numberType,
+            lastTalkedMillis = info.lastTalkedMillis,
+            lastTalkedSeconds = info.lastTalkedSeconds,
             canHold = details.can(Call.Details.CAPABILITY_HOLD),
             isEmergency = info.isEmergency,
             isVoicemail = details.handle?.scheme == PhoneAccount.SCHEME_VOICEMAIL,

@@ -17,6 +17,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
@@ -51,6 +54,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import io.github.secnewt.ui.NewtTone
+import io.github.secnewt.ui.NewtPrimaryButton
+import io.github.secnewt.ui.NewtButton
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -65,6 +75,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -98,6 +110,10 @@ data class CallActions(
     val onToneStart: (String, Char) -> Unit = { _, _ -> },
     val onToneStop: (String) -> Unit = {},
     val onAddCall: () -> Unit = {},
+    /** Stops the ringtone and voice; the call keeps ringing silently. */
+    val onSilence: (String) -> Unit = {},
+    /** Declines the call and opens a text to the caller in the default SMS app. */
+    val onTextBack: (String) -> Unit = {},
 )
 
 /** The name to show for a call: the contact, the number, "Voicemail" or "Hidden number". */
@@ -123,7 +139,7 @@ fun CallScreen(
     val now = nowMillis ?: ticking()
     Surface(modifier = Modifier.fillMaxSize(), color = newtContainerColor()) {
         if (call.phase == CallPhase.RINGING) {
-            IncomingCallScreen(call, other, actions)
+            IncomingCallScreen(call, other, actions, now)
         } else {
             InCallScreen(call, other, audio, actions, now)
         }
@@ -142,7 +158,9 @@ private fun ticking(): Long {
 }
 
 @Composable
-private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallActions) {
+private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallActions, now: Long) {
+    var silenced by rememberSaveable(call.id) { mutableStateOf(false) }
+    val context = incomingContext(call, now)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -151,7 +169,7 @@ private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallAc
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -164,11 +182,12 @@ private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallAc
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier
-                    .padding(top = 24.dp)
+                    .padding(top = 16.dp)
                     .semantics { heading() },
             )
-            CallerHeader(call, avatarSize = 168)
+            CallerHeader(call, avatarSize = 128)
             call.spamLabel?.let { SpamWarning(it) }
+            context.forEach { ContextLine(it) }
             if (other != null) {
                 Text(
                     "Answering puts ${callTitle(other)} on hold.",
@@ -178,24 +197,75 @@ private fun IncomingCallScreen(call: LiveCall, other: LiveCall?, actions: CallAc
                 )
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(top = 16.dp)) {
-            BigCallButton(
-                label = "Decline",
-                icon = CallEndIcon,
-                container = MaterialTheme.colorScheme.error,
-                content = MaterialTheme.colorScheme.onError,
+        // The thumb zone: quick replies, then Decline on its own row, then Answer, the biggest.
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+                if (call.number != null) {
+                    NewtButton("Text back", onClick = { actions.onTextBack(call.id) }, modifier = Modifier.weight(1f).fillMaxHeight())
+                }
+                if (silenced) {
+                    SilencedLabel(Modifier.weight(1f).fillMaxHeight())
+                } else {
+                    NewtButton(
+                        "Silence",
+                        onClick = {
+                            silenced = true
+                            actions.onSilence(call.id)
+                        },
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
+            }
+            NewtPrimaryButton(
+                "Decline",
                 onClick = { actions.onDecline(call.id) },
-                modifier = Modifier.weight(1f),
+                icon = Icons.Filled.Close,
+                tone = NewtTone.Danger,
+                modifier = Modifier.fillMaxWidth(),
             )
-            BigCallButton(
-                label = "Answer",
-                icon = Icons.Filled.Call,
-                container = CallGreen,
-                content = OnCallGreen,
+            NewtPrimaryButton(
+                "Answer",
                 onClick = { actions.onAnswer(call.id) },
-                modifier = Modifier.weight(1f),
+                icon = Icons.Filled.Call,
+                tone = NewtTone.Good,
+                large = true,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 84.dp),
             )
         }
+    }
+}
+
+/** One line of who's calling ("★ Favorite · mobile"), on a lifted, outlined row. */
+@Composable
+private fun ContextLine(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .border(2.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(14.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    )
+}
+
+/** Where Silence was: says it worked, and does nothing if tapped again. */
+@Composable
+private fun SilencedLabel(modifier: Modifier = Modifier) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .heightIn(min = 58.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .border(2.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                disabled()
+            },
+    ) {
+        Text("Silenced", fontWeight = FontWeight.Bold, fontSize = 19.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -450,6 +520,7 @@ private fun Controls(
             ControlButton(
                 icon = if (audio.muted) MicOffIcon else MicIcon,
                 label = "Mute",
+                onLabel = "Muted",
                 checked = audio.muted,
                 onClick = { actions.onMute(!audio.muted) },
                 modifier = Modifier.weight(1f),
@@ -466,6 +537,7 @@ private fun Controls(
                 ControlButton(
                     icon = SpeakerIcon,
                     label = "Speaker",
+                    onLabel = "Speaker on",
                     checked = audio.route == AudioRoute.SPEAKER,
                     onClick = { actions.onRoute(LiveCalls.nextRoute(audio)) },
                     modifier = Modifier.weight(1f),
@@ -483,6 +555,7 @@ private fun Controls(
             ControlButton(
                 icon = PauseIcon,
                 label = "Hold",
+                onLabel = "On hold",
                 checked = call.phase == CallPhase.ON_HOLD,
                 enabled = call.canHold || call.phase == CallPhase.ON_HOLD,
                 onClick = { actions.onToggleHold(call.id) },
@@ -509,14 +582,15 @@ private fun routeIcon(route: AudioRoute): ImageVector = when (route) {
 }
 
 /**
- * A round control with its name underneath. On/off controls ([checked] not null) light up
- * with the outline gradient when on, like a pressed dialpad key.
+ * A round control with its name underneath. On/off controls ([checked] not null) fill with the
+ * gradient when on and show [onLabel] ("Muted"); screen readers hear [label] and on/off.
  */
 @Composable
 private fun ControlButton(
     icon: ImageVector,
     label: String,
     checked: Boolean?,
+    onLabel: String = label,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -539,6 +613,7 @@ private fun ControlButton(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .then(action)
+            .semantics { contentDescription = label }
             .padding(vertical = 4.dp),
     ) {
         Box(
@@ -552,12 +627,12 @@ private fun ControlButton(
             Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(32.dp))
         }
         Text(
-            label,
+            if (on) onLabel else label,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = if (enabled) colors.onSurface else colors.onSurfaceVariant,
-            modifier = Modifier.padding(top = 6.dp),
+            modifier = Modifier.padding(top = 6.dp).semantics { hideFromAccessibility() },
         )
     }
 }

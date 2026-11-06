@@ -33,6 +33,12 @@ import io.github.secnewt.dialer.calls.LiveCall
 import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
 import io.github.secnewt.test.assertTextAtLeast
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsDisplayed
+import org.junit.Assert.assertTrue
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertCountEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -176,8 +182,8 @@ class InCallScreensTest {
                 )
             }
         }
-        composeRule.onNodeWithText("Mute").assertIsOff().performClick()
-        composeRule.onNodeWithText("Speaker").assertIsOn().performClick()
+        composeRule.onNodeWithContentDescription("Mute").assertIsOff().performClick()
+        composeRule.onNodeWithContentDescription("Speaker").assertIsOn().performClick()
         assertEquals(listOf(true), muted)
         assertEquals(listOf(AudioRoute.EARPIECE), routes)
     }
@@ -355,5 +361,67 @@ class InCallScreensTest {
             unknown.copy(phase = CallPhase.ACTIVE, connectedAtMillis = now - 5_000, canMerge = true),
             other = mom.copy(phase = CallPhase.ON_HOLD),
         )
+    }
+
+    private val ringingMom = mom.copy(phase = CallPhase.RINGING, connectedAtMillis = null, starred = true, numberType = "mobile")
+
+    @Test
+    fun incomingRedesignDark() = render("incall_incoming_redesign_dark", dark = true) { Screen(ringingMom) }
+
+    @Test
+    fun incomingRedesignTerminalLight() = render("terminal_incall_incoming_redesign_light", dark = false, terminal = true) { Screen(ringingMom) }
+
+    @Test
+    fun textBackDeclinesTheCall() {
+        val texted = mutableListOf<String>()
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(ringingMom, actions = CallActions(onTextBack = { texted += it })) } }
+        composeRule.onNodeWithText("Text back").performClick()
+        assertEquals(listOf("call-1"), texted)
+    }
+
+    @Test
+    fun silenceBecomesSilenced() {
+        val silenced = mutableListOf<String>()
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(ringingMom, actions = CallActions(onSilence = { silenced += it })) } }
+        composeRule.onNodeWithText("Silence").performClick()
+        assertEquals(listOf("call-1"), silenced)
+        composeRule.onNodeWithText("Silenced").assertIsNotEnabled()
+        composeRule.onNodeWithText("Answer").assertIsEnabled()
+    }
+
+    @Test
+    fun noTextBackForAHiddenNumber() {
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(unknown.copy(number = null)) } }
+        composeRule.onNodeWithText("Text back").assertDoesNotExist()
+        composeRule.onNodeWithText("Silence").assertExists()
+    }
+
+    @Test
+    fun answerStaysOnScreenAt200pctWithALongName() = render("incall_incoming_long-name_light_font200", dark = false, fontScale = 2f) {
+        Screen(ringingMom.copy(name = "Dr. Patel's office front desk", lastTalkedMillis = now - 86_400_000, lastTalkedSeconds = 240))
+    }.also { composeRule.onNodeWithText("Answer").assertIsDisplayed() }
+
+    @Test
+    fun answerAndDeclineAreNotSideBySide() {
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(ringingMom) } }
+        val answer = composeRule.onNodeWithText("Answer").fetchSemanticsNode().boundsInRoot
+        val decline = composeRule.onNodeWithText("Decline").fetchSemanticsNode().boundsInRoot
+        assertTrue("Answer below Decline", answer.top >= decline.bottom)
+    }
+
+    @Test
+    fun controlsSayTheirStateInWords() {
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                Screen(mom.copy(phase = CallPhase.ON_HOLD), audio = AudioState(muted = true, route = AudioRoute.SPEAKER))
+            }
+        }
+        composeRule.onNodeWithText("Muted", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("Speaker on", useUnmergedTree = true).assertExists()
+        // The status at the top says "On hold" too.
+        composeRule.onAllNodesWithText("On hold", useUnmergedTree = true).assertCountEquals(2)
+        // Screen readers hear the control's name and its state, not a changing name.
+        composeRule.onNodeWithContentDescription("Mute").assertIsOn()
+        composeRule.onNodeWithContentDescription("Hold").assertIsOn()
     }
 }

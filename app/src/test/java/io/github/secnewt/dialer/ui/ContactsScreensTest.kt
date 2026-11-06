@@ -32,6 +32,10 @@ import io.github.secnewt.dialer.contacts.DndCalls
 import io.github.secnewt.dialer.contacts.PhoneEntry
 import io.github.secnewt.ui.NewtTheme
 import org.junit.Assert.assertEquals
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assert
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -291,5 +295,27 @@ class ContactsScreensTest {
         composeRule.onNodeWithContentDescription("Text ${phone.label}, $formatted").assertHeightIsAtLeast(56.dp).performClick()
         assertEquals(listOf(phone.number), called)
         assertEquals(listOf(NumberAction.MESSAGE to phone.number), actions)
+    }
+
+    @Test
+    fun contactFavoriteIsAnOnOffSwitch() {
+        var toggled = 0
+        composeRule.showScreen {
+            CompositionLocalProvider(LocalPhotoLoader provides fakePhotos) {
+                ContactDetailScreen(contacts[1], DndCalls.STARRED, onBack = {}, onToggleStar = { toggled++ }, onCall = {})
+            }
+        }
+        composeRule.onNodeWithText("Favorite").assertIsOn().performClick()
+        assertEquals(1, toggled)
+    }
+
+    @Test
+    fun contactNumbersSitInACard() {
+        composeRule.showScreen {
+            CompositionLocalProvider(LocalPhotoLoader provides fakePhotos) {
+                ContactDetailScreen(contacts[1], DndCalls.STARRED, onBack = {}, onToggleStar = {}, onCall = {})
+            }
+        }
+        composeRule.onNodeWithText("Numbers").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
 }
