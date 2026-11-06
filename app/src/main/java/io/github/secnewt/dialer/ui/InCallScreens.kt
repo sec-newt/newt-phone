@@ -75,6 +75,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -518,6 +520,7 @@ private fun Controls(
             ControlButton(
                 icon = if (audio.muted) MicOffIcon else MicIcon,
                 label = "Mute",
+                onLabel = "Muted",
                 checked = audio.muted,
                 onClick = { actions.onMute(!audio.muted) },
                 modifier = Modifier.weight(1f),
@@ -534,6 +537,7 @@ private fun Controls(
                 ControlButton(
                     icon = SpeakerIcon,
                     label = "Speaker",
+                    onLabel = "Speaker on",
                     checked = audio.route == AudioRoute.SPEAKER,
                     onClick = { actions.onRoute(LiveCalls.nextRoute(audio)) },
                     modifier = Modifier.weight(1f),
@@ -551,6 +555,7 @@ private fun Controls(
             ControlButton(
                 icon = PauseIcon,
                 label = "Hold",
+                onLabel = "On hold",
                 checked = call.phase == CallPhase.ON_HOLD,
                 enabled = call.canHold || call.phase == CallPhase.ON_HOLD,
                 onClick = { actions.onToggleHold(call.id) },
@@ -577,14 +582,15 @@ private fun routeIcon(route: AudioRoute): ImageVector = when (route) {
 }
 
 /**
- * A round control with its name underneath. On/off controls ([checked] not null) light up
- * with the outline gradient when on, like a pressed dialpad key.
+ * A round control with its name underneath. On/off controls ([checked] not null) fill with the
+ * gradient when on and show [onLabel] ("Muted"); screen readers hear [label] and on/off.
  */
 @Composable
 private fun ControlButton(
     icon: ImageVector,
     label: String,
     checked: Boolean?,
+    onLabel: String = label,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -607,6 +613,7 @@ private fun ControlButton(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .then(action)
+            .semantics { contentDescription = label }
             .padding(vertical = 4.dp),
     ) {
         Box(
@@ -620,12 +627,12 @@ private fun ControlButton(
             Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(32.dp))
         }
         Text(
-            label,
+            if (on) onLabel else label,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = if (enabled) colors.onSurface else colors.onSurfaceVariant,
-            modifier = Modifier.padding(top = 6.dp),
+            modifier = Modifier.padding(top = 6.dp).semantics { hideFromAccessibility() },
         )
     }
 }

@@ -37,6 +37,8 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsDisplayed
 import org.junit.Assert.assertTrue
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertCountEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -180,8 +182,8 @@ class InCallScreensTest {
                 )
             }
         }
-        composeRule.onNodeWithText("Mute").assertIsOff().performClick()
-        composeRule.onNodeWithText("Speaker").assertIsOn().performClick()
+        composeRule.onNodeWithContentDescription("Mute").assertIsOff().performClick()
+        composeRule.onNodeWithContentDescription("Speaker").assertIsOn().performClick()
         assertEquals(listOf(true), muted)
         assertEquals(listOf(AudioRoute.EARPIECE), routes)
     }
@@ -405,5 +407,21 @@ class InCallScreensTest {
         val answer = composeRule.onNodeWithText("Answer").fetchSemanticsNode().boundsInRoot
         val decline = composeRule.onNodeWithText("Decline").fetchSemanticsNode().boundsInRoot
         assertTrue("Answer below Decline", answer.top >= decline.bottom)
+    }
+
+    @Test
+    fun controlsSayTheirStateInWords() {
+        composeRule.setContent {
+            NewtTheme(darkTheme = true) {
+                Screen(mom.copy(phase = CallPhase.ON_HOLD), audio = AudioState(muted = true, route = AudioRoute.SPEAKER))
+            }
+        }
+        composeRule.onNodeWithText("Muted", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("Speaker on", useUnmergedTree = true).assertExists()
+        // The status at the top says "On hold" too.
+        composeRule.onAllNodesWithText("On hold", useUnmergedTree = true).assertCountEquals(2)
+        // Screen readers hear the control's name and its state, not a changing name.
+        composeRule.onNodeWithContentDescription("Mute").assertIsOn()
+        composeRule.onNodeWithContentDescription("Hold").assertIsOn()
     }
 }
