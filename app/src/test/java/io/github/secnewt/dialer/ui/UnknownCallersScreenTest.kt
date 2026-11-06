@@ -163,4 +163,16 @@ class UnknownCallersScreenTest {
         assertEquals(1, back)
     }
 
+
+    @Test
+    fun watchModeSaysRulesAreNotEnforced() {
+        show(SpamSettings(observeOnly = true))
+        composeRule.onNodeWithContentDescription("Watching. These rules are shown on Calls, not applied to real calls.").assertExists()
+    }
+
+    @Test
+    fun blockModeHasNoWatchingNote() {
+        show(SpamSettings(observeOnly = false))
+        composeRule.onNodeWithContentDescription("Watching. These rules are shown on Calls, not applied to real calls.").assertDoesNotExist()
+    }
 }

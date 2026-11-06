@@ -36,6 +36,7 @@ import io.github.secnewt.ui.NewtSwitchRow
 import io.github.secnewt.ui.NewtTone
 import io.github.secnewt.ui.NewtValueRow
 import io.github.secnewt.ui.ScreenHeader
+import io.github.secnewt.ui.NewtSummary
 import io.github.secnewt.ui.neonFieldColors
 import io.github.secnewt.ui.newtContainerColor
 import java.util.Date
@@ -99,6 +100,11 @@ fun UnknownCallersScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { ScreenHeader("Unknown callers", onBack) }
+            if (settings.observeOnly) {
+                item {
+                    NewtSummary("Watching", "These rules are shown on Calls, not applied to real calls.", tone = NewtTone.Info)
+                }
+            }
             item {
                 NewtChoice(
                     options = listOf(ProtectionLevel.OFF, ProtectionLevel.BALANCED, ProtectionLevel.STRICT),

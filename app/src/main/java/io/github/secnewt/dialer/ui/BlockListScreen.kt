@@ -38,6 +38,14 @@ import androidx.compose.ui.unit.dp
 import io.github.secnewt.dialer.screening.BlockRule
 import io.github.secnewt.dialer.screening.PhoneNumbers
 import io.github.secnewt.ui.ScreenHeader
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.Icons
+import io.github.secnewt.ui.NewtFonts
+import io.github.secnewt.ui.NewtSettingsCard
+import io.github.secnewt.ui.NewtButton
+import io.github.secnewt.ui.NewtPrimaryButton
+import io.github.secnewt.ui.NewtInfo
 import io.github.secnewt.ui.neonFieldColors
 import io.github.secnewt.ui.newtContainerColor
 
@@ -55,66 +63,58 @@ fun BlockListScreen(
         LazyColumn(
             modifier = Modifier.safeDrawingPadding(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item { ScreenHeader("Block list", onBack) }
             item {
                 Text(
-                    text = "Calls from these numbers are always blocked, even when protection is Off.",
+                    text = "Always blocked, even when protection is Off.",
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
             if (sharedWithAndroid) {
                 item {
-                    Text(
-                        text = "Exact numbers are also on Android's own block list, so they're turned away " +
+                    NewtInfo(
+                        "Exact numbers are also on Android's own block list, so they're turned away " +
                             "before ringing and their texts are blocked too. \"Starting with\" rules stay in " +
                             "this app.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
             item {
-                Button(
-                    onClick = { adding = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp),
-                ) {
-                    Text("Add a number", style = MaterialTheme.typography.titleMedium)
-                }
+                NewtPrimaryButton("Add a number", onClick = { adding = true }, icon = Icons.Filled.Add, modifier = Modifier.fillMaxWidth())
             }
-            if (rules.isEmpty()) {
-                item {
-                    Text(
-                        text = "Nothing blocked yet. You can also block a number from Recent calls.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else {
-                items(rules) { rule ->
-                    Column {
+            item {
+                NewtSettingsCard("Blocked", icon = Icons.Filled.Close) {
+                    if (rules.isEmpty()) {
+                        Text(
+                            text = "Nothing blocked yet. You can also block a number from Calls.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(14.dp),
+                        )
+                    }
+                    rules.forEachIndexed { index, rule ->
+                        if (index > 0) HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.outlineVariant)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 64.dp),
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
                         ) {
                             Text(
                                 text = ruleLabel(rule),
                                 style = MaterialTheme.typography.titleLarge,
+                                fontFamily = if (rule is BlockRule.Number) NewtFonts.Mono else null,
                                 modifier = Modifier.weight(1f),
                             )
-                            TextButton(
+                            NewtButton(
+                                "Unblock",
                                 onClick = { onRemove(rule) },
-                                modifier = Modifier.semantics { contentDescription = "Remove ${ruleLabel(rule)}" },
-                            ) {
-                                Text("Remove", style = MaterialTheme.typography.titleMedium)
-                            }
+                                modifier = Modifier.semantics { contentDescription = "Unblock ${ruleLabel(rule)}" },
+                            )
                         }
-                        HorizontalDivider()
                     }
                 }
             }

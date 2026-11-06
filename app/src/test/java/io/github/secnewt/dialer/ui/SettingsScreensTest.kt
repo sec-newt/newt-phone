@@ -368,4 +368,34 @@ class SettingsScreensTest {
         composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("Unknown callers"))
         composeRule.onNode(hasText("Unknown callers") and hasText("Custom")).assertExists()
     }
+
+    @Test
+    fun blockListRowCountsNumbers() {
+        composeRule.showScreen { Settings(SpamSettings()) }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("2 numbers"))
+        composeRule.onNodeWithText("2 numbers").assertExists()
+    }
+
+    @Test
+    fun phoneCardSaysItOpensAndroidSettings() {
+        composeRule.showScreen { Settings(SpamSettings()) }
+        composeRule.onNode(hasScrollAction()).performScrollToNode(hasText("These open Android's own settings."))
+        composeRule.onNodeWithText("These open Android's own settings.").assertExists()
+    }
+
+    @Test
+    fun blockListUnblockRemovesTheRule() {
+        val removed = mutableListOf<io.github.secnewt.dialer.screening.BlockRule>()
+        composeRule.showScreen { BlockListScreen(rules = rules, onAdd = {}, onRemove = { removed += it }, onBack = {}) }
+        composeRule.onNodeWithContentDescription("Unblock (555) 019-7731").performClick()
+        assertEquals(listOf(rules.first()), removed)
+    }
+
+    @Test
+    fun blockListExplainsAndroidSharingBehindInfo() {
+        composeRule.showScreen { BlockListScreen(rules = rules, onAdd = {}, onRemove = {}, onBack = {}, sharedWithAndroid = true) }
+        composeRule.onNodeWithText("Exact numbers are also on Android's own block list", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("What's this?").performClick()
+        composeRule.onNodeWithText("Exact numbers are also on Android's own block list", substring = true).assertExists()
+    }
 }

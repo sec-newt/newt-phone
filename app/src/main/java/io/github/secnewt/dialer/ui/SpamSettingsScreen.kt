@@ -127,13 +127,19 @@ fun SpamSettingsScreen(
                         modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
                     )
                     NewtValueRow("Unknown callers", levelName(settings.level), onClick = onOpenUnknownCallers)
-                    NewtValueRow("Block list", "$blockListSize", onClick = onOpenBlockList)
+                    NewtValueRow("Block list", blockListCount(blockListSize), onClick = onOpenBlockList)
                 }
             }
 
             item {
                 NewtSettingsCard("Phone") {
                     NewtSwitchRow("Keypad sounds", keypadTones, onKeypadTonesChange, hint = "A tone for each key")
+                    Text(
+                        "These open Android's own settings.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 10.dp),
+                    )
                     listOf(SystemSetting.SOUND, SystemSetting.CALLS, SystemSetting.VOICEMAIL, SystemSetting.ACCESSIBILITY)
                         .forEach { setting ->
                             NewtValueRow(setting.title, null, onClick = { onOpenSystemSetting(setting) }, hint = setting.detail)
@@ -313,7 +319,14 @@ private fun AnnounceSection(
 internal fun announceModeName(mode: AnnounceMode) = when (mode) {
     AnnounceMode.OFF -> "Off"
     AnnounceMode.ALWAYS -> "Always"
-    AnnounceMode.HEADPHONES_ONLY -> "With headphones"
+    AnnounceMode.HEADPHONES_ONLY -> "Headphones"
+}
+
+/** "None", "1 number", "3 numbers": the Block list row's value. */
+internal fun blockListCount(size: Int) = when (size) {
+    0 -> "None"
+    1 -> "1 number"
+    else -> "$size numbers"
 }
 
 private fun announceModeExplanation(mode: AnnounceMode) = when (mode) {
