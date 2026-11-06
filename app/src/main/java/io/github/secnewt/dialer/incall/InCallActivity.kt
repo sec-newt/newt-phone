@@ -2,7 +2,9 @@ package io.github.secnewt.dialer.incall
 
 import android.app.KeyguardManager
 import android.content.Context
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.os.PowerManager
 import android.view.WindowManager
@@ -67,6 +69,8 @@ class InCallActivity : ComponentActivity() {
             onToneStart = CallManager::startTone,
             onToneStop = CallManager::stopTone,
             onAddCall = ::addCall,
+            onSilence = { CallManager.silence(this) },
+            onTextBack = ::textBack,
         )
         val photoLoader = ContactsPhotoLoader(this)
         setContent {
@@ -127,6 +131,18 @@ class InCallActivity : ComponentActivity() {
     }
 
     /** Opens the dialpad for a second call; the first goes on hold when it connects. */
+    /** Declines the call, then opens a text to the caller in the default messages app. */
+    private fun textBack(id: String) {
+        val number = CallManager.calls.value.firstOrNull { it.id == id }?.number
+        CallManager.decline(id)
+        if (number == null) return
+        try {
+            startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${Uri.encode(number)}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: ActivityNotFoundException) {
+            // No messages app: the call is still declined.
+        }
+    }
+
     private fun addCall() {
         getSystemService(KeyguardManager::class.java).requestDismissKeyguard(this, null)
         startActivity(Intent(this, MainActivity::class.java).setAction(Intent.ACTION_DIAL))

@@ -35,6 +35,13 @@ data class LiveCall(
     val parentId: String? = null,
     /** This call and the one on hold can be merged into a conference. */
     val canMerge: Boolean = false,
+    /** A favorite (starred contact). */
+    val starred: Boolean = false,
+    /** The saved number's type ("mobile", "work"), when it's a contact's. */
+    val numberType: String? = null,
+    /** When this number last had a call that was answered, and how long it lasted. */
+    val lastTalkedMillis: Long? = null,
+    val lastTalkedSeconds: Long? = null,
 )
 
 /** Sound settings for the calls in progress. */
