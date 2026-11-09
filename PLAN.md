@@ -136,6 +136,54 @@ splash shown while the app opens; the small icon stays solid for clarity.
 
 Contacts sync to a Radicale server (CardDAV). When contact editing is added, new contacts must be saved to that sync account, not a phone-only one, and a `.vcf` export comes first so nothing can be lost.
 
+## Later: from the Nov 8, 2026 code review
+
+The simple fixes went in right away (no ringing over a call in progress, no ringing after
+the call is answered, "starting with" rules typed as "+1 972", quiet-hours announcements
+following the "Starred contacts ring through" switch). These are still open.
+
+**Bugs that need a decision first**
+
+- [ ] **Unblocks come back.** The block list syncs both ways with Android's by merging, with
+  no record of removals, so a number unblocked in Messages or Android's settings is put back
+  the next time Newt Phone opens (and one unblocked here while not the phone app comes back
+  from Android's list). Needs a "removed" list or a record of the last sync.
+- [ ] **Observe-only doesn't undo Android's block list.** Turning observe-only off copies
+  exact numbers to Android; turning it back on leaves them there, so those calls are still
+  blocked. Decide: take them back off (but keep numbers that came from the stock app), or
+  say so on the setting.
+- [ ] **Two SIMs (or SIM + eSIM) set to "Ask every time":** the call waits forever on
+  "Calling…" because there's no line picker (`Call.phoneAccountSelected`). Not an issue on
+  one Ting line; it will be if an eSIM is added.
+- [ ] **Silenced calls still light the screen.** The call screen opens full-screen for every
+  call, including ones screening silenced. Check on the phone; if so, post a quiet
+  notification instead when the screening log says the call was silenced.
+
+**Smaller things**
+
+- [ ] Repeat callers ring through quiet hours but aren't announced.
+- [ ] The repeat-caller check also counts my own calls out ("I called them 2 minutes ago"
+  rings through silent). Decide whether that's wanted.
+- [ ] Spam screening reads files, contacts and call history on the main thread; Android
+  allows only a few seconds.
+
+**Features other phone apps have** (Fossify Phone, GrapheneOS/AOSP Dialer, Google Phone), in
+rough order
+
+- [ ] Line picker for two SIMs (the bug above).
+- [ ] Export and import of the block list and settings to a file: the app is left out of
+  backups, so a reinstall or new phone loses them. Stays offline.
+- [ ] "Allow this number" list and "Look up this number" button (both already planned above).
+- [ ] A page per number from Recents: every call with that number, plus Call, Text, Block.
+- [ ] Search and filters in Recents (missed only, blocked only), and deleting entries.
+- [ ] Quick text replies on Decline ("Can't talk now, I'll call you back"), editable.
+- [ ] Dialpad finds contacts by letters (6-6-6 for "Mom"), not only digits.
+- [ ] Speed dial: hold 2–9 to call a chosen contact.
+- [ ] Bluetooth device picker by name (car vs. earbuds), using Android 14's `CallEndpoint`.
+- [ ] The weekly offline data job: spam list, where a number is from, local business names.
+- Skipped on purpose: call recording (restricted on GrapheneOS) and automatic "who's calling?"
+  screening (needs on-device speech recognition; a large project).
+
 ## Open questions
 
 - [ ] Which Pixel model and GrapheneOS build? This sets the minimum Android version.

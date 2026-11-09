@@ -139,7 +139,12 @@ object CallManager {
         CallAnnouncer.stop()
         RingThrough.stop()
         val telecom = context.getSystemService(TelecomManager::class.java)
-        if (telecom.defaultDialerPackage == context.packageName) telecom.silenceRinger()
+        if (telecom.defaultDialerPackage != context.packageName) return
+        try {
+            telecom.silenceRinger()
+        } catch (e: SecurityException) {
+            // Stopped being the phone app a moment ago: Android's ringtone is its own again.
+        }
     }
 
     fun hangUp(id: String) {

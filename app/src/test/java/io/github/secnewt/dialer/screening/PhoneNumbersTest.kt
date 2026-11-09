@@ -49,4 +49,14 @@ class PhoneNumbersTest {
         assertFalse(PhoneNumbers.looksLikeCopycat("5550142290", "555014"))
         assertFalse(PhoneNumbers.looksLikeCopycat(null, "5550142290"))
     }
+
+    @Test
+    fun `prefixes drop a leading country code only before an area code`() {
+        assertEquals("972", PhoneNumbers.normalizePrefix("+1 972"))
+        assertEquals("972", PhoneNumbers.normalizePrefix("972"))
+        assertEquals("1", PhoneNumbers.normalizePrefix("1"))
+        assertEquals("10", PhoneNumbers.normalizePrefix("10"))
+        assertEquals("44", PhoneNumbers.normalizePrefix("+44"))
+        assertNull(PhoneNumbers.normalizePrefix("+"))
+    }
 }

@@ -130,7 +130,6 @@ class InCallActivity : ComponentActivity() {
         }
     }
 
-    /** Opens the dialpad for a second call; the first goes on hold when it connects. */
     /** Declines the call, then opens a text to the caller in the default messages app. */
     private fun textBack(id: String) {
         val number = CallManager.calls.value.firstOrNull { it.id == id }?.number
@@ -143,6 +142,7 @@ class InCallActivity : ComponentActivity() {
         }
     }
 
+    /** Opens the dialpad for a second call; the first goes on hold when it connects. */
     private fun addCall() {
         getSystemService(KeyguardManager::class.java).requestDismissKeyguard(this, null)
         startActivity(Intent(this, MainActivity::class.java).setAction(Intent.ACTION_DIAL))
