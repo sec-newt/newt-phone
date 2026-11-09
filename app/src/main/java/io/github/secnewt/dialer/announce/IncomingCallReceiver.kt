@@ -62,10 +62,12 @@ class IncomingCallReceiver : BroadcastReceiver() {
         if (!Announcement.shouldSpeak(settings, audioSituation(context), screening)) return
 
         val (contact, starred) = contactLookup(context, number)
-        // Quiet hours: only callers who still ring (starred contacts) are announced.
+        // Quiet hours: only callers who still ring (starred contacts, when "Starred contacts
+        // ring through" is on) are announced.
         val now = LocalTime.now()
-        val quietHours = SpamSettingsStore(context).ringSettings().quietHours
-        if (!starred && RingRules.inQuietHours(quietHours, now.hour * 60 + now.minute)) return
+        val ringSettings = SpamSettingsStore(context).ringSettings()
+        val ringsThrough = starred && ringSettings.starredRingThrough
+        if (!ringsThrough && RingRules.inQuietHours(ringSettings.quietHours, now.hour * 60 + now.minute)) return
         // Never log the number or name.
         Log.i(TAG, "Announcing incoming call (contact: ${contact != null})")
 

@@ -39,6 +39,11 @@ data class RingSituation(
     /** The screener flagged it (likely spam or blocked); never let those through. */
     val flagged: Boolean,
     val minutesAfterMidnight: Int,
+    /**
+     * Another call is already going (talking, on hold or dialing). Android plays a quiet
+     * call-waiting beep in the earpiece then, so this app never rings over the call.
+     */
+    val otherCallInProgress: Boolean = false,
 )
 
 /** The rules, kept free of Android so they can be tested. */
@@ -48,7 +53,7 @@ object RingRules {
     const val REPEAT_WINDOW_MILLIS = 3 * 60_000L
 
     fun decide(settings: RingSettings, call: RingSituation): RingAction {
-        if (call.flagged) return RingAction.NORMAL
+        if (call.flagged || call.otherCallInProgress) return RingAction.NORMAL
         val special = (call.starred && settings.starredRingThrough) || (call.repeatCaller && settings.repeatRingThrough)
         return when {
             special && !call.ringerAudible -> RingAction.RING_THROUGH

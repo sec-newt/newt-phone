@@ -106,4 +106,14 @@ class RingRulesTest {
         assertFalse(RingRules.takeTurns(isPhoneApp = false, callRingingHere = true, ringerAudible = true, ringingThrough = false))
         assertFalse(RingRules.takeTurns(isPhoneApp = true, callRingingHere = false, ringerAudible = true, ringingThrough = false))
     }
+
+    @Test
+    fun neverRingsOverACallInProgress() {
+        // A favorite calling while I'm on another call gets Android's call-waiting beep,
+        // not an alarm-volume ringtone over the conversation.
+        val waiting = call(audible = false, starred = true).copy(otherCallInProgress = true)
+        assertEquals(RingAction.NORMAL, RingRules.decide(settings, waiting))
+        val repeatWaiting = call(audible = false, repeat = true).copy(otherCallInProgress = true)
+        assertEquals(RingAction.NORMAL, RingRules.decide(settings, repeatWaiting))
+    }
 }

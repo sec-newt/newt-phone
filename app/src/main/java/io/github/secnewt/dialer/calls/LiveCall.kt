@@ -145,6 +145,14 @@ object LiveCalls {
     /** Bluetooth turns the audio button into a three-way switch instead of a speaker toggle. */
     fun audioIsSwitch(audio: AudioState): Boolean = AudioRoute.BLUETOOTH in audio.available
 
+    /** True while the call [id] is still ringing (not yet answered, declined or ended). */
+    fun isRinging(calls: List<LiveCall>, id: String): Boolean =
+        calls.any { it.id == id && it.phase == CallPhase.RINGING }
+
+    /** True when a call other than [id] is going: talking, on hold or being dialed. */
+    fun otherCallInProgress(calls: List<LiveCall>, id: String): Boolean =
+        calls.any { it.id != id && it.phase in setOf(CallPhase.ACTIVE, CallPhase.ON_HOLD, CallPhase.DIALING) }
+
     /** The screen goes dark against your ear only while the sound comes out of the earpiece. */
     fun wantsProximitySensor(calls: List<LiveCall>, audio: AudioState): Boolean {
         val main = primary(calls) ?: return false

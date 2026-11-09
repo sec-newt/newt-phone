@@ -18,7 +18,7 @@ object BlockList {
             when (rule) {
                 is BlockRule.Number -> PhoneNumbers.normalize(rule.number) == number
                 is BlockRule.StartsWith -> {
-                    val prefix = PhoneNumbers.normalize(rule.digits)
+                    val prefix = PhoneNumbers.normalizePrefix(rule.digits)
                     prefix != null && number.startsWith(prefix)
                 }
             }

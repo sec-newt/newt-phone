@@ -70,7 +70,7 @@ class DialerInCallService : InCallService() {
             }
             CallManager.setCallerInfo(id, info)
             if (incoming) {
-                applyRingRules(info, RingRules.isRepeat(number, System.currentTimeMillis(), earlierCalls))
+                applyRingRules(id, info, RingRules.isRepeat(number, System.currentTimeMillis(), earlierCalls))
                 CallManager.rememberIncoming(number)
             }
         }
@@ -100,7 +100,12 @@ class DialerInCallService : InCallService() {
      * Starred contacts and repeat callers ring even on silent; during quiet hours everyone
      * else rings silently (the call still shows on screen).
      */
-    private suspend fun applyRingRules(info: CallerInfo, repeatCaller: Boolean) {
+    private suspend fun applyRingRules(id: String, info: CallerInfo, repeatCaller: Boolean) {
+        // Looking up the caller takes a moment; if the call was answered or ended meanwhile,
+        // there's nothing left to ring. (Telecom also runs on this thread, so nothing changes
+        // between this check and acting on it.)
+        val calls = CallManager.calls.value
+        if (!LiveCalls.isRinging(calls, id)) return
         val settings = SpamSettingsStore(this).ringSettings()
         val now = LocalTime.now()
         val situation = RingSituation(
@@ -109,6 +114,7 @@ class DialerInCallService : InCallService() {
             repeatCaller = repeatCaller,
             flagged = info.spamLabel != null,
             minutesAfterMidnight = now.hour * 60 + now.minute,
+            otherCallInProgress = LiveCalls.otherCallInProgress(calls, id),
         )
         when (RingRules.decide(settings, situation)) {
             RingAction.RING_THROUGH -> RingThrough.start(this)

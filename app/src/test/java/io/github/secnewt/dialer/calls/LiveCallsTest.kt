@@ -120,4 +120,21 @@ class LiveCallsTest {
         assertFalse(LiveCalls.showMerge(talking, call("b", CallPhase.RINGING)))
         assertFalse(LiveCalls.showMerge(talking.copy(canMerge = false), call("b", CallPhase.ON_HOLD)))
     }
+
+    @Test
+    fun aCallAnsweredDuringTheLookupIsNoLongerRinging() {
+        assertTrue(LiveCalls.isRinging(listOf(call("a", CallPhase.RINGING)), "a"))
+        assertFalse(LiveCalls.isRinging(listOf(call("a", CallPhase.ACTIVE)), "a"))
+        assertFalse(LiveCalls.isRinging(emptyList(), "a"))
+    }
+
+    @Test
+    fun otherCallsInProgressAreTalkingOnHoldOrDialing() {
+        val ringing = call("b", CallPhase.RINGING)
+        assertFalse(LiveCalls.otherCallInProgress(listOf(ringing), "b"))
+        assertTrue(LiveCalls.otherCallInProgress(listOf(call("a", CallPhase.ACTIVE), ringing), "b"))
+        assertTrue(LiveCalls.otherCallInProgress(listOf(call("a", CallPhase.ON_HOLD), ringing), "b"))
+        assertTrue(LiveCalls.otherCallInProgress(listOf(call("a", CallPhase.DIALING), ringing), "b"))
+        assertFalse(LiveCalls.otherCallInProgress(listOf(call("a", CallPhase.ENDED), ringing), "b"))
+    }
 }
