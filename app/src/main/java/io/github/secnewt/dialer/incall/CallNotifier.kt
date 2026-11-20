@@ -30,7 +30,7 @@ class CallNotifier(private val context: Context) {
         incoming.setSound(null, null)
         incoming.enableVibration(false)
         val incomingQuiet = NotificationChannel(
-            INCOMING_QUIET_CHANNEL, "Incoming calls (call screen open)", NotificationManager.IMPORTANCE_LOW,
+            INCOMING_QUIET_CHANNEL, "Incoming calls (quiet)", NotificationManager.IMPORTANCE_LOW,
         )
         val ongoing = NotificationChannel(ONGOING_CHANNEL, "Calls in progress", NotificationManager.IMPORTANCE_LOW)
         manager.createNotificationChannels(listOf(incoming, incomingQuiet, ongoing))
@@ -60,10 +60,12 @@ class CallNotifier(private val context: Context) {
                 screenSeen = false
             }
             if (screenShowing) screenSeen = true
+            // A silenced call stays in the shade: no pop-up and no full-screen call window.
+            val quiet = screenShowing || main.silenced
             // Going from quiet to loud: start over so it pops up instead of updating silently.
-            if (!screenShowing && postedQuietly) manager.cancel(NOTIFICATION_ID)
-            postedQuietly = screenShowing
-            buildIncoming(main, quiet = screenShowing, fullScreen = !screenSeen)
+            if (!quiet && postedQuietly) manager.cancel(NOTIFICATION_ID)
+            postedQuietly = quiet
+            buildIncoming(main, quiet = quiet, fullScreen = !screenSeen && !main.silenced)
         } else {
             ringingId = null
             postedQuietly = false
@@ -82,6 +84,14 @@ class CallNotifier(private val context: Context) {
         manager.cancel(NOTIFICATION_ID)
     }
 
+    /**
+     * Whether a quiet incoming-call notification would really show. A silenced call skips the
+     * call screen only then; otherwise it would have no way to be answered.
+     */
+    fun canShowQuietCall(): Boolean =
+        canNotify() && manager.getNotificationChannel(INCOMING_QUIET_CHANNEL)
+            ?.let { it.importance != NotificationManager.IMPORTANCE_NONE } ?: false
+
     /** Android 13 and later ask before an app may show notifications. */
     private fun canNotify(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
@@ -99,7 +109,7 @@ class CallNotifier(private val context: Context) {
         val builder = Notification.Builder(context, if (quiet) INCOMING_QUIET_CHANNEL else INCOMING_CHANNEL)
             .setSmallIcon(R.drawable.ic_call_notification)
             .setContentTitle(callTitle(call))
-            .setContentText(call.spamLabel ?: "Incoming call")
+            .setContentText(call.spamLabel ?: if (call.silenced) "Silenced call" else "Incoming call")
             .setCategory(Notification.CATEGORY_CALL)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

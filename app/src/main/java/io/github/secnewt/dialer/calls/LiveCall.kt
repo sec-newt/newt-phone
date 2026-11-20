@@ -42,6 +42,8 @@ data class LiveCall(
     /** When this number last had a call that was answered, and how long it lasted. */
     val lastTalkedMillis: Long? = null,
     val lastTalkedSeconds: Long? = null,
+    /** Silenced by spam screening: rings without sound and doesn't take over the screen. */
+    val silenced: Boolean = false,
 )
 
 /** Sound settings for the calls in progress. */

@@ -3,6 +3,7 @@ package io.github.secnewt.dialer.screening
 import android.telecom.Call
 import android.telecom.CallScreeningService
 import android.telecom.Connection
+import android.os.SystemClock
 import android.util.Log
 
 /**
@@ -15,6 +16,7 @@ import android.util.Log
 class SpamScreeningService : CallScreeningService() {
 
     override fun onScreenCall(callDetails: Call.Details) {
+        val startedAt = SystemClock.elapsedRealtime()
         if (callDetails.callDirection != Call.Details.DIRECTION_INCOMING) {
             respondToCall(callDetails, CallResponse.Builder().build())
             return
@@ -39,7 +41,14 @@ class SpamScreeningService : CallScreeningService() {
             ScreeningDecision(CallAction.RING, Reason.NONE) to false
         }
 
-        respondToCall(callDetails, responseFor(if (enforced) decision.action else CallAction.RING))
+        val action = if (enforced) decision.action else CallAction.RING
+        // Before answering Android, so the call screen knows by the time the call reaches it.
+        if (action == CallAction.SILENCE &&
+            SilencedCalls.answeredInTime(SystemClock.elapsedRealtime() - startedAt)
+        ) {
+            SilencedCalls.mark(number, System.currentTimeMillis())
+        }
+        respondToCall(callDetails, responseFor(action))
 
         ScreeningLog(this).add(
             ScreenedCall(
