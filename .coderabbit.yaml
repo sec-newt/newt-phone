@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit AI review. Tuned to be quiet: real bugs, security, privacy and
+# accessibility, not style nitpicks. Delete this file and remove the repo from
+# the CodeRabbit GitHub App to turn it off.
+language: en-US
+tone_instructions: "Be brief and direct. Skip praise. Only comment when something is wrong or risky."
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  collapse_walkthrough: true
+  review_details: false
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  in_progress_fortune: false
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords: ["WIP", "[skip review]"]
+    ignore_usernames: ["dependabot[bot]"]
+
+  path_filters:
+    - "!**/build/**"
+    - "!gradle/wrapper/**"
+
+  path_instructions:
+    - path: "**/*.kt"
+      instructions: |
+        This is a private, offline phone app (dialer, call screens, spam
+        screening, spoken caller announcement) for GrapheneOS. It has no
+        internet permission. Focus on, in order:
+        1. Safety of calls: emergency numbers must never be blocked, delayed
+           or screened. A real caller must never be silenced by mistake:
+           favorites and repeat callers ring even on silent, and screening
+           must fail open (ring) on any error. Flag any change to screening
+           or ringing rules that has no test.
+        2. Privacy: contacts, phone numbers, names and call history must
+           never reach logs (Log.*, println, exceptions with messages) or
+           leave the phone. Content providers shared with Newt Messages and
+           Newt Home must stay signature-protected and read-only.
+        3. Correctness: Telecom/InCallService state bugs, stale call state,
+           disk or contacts queries on the main thread, coroutine
+           cancellation bugs, mutable or implicit PendingIntents, exported
+           components that accept untrusted input.
+        4. Accessibility: the primary user has low vision. Flag Compose UI
+           missing contentDescription/semantics, buttons under 56dp or rows
+           under 48dp, text under 16sp, meaning carried by color alone,
+           duplicate screen-reader labels, and animations that ignore the
+           system "remove animations" setting.
+        Do not comment on naming, formatting, or minor style.
+    - path: "**/AndroidManifest.xml"
+      instructions: |
+        Flag any new permission (especially INTERNET, which is never
+        allowed), exported component, or intent filter, and check it
+        against config/allowed-permissions.txt.
+    - path: ".github/workflows/**"
+      instructions: |
+        Flag unpinned actions (must be pinned to a full commit SHA), widened
+        token permissions, and pull_request_target usage.
+
+chat:
+  auto_reply: true
