@@ -30,7 +30,7 @@ class CallNotifier(private val context: Context) {
         incoming.setSound(null, null)
         incoming.enableVibration(false)
         val incomingQuiet = NotificationChannel(
-            INCOMING_QUIET_CHANNEL, "Incoming calls (call screen open)", NotificationManager.IMPORTANCE_LOW,
+            INCOMING_QUIET_CHANNEL, "Incoming calls (quiet)", NotificationManager.IMPORTANCE_LOW,
         )
         val ongoing = NotificationChannel(ONGOING_CHANNEL, "Calls in progress", NotificationManager.IMPORTANCE_LOW)
         manager.createNotificationChannels(listOf(incoming, incomingQuiet, ongoing))
@@ -83,6 +83,14 @@ class CallNotifier(private val context: Context) {
         postedQuietly = false
         manager.cancel(NOTIFICATION_ID)
     }
+
+    /**
+     * Whether a quiet incoming-call notification would really show. A silenced call skips the
+     * call screen only then; otherwise it would have no way to be answered.
+     */
+    fun canShowQuietCall(): Boolean =
+        canNotify() && manager.getNotificationChannel(INCOMING_QUIET_CHANNEL)
+            ?.let { it.importance != NotificationManager.IMPORTANCE_NONE } ?: false
 
     /** Android 13 and later ask before an app may show notifications. */
     private fun canNotify(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

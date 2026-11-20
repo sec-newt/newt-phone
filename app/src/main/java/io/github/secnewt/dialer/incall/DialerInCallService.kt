@@ -64,7 +64,9 @@ class DialerInCallService : InCallService() {
         val id = CallManager.add(call)
         val number = CallManager.numberOf(call)
         val incoming = CallManager.calls.value.firstOrNull { it.id == id }?.phase == CallPhase.RINGING
-        val silenced = incoming && SilencedCalls.take(number, System.currentTimeMillis())
+        // Without a notification to answer from, a silenced call still opens the call screen.
+        val silenced = incoming && SilencedCalls.take(number, System.currentTimeMillis()) &&
+            notifier.canShowQuietCall()
         if (silenced) CallManager.markSilenced(id)
         scope.launch {
             val (info, earlierCalls) = withContext(Dispatchers.IO) {
