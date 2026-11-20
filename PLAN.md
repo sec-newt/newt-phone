@@ -113,8 +113,10 @@ Start with a screening app that works alongside the GrapheneOS dialer. It delive
    - Done when: incoming, outgoing and emergency calls are tested, plus Bluetooth/car and a call while another is active. Keep the stock dialer installed as a fallback.
 
 - [x] Create the GitHub repo for the app
-- [ ] Set up the project skeleton and an APK build on GitHub Actions
-- [ ] Phase 1 build
+- [x] Set up the project skeleton and an APK build on GitHub Actions
+- [x] Phase 1 build
+- [x] Phase 2 build
+- [x] Phase 3 build: Newt Phone is the default phone app
 
 ## GrapheneOS notes
 
@@ -155,9 +157,9 @@ following the "Starred contacts ring through" switch). These are still open.
 - [ ] **Two SIMs (or SIM + eSIM) set to "Ask every time":** the call waits forever on
   "Calling…" because there's no line picker (`Call.phoneAccountSelected`). Not an issue on
   one Ting line; it will be if an eSIM is added.
-- [ ] **Silenced calls still light the screen.** The call screen opens full-screen for every
-  call, including ones screening silenced. Check on the phone; if so, post a quiet
-  notification instead when the screening log says the call was silenced.
+- [x] **Silenced calls still light the screen.** The call screen opened full-screen for every
+  call, including ones screening silenced. Fixed in #62: a silenced call gets a quiet
+  notification with Answer and Decline instead. Still to confirm on the phone.
 
 **Smaller things**
 
@@ -191,4 +193,4 @@ rough order
 - [ ] Does Ting offer carrier-side scam blocking on its T-Mobile service? If so, turn it on as a first filter.
 - [ ] Default action for "likely spam": silence and label, or reject outright?
 - [ ] Should caller announcement speak during DND, or stay quiet?
-- [ ] App name.
+- [x] App name: Newt Phone.
