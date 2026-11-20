@@ -77,6 +77,7 @@ object CallManager {
         call.unregisterCallback(callback)
         telecomCalls.remove(id)
         callerInfo.remove(id)
+        silencedIds.remove(id)
         publish()
     }
 
@@ -84,6 +85,16 @@ object CallManager {
         telecomCalls.values.forEach { it.unregisterCallback(callback) }
         telecomCalls.clear()
         callerInfo.clear()
+        silencedIds.clear()
+        publish()
+    }
+
+    /** Calls that spam screening silenced. */
+    private val silencedIds = mutableSetOf<String>()
+
+    fun markSilenced(id: String) {
+        if (id !in telecomCalls) return
+        silencedIds += id
         publish()
     }
 
@@ -254,6 +265,7 @@ object CallManager {
             numberType = info.numberType,
             lastTalkedMillis = info.lastTalkedMillis,
             lastTalkedSeconds = info.lastTalkedSeconds,
+            silenced = id in silencedIds,
             canHold = details.can(Call.Details.CAPABILITY_HOLD),
             isEmergency = info.isEmergency,
             isVoicemail = details.handle?.scheme == PhoneAccount.SCHEME_VOICEMAIL,

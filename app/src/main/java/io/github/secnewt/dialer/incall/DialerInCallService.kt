@@ -14,6 +14,7 @@ import io.github.secnewt.dialer.calls.CallPhase
 import io.github.secnewt.dialer.calls.RingAction
 import io.github.secnewt.dialer.calls.RingRules
 import io.github.secnewt.dialer.calls.RingSituation
+import io.github.secnewt.dialer.screening.SilencedCalls
 import io.github.secnewt.dialer.screening.SpamSettingsStore
 import java.time.LocalTime
 import io.github.secnewt.dialer.calls.LiveCalls
@@ -51,8 +52,10 @@ class DialerInCallService : InCallService() {
             combine(CallManager.calls, CallManager.screenShowing) { calls, showing -> calls to showing }
                 .collectLatest { (calls, showing) ->
                     // Give the call screen a moment to open, so the banner doesn't pop up over it.
-                    val ringing = LiveCalls.primary(calls)?.phase == CallPhase.RINGING
-                    if (ringing && !showing) delay(BANNER_DELAY_MILLIS)
+                    // A silenced call opens no screen, so its notification goes up straight away.
+                    val primary = LiveCalls.primary(calls)
+                    val ringing = primary?.phase == CallPhase.RINGING
+                    if (ringing && !showing && !primary.silenced) delay(BANNER_DELAY_MILLIS)
                     notifier.update(calls, screenShowing = showing)
                 }
         }
@@ -63,19 +66,26 @@ class DialerInCallService : InCallService() {
         val id = CallManager.add(call)
         val number = CallManager.numberOf(call)
         val incoming = CallManager.calls.value.firstOrNull { it.id == id }?.phase == CallPhase.RINGING
+        // Without a notification to answer from, a silenced call still opens the call screen.
+        val silenced = incoming && SilencedCalls.take(number, System.currentTimeMillis()) &&
+            notifier.canShowQuietCall()
+        if (silenced) CallManager.markSilenced(id)
         scope.launch {
             val (info, earlierCalls) = withContext(Dispatchers.IO) {
                 CallerLookup(this@DialerInCallService).lookup(number) to
                     if (incoming) recentCalls() else emptyList()
             }
             CallManager.setCallerInfo(id, info)
-            if (incoming) {
+            if (silenced) {
+                CallManager.rememberIncoming(number)
+            } else if (incoming) {
                 applyRingRules(id, info, RingRules.isRepeat(number, System.currentTimeMillis(), earlierCalls))
                 CallManager.rememberIncoming(number)
             }
         }
+        // A silenced call only goes in the notification shade; it's still answerable from there.
         // Allowed from here: Android lets a bound in-call service open its call screen.
-        startActivity(InCallActivity.intent(this))
+        if (!silenced) startActivity(InCallActivity.intent(this))
     }
 
     override fun onCallRemoved(call: Call) {

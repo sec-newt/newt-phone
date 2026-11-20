@@ -157,7 +157,8 @@ unknown numbers before they ring:
   choices (Ring, Silence or Block) for new numbers, made-up numbers, likely spam,
   hidden numbers and copycat numbers. Tapping a row explains it.
 - **New numbers:** a caller who isn't in your contacts and whom you've never called.
-  Silenced by default (still in Recents and voicemail). A second call within 3 minutes
+  Silenced by default: it shows quietly in the notification shade, where you can still
+  answer, without opening the call screen (still in Recents and voicemail). A second call within 3 minutes
   rings, and calling a number back or adding it to contacts lets it ring from then on.
   Set New numbers to **Ring** while you're expecting calls from people you don't know
   yet, like during a job search. Needs contacts and call history access; without them,
