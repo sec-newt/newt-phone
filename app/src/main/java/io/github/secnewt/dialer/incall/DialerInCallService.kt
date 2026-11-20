@@ -55,7 +55,7 @@ class DialerInCallService : InCallService() {
                     // A silenced call opens no screen, so its notification goes up straight away.
                     val primary = LiveCalls.primary(calls)
                     val ringing = primary?.phase == CallPhase.RINGING
-                    if (ringing && !showing && !primary.silenced) delay(BANNER_DELAY_MILLIS)
+                    if (ringing && !showing && primary?.silenced != true) delay(BANNER_DELAY_MILLIS)
                     notifier.update(calls, screenShowing = showing)
                 }
         }
