@@ -60,10 +60,12 @@ class CallNotifier(private val context: Context) {
                 screenSeen = false
             }
             if (screenShowing) screenSeen = true
+            // A silenced call stays in the shade: no pop-up and no full-screen call window.
+            val quiet = screenShowing || main.silenced
             // Going from quiet to loud: start over so it pops up instead of updating silently.
-            if (!screenShowing && postedQuietly) manager.cancel(NOTIFICATION_ID)
-            postedQuietly = screenShowing
-            buildIncoming(main, quiet = screenShowing, fullScreen = !screenSeen)
+            if (!quiet && postedQuietly) manager.cancel(NOTIFICATION_ID)
+            postedQuietly = quiet
+            buildIncoming(main, quiet = quiet, fullScreen = !screenSeen && !main.silenced)
         } else {
             ringingId = null
             postedQuietly = false
@@ -99,7 +101,7 @@ class CallNotifier(private val context: Context) {
         val builder = Notification.Builder(context, if (quiet) INCOMING_QUIET_CHANNEL else INCOMING_CHANNEL)
             .setSmallIcon(R.drawable.ic_call_notification)
             .setContentTitle(callTitle(call))
-            .setContentText(call.spamLabel ?: "Incoming call")
+            .setContentText(call.spamLabel ?: if (call.silenced) "Silenced call" else "Incoming call")
             .setCategory(Notification.CATEGORY_CALL)
             .setOngoing(true)
             .setOnlyAlertOnce(true)

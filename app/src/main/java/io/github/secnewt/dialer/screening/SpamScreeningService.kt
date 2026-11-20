@@ -39,7 +39,10 @@ class SpamScreeningService : CallScreeningService() {
             ScreeningDecision(CallAction.RING, Reason.NONE) to false
         }
 
-        respondToCall(callDetails, responseFor(if (enforced) decision.action else CallAction.RING))
+        val action = if (enforced) decision.action else CallAction.RING
+        // Before answering Android, so the call screen knows by the time the call reaches it.
+        if (action == CallAction.SILENCE) SilencedCalls.mark(number, System.currentTimeMillis())
+        respondToCall(callDetails, responseFor(action))
 
         ScreeningLog(this).add(
             ScreenedCall(
