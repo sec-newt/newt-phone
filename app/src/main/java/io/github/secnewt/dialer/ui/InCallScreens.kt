@@ -342,10 +342,6 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
             if (keypadOpen) {
                 ToneKeypad(
                     tones = tones,
-                    status = when {
-                        sending != null -> "Sending ${sent.first} of ${sent.second}"
-                        else -> pasteNote
-                    },
                     onTone = { digit ->
                         tones = (tones + digit).takeLast(Dialpad.MAX_LENGTH)
                         actions.onTone(call.id, digit)
@@ -353,8 +349,12 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
                 )
             }
         }
-        if (keypadOpen) {
+        if (keypadOpen && call.phase != CallPhase.ENDED) {
             ToneKeypadActions(
+                status = when {
+                    sending != null -> "Sending ${sent.first} of ${sent.second}"
+                    else -> pasteNote
+                },
                 sending = sending != null,
                 onPaste = {
                     val digits = Dialpad.toneDigits(clipboardText(context).orEmpty())
@@ -675,20 +675,10 @@ private fun BigCallButton(
 @Composable
 private fun ToneKeypad(
     tones: String,
-    status: String?,
     onTone: (Char) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        if (status != null) {
-            Text(
-                status,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.tertiary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        } else if (tones.isNotEmpty()) {
+        if (tones.isNotEmpty()) {
             Text(
                 tones,
                 style = MaterialTheme.typography.headlineMedium,
@@ -718,41 +708,59 @@ private fun ToneKeypad(
 
 /**
  * Paste and Hide keypad, kept outside the scrolling part of the call screen so they always
- * show in full above End call.
+ * show in full above End call. What Paste did ("Sending 3 of 16", "Nothing to paste") shows
+ * right above them, so it's in view when the button is tapped.
  */
 @Composable
 private fun ToneKeypadActions(
+    status: String?,
     sending: Boolean,
     onPaste: () -> Unit,
     onStop: () -> Unit,
     onHide: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier.fillMaxWidth()) {
-        if (sending) {
-            OutlinedButton(
-                onClick = onStop,
-                modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-            ) {
-                Text("Stop sending", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
-        } else {
-            OutlinedButton(
-                onClick = onPaste,
-                border = neonOutline(),
-                modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-            ) {
-                Icon(PasteIcon, contentDescription = null, modifier = Modifier.size(24.dp))
-                Text(
-                    "Paste",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        if (status != null) {
+            Text(
+                status,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.tertiary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
         }
-        TextButton(onClick = onHide, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
-            Text("Hide keypad", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            if (sending) {
+                OutlinedButton(
+                    onClick = onStop,
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                ) {
+                    Text("Stop sending", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                OutlinedButton(
+                    onClick = onPaste,
+                    border = neonOutline(),
+                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+                ) {
+                    Icon(PasteIcon, contentDescription = null, modifier = Modifier.size(24.dp))
+                    Text(
+                        "Paste",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+            TextButton(onClick = onHide, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+                Text("Hide keypad", style = MaterialTheme.typography.titleMedium)
+            }
         }
     }
 }
