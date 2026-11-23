@@ -346,24 +346,29 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
                         sending != null -> "Sending ${sent.first} of ${sent.second}"
                         else -> pasteNote
                     },
-                    sending = sending != null,
                     onTone = { digit ->
                         tones = (tones + digit).takeLast(Dialpad.MAX_LENGTH)
                         actions.onTone(call.id, digit)
                     },
-                    onPaste = {
-                        val digits = Dialpad.toneDigits(clipboardText(context).orEmpty())
-                        when {
-                            digits.isEmpty() -> pasteNote = "Nothing to paste. Copy a number first."
-                            digits.length > Dialpad.MAX_LENGTH ->
-                                pasteNote = "That's more than ${Dialpad.MAX_LENGTH} digits. Copy just the number."
-                            else -> pasted = digits
-                        }
-                    },
-                    onStop = { sending?.cancel() },
-                    onHide = { keypadOpen = false },
                 )
             }
+        }
+        if (keypadOpen) {
+            ToneKeypadActions(
+                sending = sending != null,
+                onPaste = {
+                    val digits = Dialpad.toneDigits(clipboardText(context).orEmpty())
+                    when {
+                        digits.isEmpty() -> pasteNote = "Nothing to paste. Copy a number first."
+                        digits.length > Dialpad.MAX_LENGTH ->
+                            pasteNote = "That's more than ${Dialpad.MAX_LENGTH} digits. Copy just the number."
+                        else -> pasted = digits
+                    }
+                },
+                onStop = { sending?.cancel() },
+                onHide = { keypadOpen = false },
+                modifier = Modifier.padding(vertical = 12.dp),
+            )
         }
         if (call.phase != CallPhase.ENDED) {
             if (!keypadOpen) {
@@ -671,11 +676,7 @@ private fun BigCallButton(
 private fun ToneKeypad(
     tones: String,
     status: String?,
-    sending: Boolean,
     onTone: (Char) -> Unit,
-    onPaste: () -> Unit,
-    onStop: () -> Unit,
-    onHide: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         if (status != null) {
@@ -697,7 +698,8 @@ private fun ToneKeypad(
             )
         }
         Dialpad.keys.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Every key in a row is as tall as the tallest, so 1, * and # match the rest.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
                 row.forEach { key ->
                     Key(
                         key = key,
@@ -706,37 +708,51 @@ private fun ToneKeypad(
                         label = Dialpad.toneLabel(key),
                         longPressLabel = null,
                         showVoicemail = false,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            if (sending) {
-                OutlinedButton(
-                    onClick = onStop,
-                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-                ) {
-                    Text("Stop sending", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                }
-            } else {
-                OutlinedButton(
-                    onClick = onPaste,
-                    border = neonOutline(),
-                    modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-                ) {
-                    Icon(PasteIcon, contentDescription = null, modifier = Modifier.size(24.dp))
-                    Text(
-                        "Paste",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+    }
+}
+
+/**
+ * Paste and Hide keypad, kept outside the scrolling part of the call screen so they always
+ * show in full above End call.
+ */
+@Composable
+private fun ToneKeypadActions(
+    sending: Boolean,
+    onPaste: () -> Unit,
+    onStop: () -> Unit,
+    onHide: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier.fillMaxWidth()) {
+        if (sending) {
+            OutlinedButton(
+                onClick = onStop,
+                modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+            ) {
+                Text("Stop sending", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
-            TextButton(onClick = onHide, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
-                Text("Hide keypad", style = MaterialTheme.typography.titleMedium)
+        } else {
+            OutlinedButton(
+                onClick = onPaste,
+                border = neonOutline(),
+                modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+            ) {
+                Icon(PasteIcon, contentDescription = null, modifier = Modifier.size(24.dp))
+                Text(
+                    "Paste",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
             }
+        }
+        TextButton(onClick = onHide, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+            Text("Hide keypad", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
