@@ -342,28 +342,33 @@ private fun InCallScreen(call: LiveCall, other: LiveCall?, audio: AudioState, ac
             if (keypadOpen) {
                 ToneKeypad(
                     tones = tones,
-                    status = when {
-                        sending != null -> "Sending ${sent.first} of ${sent.second}"
-                        else -> pasteNote
-                    },
-                    sending = sending != null,
                     onTone = { digit ->
                         tones = (tones + digit).takeLast(Dialpad.MAX_LENGTH)
                         actions.onTone(call.id, digit)
                     },
-                    onPaste = {
-                        val digits = Dialpad.toneDigits(clipboardText(context).orEmpty())
-                        when {
-                            digits.isEmpty() -> pasteNote = "Nothing to paste. Copy a number first."
-                            digits.length > Dialpad.MAX_LENGTH ->
-                                pasteNote = "That's more than ${Dialpad.MAX_LENGTH} digits. Copy just the number."
-                            else -> pasted = digits
-                        }
-                    },
-                    onStop = { sending?.cancel() },
-                    onHide = { keypadOpen = false },
                 )
             }
+        }
+        if (keypadOpen && call.phase != CallPhase.ENDED) {
+            ToneKeypadActions(
+                status = when {
+                    sending != null -> "Sending ${sent.first} of ${sent.second}"
+                    else -> pasteNote
+                },
+                sending = sending != null,
+                onPaste = {
+                    val digits = Dialpad.toneDigits(clipboardText(context).orEmpty())
+                    when {
+                        digits.isEmpty() -> pasteNote = "Nothing to paste. Copy a number first."
+                        digits.length > Dialpad.MAX_LENGTH ->
+                            pasteNote = "That's more than ${Dialpad.MAX_LENGTH} digits. Copy just the number."
+                        else -> pasted = digits
+                    }
+                },
+                onStop = { sending?.cancel() },
+                onHide = { keypadOpen = false },
+                modifier = Modifier.padding(vertical = 12.dp),
+            )
         }
         if (call.phase != CallPhase.ENDED) {
             if (!keypadOpen) {
@@ -670,24 +675,10 @@ private fun BigCallButton(
 @Composable
 private fun ToneKeypad(
     tones: String,
-    status: String?,
-    sending: Boolean,
     onTone: (Char) -> Unit,
-    onPaste: () -> Unit,
-    onStop: () -> Unit,
-    onHide: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        if (status != null) {
-            Text(
-                status,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.tertiary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        } else if (tones.isNotEmpty()) {
+        if (tones.isNotEmpty()) {
             Text(
                 tones,
                 style = MaterialTheme.typography.headlineMedium,
@@ -697,7 +688,8 @@ private fun ToneKeypad(
             )
         }
         Dialpad.keys.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Every key in a row is as tall as the tallest, so 1, * and # match the rest.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
                 row.forEach { key ->
                     Key(
                         key = key,
@@ -706,10 +698,42 @@ private fun ToneKeypad(
                         label = Dialpad.toneLabel(key),
                         longPressLabel = null,
                         showVoicemail = false,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Paste and Hide keypad, kept outside the scrolling part of the call screen so they always
+ * show in full above End call. What Paste did ("Sending 3 of 16", "Nothing to paste") shows
+ * right above them, so it's in view when the button is tapped.
+ */
+@Composable
+private fun ToneKeypadActions(
+    status: String?,
+    sending: Boolean,
+    onPaste: () -> Unit,
+    onStop: () -> Unit,
+    onHide: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        if (status != null) {
+            Text(
+                status,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.tertiary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             if (sending) {

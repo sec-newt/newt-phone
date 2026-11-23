@@ -27,6 +27,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -300,7 +303,8 @@ private fun Keypad(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Dialpad.keys.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Every key in a row is as tall as the tallest, so 1, * and # match the rest.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
                 row.forEach { key ->
                     Key(
                         key = key,
@@ -315,7 +319,7 @@ private fun Keypad(
                                 onEdit(Dialpad.type(dial, if (key.digit == '0') "+" else key.digit.toString()))
                             }
                         },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
             }

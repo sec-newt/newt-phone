@@ -4,6 +4,9 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performSemanticsAction
@@ -202,6 +205,45 @@ class InCallScreensTest {
         assertEquals(listOf("call-1" to '1', "call-1" to '#'), tones)
         composeRule.onNodeWithText("Hide keypad").performClick()
         composeRule.onNodeWithText("Mute").assertExists()
+    }
+
+    @Test
+    fun keypadKeysAreEvenAndPasteClearsEndCallAt200pct() {
+        copyToClipboard("hello")
+        composeRule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                NewtTheme(darkTheme = true) { Screen(mom.copy(name = "City Paratransit Office")) }
+            }
+        }
+        composeRule.onNodeWithText("Keypad").performClick()
+        fun bounds(description: String) =
+            composeRule.onNodeWithContentDescription(description).fetchSemanticsNode().boundsInRoot
+        // 1, * and # have no letters under them, but are as tall as the keys beside them.
+        assertEquals(bounds("2").height, bounds("1").height, 0.5f)
+        assertEquals(bounds("0").height, bounds("Star").height, 0.5f)
+        assertEquals(bounds("0").height, bounds("Pound").height, 0.5f)
+        // Paste and Hide keypad sit fully above End call, never under it.
+        val endCallTop = composeRule.onNodeWithText("End call").fetchSemanticsNode().boundsInRoot.top
+        val paste = composeRule.onNodeWithText("Paste").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val hide = composeRule.onNodeWithText("Hide keypad").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue(paste.bottom <= endCallTop)
+        assertTrue(hide.bottom <= endCallTop)
+        // What Paste did shows beside it, in view, not up above the keys.
+        composeRule.onNodeWithText("Paste").performClick()
+        val note = composeRule.onNodeWithText("Nothing to paste. Copy a number first.").assertIsDisplayed()
+        assertTrue(note.fetchSemanticsNode().boundsInRoot.bottom <= paste.top + 0.5f)
+    }
+
+    @Test
+    fun pasteIsGoneOnceTheCallEnds() {
+        var phase by mutableStateOf(CallPhase.ACTIVE)
+        composeRule.setContent { NewtTheme(darkTheme = true) { Screen(mom.copy(phase = phase)) } }
+        composeRule.onNodeWithText("Keypad").performClick()
+        composeRule.onNodeWithText("Paste").assertIsDisplayed()
+        phase = CallPhase.ENDED
+        composeRule.onNodeWithText("Paste").assertDoesNotExist()
+        composeRule.onNodeWithText("Hide keypad").assertDoesNotExist()
     }
 
     private fun copyToClipboard(text: String) {
